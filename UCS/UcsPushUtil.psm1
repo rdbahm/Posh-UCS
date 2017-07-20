@@ -2,6 +2,7 @@ $Script:Port = 80
 $Script:UseSSL = $false
 $Script:DefaultTimeout = New-TimeSpan -Seconds 5
 $Script:DefaultRetries = 3
+$Script:PushCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ('UCSToolkit', (ConvertTo-SecureString -String 'UCSToolkit' -AsPlainText -Force))
 
 Function Invoke-UcsPushWebRequest 
 {
