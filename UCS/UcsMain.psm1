@@ -174,12 +174,26 @@ Function Stop-UcsCall
           {
             'REST'
             {
-              $ThisOutput = Stop-UcsRestCall -IPv4Address $ThisIPv4Address -CallHandle $CallHandle -ErrorAction Stop
+              if($CallHandle)
+              {
+                $ThisOutput = Stop-UcsRestCall -IPv4Address $ThisIPv4Address -CallHandle $CallHandle -ErrorAction Stop
+              }
+              else
+              {
+                $ThisOutput = Stop-UcsRestCall -IPv4Address $ThisIPv4Address -ErrorAction Stop
+              }
               $GetSuccess = $true
             }
             'Push'
             {
-              $ThisOutput = Send-UcsPushCallAction -IPv4Address $ThisIPv4Address -CallAction EndCall -CallHandle $CallHandle -ErrorAction Stop
+              if($CallHandle)
+              {
+                $ThisOutput = Send-UcsPushCallAction -IPv4Address $ThisIPv4Address -CallAction EndCall -CallHandle $CallHandle -ErrorAction Stop
+              }
+              else
+              {
+                $ThisOutput = Send-UcsPushCallAction -IPv4Address $ThisIPv4Address -CallAction EndCall -ErrorAction Stop
+              }
               $GetSuccess = $true
             }
             Default
