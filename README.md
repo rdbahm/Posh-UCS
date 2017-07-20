@@ -12,6 +12,12 @@ A PowerShell module attempting to bring together all the ways to manage and admi
 
 We refer to each of the above as an API in the cmdlets despite the technical inaccuracies of doing so.
 
+How To Use
+----------
+Copy the UCS folder to your modules directory. Open a new PowerShell window. A few things to try:
+- Set the credentials for your phones by using one of the Set-Ucs[Name]APICredential cmdlets with one or more sets of credentials. Otherwise, it'll use Polycom factory defaults for REST and Web, UCSToolkit for Push and Poll, and PlcmSpIp for FTP.
+- Try Get-UcsPhoneInfo -IPv4Address 192.168.1.50 to get basic phone info and get the idea of the cmdlets.
+
 Limitations
 -----------
 To a large extent, I am limited by the documentation I am easily able to find online about each of the "APIs" I'm writing against. Additionally, my experience is primarily with VVX phones running with the Lync base profile, which means I have not implemented some functionality which could be beneficial for Open SIP users. 
