@@ -183,7 +183,7 @@ Function Send-UcsPushCallAction
   $MessageHTML = ("<PolycomIPPhone><Data priority=`"{0}`">CallAction:{1};nCallReference={2}</Data></PolycomIPPhone>" -f $Priority, $CallAction, $ThisCallRef)
 
   Try {
-    Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'push' -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Credential $Script:PushCredential -ErrorAction Stop
+    $null = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'push' -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Credential $Script:PushCredential -ErrorAction Stop
   }
   Catch
   {
