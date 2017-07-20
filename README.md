@@ -22,6 +22,10 @@ Limitations
 -----------
 To a large extent, I am limited by the documentation I am easily able to find online about each of the "APIs" I'm writing against. Additionally, my experience is primarily with VVX phones running with the Lync base profile, which means I have not implemented some functionality which could be beneficial for Open SIP users. 
 
+The HTTPS programming is really poor and could use a lot of help. It's only implemented on a handful of the base-level functions. As a result, deployments which require HTTPS may not be able to use all functionality.
+
+My testing is primarily with UCS 5.4.5 and above, though I also did some testing down to UCS 5.3.0 for SIP.
+
 Licensing
 ---------
 You can use this and edit the code for your own purposes, but I don't accept any responsibility for problems caused by it directly or indirectly. If you can help improve the code, please make a pull request!
