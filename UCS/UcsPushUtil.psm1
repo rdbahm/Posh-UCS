@@ -1,6 +1,7 @@
 $Script:Port = 80
 $Script:UseSSL = $false
 $Script:DefaultTimeout = New-TimeSpan -Seconds 5
+$Script:DefaultRetries = 3
 
 Function Invoke-UcsPushWebRequest 
 {
