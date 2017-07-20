@@ -72,6 +72,144 @@ Function Set-UcsAPIPreference
   }
 }
 
+Function Start-UcsCall
+{
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$Destination,
+    [Int][ValidateRange(1,24)]$LineId = 1,
+    [String][ValidateSet('SIP')]$CallType = 'SIP',
+  [Switch]$PassThru)
+  
+  Begin
+  {
+    $OutputObject = New-Object -TypeName System.Collections.ArrayList
+    $ThisProtocolPriority = $Script:ProtocolPriority
+  }
+  Process
+  {
+    Foreach($ThisIPv4Address in $IPv4Address)
+    {
+      $GetSuccess = $false
+      
+      Foreach($Protocol in $ThisProtocolPriority)
+      {
+        Write-Debug -Message ('Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address)
+        Try
+        {
+          Switch($Protocol)
+          {
+            'REST'
+            {
+              $ThisOutput = Start-UcsRestCall -IPv4Address $ThisIPv4Address -Destination $Destination -LineId $LineId -PassThru:$PassThru -ErrorAction Stop
+              $GetSuccess = $true
+            }
+            'Push'
+            {
+              $ThisOutput = Start-UcsPushCall -IPv4Address $ThisIPv4Address -Destination $Destination -LineId $LineId -PassThru:$PassThru -ErrorAction Stop
+              $GetSuccess = $true
+            }
+            Default
+            {
+              Write-Debug -Message ('Protocol {0} is not supported for the operation.' -f $Protocol)
+            }
+          }
+        }
+        Catch 
+        {
+          Write-Debug -Message "Encountered an error on $ThisIPv4Address. '$_'"
+        }
+        
+        if($GetSuccess -eq $true) 
+        {
+          $ThisOutput = $ThisOutput | Select-Object -Property *, @{
+            Name       = 'API'
+            Expression = {
+              $Protocol
+            }
+          }
+          $null = $ThisOutput | ForEach-Object -Process {
+            $OutputObject.Add($_)
+          }
+          Break #Get out of the protocol loop once we succeed.
+        }
+      }
+      
+      if($GetSuccess -eq $false) 
+      {
+        Write-Error -Message "Could not get call info for $ThisIPv4Address."
+      }
+    }
+  }
+  End
+  {
+    if($PassThru -eq $true)
+    {
+      Return $OutputObject
+    }
+  }
+}
+
+Function Stop-UcsCall
+{
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+  [Parameter(ValueFromPipelineByPropertyName)][String][ValidatePattern('^0x[a-f0-9]{7,8}$')]$CallHandle)
+  
+  Begin
+  {
+    $OutputObject = New-Object -TypeName System.Collections.ArrayList
+    $ThisProtocolPriority = $Script:ProtocolPriority
+  }
+  Process
+  {
+    Foreach($ThisIPv4Address in $IPv4Address)
+    {
+      $GetSuccess = $false
+      
+      Foreach($Protocol in $ThisProtocolPriority)
+      {
+        Write-Debug -Message ('Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address)
+        Try
+        {
+          Switch($Protocol)
+          {
+            'REST'
+            {
+              $ThisOutput = Stop-UcsRestCall -IPv4Address $ThisIPv4Address -CallHandle $CallHandle -ErrorAction Stop
+              $GetSuccess = $true
+            }
+            'Push'
+            {
+              $ThisOutput = Send-UcsPushCallAction -IPv4Address $ThisIPv4Address -CallAction EndCall -CallHandle $CallHandle -ErrorAction Stop
+              $GetSuccess = $true
+            }
+            Default
+            {
+              Write-Debug -Message ('Protocol {0} is not supported for the operation.' -f $Protocol)
+            }
+          }
+        }
+        Catch 
+        {
+          Write-Debug -Message "Encountered an error on $ThisIPv4Address. '$_'"
+        }
+        
+        if($GetSuccess)
+        {
+          Break #Get out of the protocol loop once we succeed.
+        }
+      }
+      
+      if($GetSuccess -eq $false) 
+      {
+        Write-Error -Message "Could not get call info for $ThisIPv4Address."
+      }
+    }
+  }
+  End
+  {
+    Return $OutputObject
+  }
+}
 Function Get-UcsAPIPreference 
 {
   <#
@@ -203,8 +341,15 @@ Function Get-UcsPhoneInfo
               $FirmwareRelease = $PhoneInfo.FirmwareRelease
               $MacAddress = $PhoneInfo.MacAddress
               $SipAddress = $PhoneInfo.SipAddress
-              if($SipAddress.length -gt 0) { $Registered = $true } else { $Registered = $false }
-              $LastReboot = $nul
+              if($SipAddress.length -gt 0) 
+              {
+                $Registered = $true
+              }
+              else 
+              {
+                $Registered = $false
+              }
+              $LastReboot = $null
             }
             Default
             {
@@ -418,7 +563,8 @@ Function Get-UcsParameter
               if($PSCmdlet.ParameterSetName -eq 'All')
               {
                 $ThisParameter = Get-UcsWebConfiguration -IPv4Address $ThisIPv4Address -ErrorAction Stop
-              } else 
+              }
+              else 
               {
                 $ThisParameter = Get-UcsWebParameter -IPv4Address $ThisIPv4Address -Parameter $Parameter -ErrorAction Stop
               }
@@ -444,7 +590,7 @@ Function Get-UcsParameter
             }
           }
           $null = $ThisParameter | ForEach-Object -Process {
-            $ParameterResult.Add($_) 
+            $ParameterResult.Add($_)
           }
           Break #Get out of the protocol loop once we succeed.
         }
@@ -516,7 +662,7 @@ Function Get-UcsProvisioningInfo
             }
           }, Ipv4Address
           $null = $ThisProvisioning | ForEach-Object -Process {
-            $OutputObject.Add($_) 
+            $OutputObject.Add($_)
           }
           Break #Get out of the protocol loop once we succeed.
         }
@@ -588,7 +734,7 @@ Function Get-UcsNetworkInfo
             }
           }
           $null = $ThisOutput | ForEach-Object -Process {
-            $OutputObject.Add($_) 
+            $OutputObject.Add($_)
           }
           Break #Get out of the protocol loop once we succeed.
         }
@@ -659,7 +805,7 @@ Function Get-UcsCallStatus
             }
           }
           $null = $ThisOutput | ForEach-Object -Process {
-            $OutputObject.Add($_) 
+            $OutputObject.Add($_)
           }
           Break #Get out of the protocol loop once we succeed.
         }
@@ -850,7 +996,7 @@ Function Get-UcsCallLog
             }
           }
           $null = $ThisCallLog | ForEach-Object -Process {
-            $AllCalls.Add($_) 
+            $AllCalls.Add($_)
           }
           Break #Get out of the protocol loop once we succeed.
         }
@@ -933,7 +1079,7 @@ Function Get-UcsLog
             }
           }
           $null = $Logs | ForEach-Object -Process {
-            $AllLogs.Add($_) 
+            $AllLogs.Add($_)
           }
           Break #Get out of the protocol loop once we succeed.
         }
@@ -959,7 +1105,7 @@ Function Test-UcsAPI
   
   Begin
   {
-    $ResultArray = New-Object Collections.ArrayList
+    $ResultArray = New-Object -TypeName Collections.ArrayList
   }
   Process
   {
@@ -1012,7 +1158,7 @@ Function Test-UcsAPI
       #Push
       Try
       {
-        $null = Send-UcsPushKeyPress -IPv4Address $ThisIPv4Address -Key ('DoNotDisturb','DoNotDisturb') -ErrorAction Stop -WarningAction SilentlyContinue
+        $null = Send-UcsPushKeyPress -IPv4Address $ThisIPv4Address -Key ('DoNotDisturb', 'DoNotDisturb') -ErrorAction Stop -WarningAction SilentlyContinue
         $PushStatus = $true
       }
       Catch
@@ -1032,7 +1178,42 @@ Function Test-UcsAPI
         $SIPStatus = $false
       }
       
-      $ThisStatusResult = 1 | Select-Object @{Name='REST';Expression={$RESTStatus}},@{Name='Poll';Expression={$PollStatus}},@{Name='FTP';Expression={$FTPStatus}},@{Name='Push';Expression={$PushStatus}},@{Name='SIP';Expression={$SIPStatus}},@{Name='Web';Expression={$WebStatus}},@{Name='IPv4Address';Expression={$ThisIPv4Address}}
+      $ThisStatusResult = 1 | Select-Object -Property @{
+        Name       = 'REST'
+        Expression = {
+          $RESTStatus
+        }
+      }, @{
+        Name       = 'Poll'
+        Expression = {
+          $PollStatus
+        }
+      }, @{
+        Name       = 'FTP'
+        Expression = {
+          $FTPStatus
+        }
+      }, @{
+        Name       = 'Push'
+        Expression = {
+          $PushStatus
+        }
+      }, @{
+        Name       = 'SIP'
+        Expression = {
+          $SIPStatus
+        }
+      }, @{
+        Name       = 'Web'
+        Expression = {
+          $WebStatus
+        }
+      }, @{
+        Name       = 'IPv4Address'
+        Expression = {
+          $ThisIPv4Address
+        }
+      }
       $null = $ResultArray.Add($ThisStatusResult)
     }
   }
