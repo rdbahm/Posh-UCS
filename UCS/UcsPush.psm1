@@ -96,7 +96,7 @@ Function Send-UcsPushCallAction
   [Parameter(Mandatory,HelpMessage = 'Add help message for user')][ValidateSet('EndCall','Answer','Reject','Ignore','MicMute','Hold','Resume','Transfer','Conference','Join','Split','Remove')][String]$CallAction)
 
   $ThisIPv4Address = $IPv4Address
-  $CallRef = (Get-UcsRestCallStatus -IPv4Address $ThisIPv4Address).CallHandle
+  $CallRef = (Get-UcsCallStatus -IPv4Address $ThisIPv4Address).CallHandle
   $MessageHTML = ("<PolycomIPPhone><Data priority=`"{0}`">CallAction:{1};nCallReference={2}</Data></PolycomIPPhone>" -f $Priority, $CallAction, $CallRef)
 
   Try {
