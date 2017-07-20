@@ -2,6 +2,81 @@ $Script:UseSSL = $false
 
 $Script:PushCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ('UCSToolkit', (ConvertTo-SecureString -String 'UCSToolkit' -AsPlainText -Force))
 
+
+Function Start-UcsPushCall
+{
+  <#
+      .SYNOPSIS
+      Start a call on a VVX.
+
+      .DESCRIPTION
+      Sends a call to the phone via the Push API.
+
+      .PARAMETER IPv4Address
+      The network address in IPv4 notation, such as 192.123.45.67.
+
+      .PARAMETER Priority
+      Describe parameter -Priority.
+
+      .PARAMETER PassThru
+      Returns an object with call status for this phone. Uses Get-UcsCallStatus, so either REST or Poll APIs must be available.
+
+      .EXAMPLE
+      Send-CallAction -IPv4Address Value -Priority Value -CallAction Value
+      Describe what this call does
+
+      .NOTES
+      Additional configuration is required to run this. The phone's "Push" credentials must be set (this script defaults to using "UCSToolkit" for both), "Allow Push Messages" must be set to "Critical" or lower, and "Application Server Root URL" must be specified. HTTPS must be enabled using Set-UcsPushConnectionSettings. Additionally, in Skype for Business deployments, the script must be run from a pool server.
+  #>
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String]$IPv4Address,
+    [ValidateSet('Critical','Important','High','Normal')][String]$Priority = 'Critical',
+    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$Destination,
+    [Int][ValidateRange(1,24)]$LineId = 1,
+    [Switch]$PassThru)
+  
+  Begin
+  {
+    $OutputArray = New-Object Collections.Arraylist
+  }
+  Process
+  {
+  $ThisIPv4Address = $IPv4Address
+  
+  #Calls to numbers need to be prefixed with \\, all other calls need to be \\ prefix free.
+  if($Destination -match '^\+?\d+$')
+  {
+    $ThisDestination = ('\\{0}' -f $Destination)
+  }
+  else
+  {
+    $ThisDestination = $Destination
+  }
+
+  $MessageHTML = ("<PolycomIPPhone><Data priority=`"{0}`">tel:{1};line{2}</Data></PolycomIPPhone>" -f $Priority, $Destination, $LineId)
+
+  Try {
+    $null = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'push' -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -ErrorAction Stop
+
+    if($PassThru -eq $true) 
+    {
+        Start-Sleep -Seconds 1
+        $ThisCall = Get-UcsCallStatus -IPv4Address $IPv4Address -ErrorAction SilentlyContinue
+        $null = $OutputArray.Add($ThisCall)
+    }
+  }
+  Catch
+  {
+    Write-Error "Couldn't start call to $Destination on $ThisIPv4Address."
+  }
+  }
+  End
+  {
+    Return $OutputArray
+  }
+
+}
+
+
 Function Send-UcsPushMessage 
 {
   <#
@@ -93,11 +168,19 @@ Function Send-UcsPushCallAction
   #>
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String]$IPv4Address,
     [ValidateSet('Critical','Important','High','Normal')][String]$Priority = 'Critical',
-  [Parameter(Mandatory,HelpMessage = 'Add help message for user')][ValidateSet('EndCall','Answer','Reject','Ignore','MicMute','Hold','Resume','Transfer','Conference','Join','Split','Remove')][String]$CallAction)
+  [Parameter(Mandatory,HelpMessage = 'Add help message for user')][ValidateSet('EndCall','Answer','Reject','Ignore','MicMute','Hold','Resume','Transfer','Conference','Join','Split','Remove')][String]$CallAction,
+  [Parameter(ValueFromPipelineByPropertyName)][String][ValidatePattern('^0x[a-f0-9]{7,8}$')]$CallHandle)
 
   $ThisIPv4Address = $IPv4Address
-  $CallRef = (Get-UcsCallStatus -IPv4Address $ThisIPv4Address).CallHandle
-  $MessageHTML = ("<PolycomIPPhone><Data priority=`"{0}`">CallAction:{1};nCallReference={2}</Data></PolycomIPPhone>" -f $Priority, $CallAction, $CallRef)
+  if($CallHandle -match '^0x[a-f0-9]{7,8}$')
+  {
+    $ThisCallRef = $CallHandle
+  }
+  else
+  {
+    $ThisCallRef = (Get-UcsCallStatus -IPv4Address $ThisIPv4Address).CallHandle
+  }
+  $MessageHTML = ("<PolycomIPPhone><Data priority=`"{0}`">CallAction:{1};nCallReference={2}</Data></PolycomIPPhone>" -f $Priority, $CallAction, $ThisCallRef)
 
   Try {
     Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'push' -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Credential $Script:PushCredential -ErrorAction Stop
