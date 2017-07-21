@@ -1,5 +1,9 @@
 # UcsApi
 
+Disclaimers
+-----------
+Use at your own risk, etc. This project is not affiliated with Polycom.
+
 What it is
 ----------
 A PowerShell module attempting to bring together all the ways to manage and administer Polycom VVX phones and other devices which run Polycom's UCS software. Currently, we support these ways of accessing/controlling UCS:
