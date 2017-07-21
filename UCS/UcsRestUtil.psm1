@@ -38,11 +38,11 @@ Function Invoke-UcsRestMethod
     [ValidateSet('Get','Post')][String]$Method = 'Get',
     [String]$Body,
     [String]$ContentType = 'application/json',
-    [Timespan]$Timeout = (Get-UcsRestAPIConnectionSetting).Timeout,
-    [PsCredential[]]$Credential = (Get-UcsRestAPICredential),
-    [int][ValidateRange(1,100)]$Retries = (Get-UcsRestAPIConnectionSetting).Retries,
-    [int][ValidateRange(1,65535)]$Port = (Get-UcsRestAPIConnectionSetting).Port,
-    [boolean]$UseHTTPS = (Get-UcsRestAPIConnectionSetting).UseHTTPS
+    [Timespan]$Timeout = (Get-UcsConfig -API REST).Timeout,
+    [PsCredential[]]$Credential = (Get-UcsConfigCredential -API REST -CredentialOnly),
+    [int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -API REST).Retries,
+    [int][ValidateRange(1,65535)]$Port = (Get-UcsConfig -API REST).Port,
+    [boolean]$UseHTTPS = (Get-UcsConfig -API REST).EnableEncryption
   )
 
   if($UseHTTPS -eq $true) 

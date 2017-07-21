@@ -1,17 +1,13 @@
-$Script:DefaultRetries = 3
-$Script:DefaultTimeout = New-Timespan -Seconds 3
-$Script:PollingCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ('UCSToolkit', (ConvertTo-SecureString -String 'UCSToolkit' -AsPlainText -Force))
-
 Function Invoke-UcsPollRequest {
   Param(
     [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$IPv4Address,
     [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$ApiEndpoint,
     [ValidateSet('Get')][String]$Method = 'Get',
-    [Timespan]$Timeout = (Get-UcsPollAPIConnectionSetting).Timeout,
-    [pscredential]$Credential = (Get-UcsPollAPICredential),
-    [int][ValidateRange(1,100)]$Retries = (Get-UcsPollAPIConnectionSetting).Retries,
-    [int][ValidateRange(1,65535)]$Port = (Get-UcsPollAPIConnectionSetting).Port,
-    [boolean]$UseHTTPS = (Get-UcsPollAPIConnectionSetting).UseHTTPS
+    [Timespan]$Timeout = (Get-UcsConfig -API Poll).Timeout,
+    [PsCredential[]]$Credential = (Get-UcsConfigCredential -API Poll -CredentialOnly),
+    [int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -API Poll).Retries,
+    [int][ValidateRange(1,65535)]$Port = (Get-UcsConfig -API Poll).Port,
+    [Nullable[boolean]]$UseHTTPS = (Get-UcsConfig -API Poll).EnableEncryption
     )
     
     #TODO: Support for HTTPS

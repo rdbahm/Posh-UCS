@@ -1,66 +1,4 @@
-<#### API-Specific Configuration ####>
-$Script:Port = 80
-$Script:UseHTTPS = $false
-$Script:DefaultTimeout = New-Timespan -Seconds 2
-$Script:DefaultRetries = 3 
-
-$Script:PushCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ('UCSToolkit', (ConvertTo-SecureString -String 'UCSToolkit' -AsPlainText -Force))
-
-
 <#### FUNCTION DEFINITONS ####>
-
-<## API Configuration ##>
-Function Set-UcsPushAPIConnectionSetting
-{
-  Param([Int][ValidateRange(1,65535)]$Port = $null,
-    [Bool]$UseHTTPS = $null,
-    [Timespan]$Timeout = $null,
-    [Int][ValidateRange(1,100)]$Retries = $null
-  )
-  
-  if($Port -ne $null)
-  {
-    $Script:Port = $Port
-  }
-  if($UseHTTPS -ne $null)
-  {
-    $Script:UseHTTPS = $UseHTTPS
-  }
-  if($Timeout -ne $null)
-  {
-    if($Timeout.TotalSeconds -le 0)
-    {
-      Write-Error "Timeout value too low. Please set a value over 0 seconds."
-    }
-    else
-    {
-      $Script:DefaultTimeout = $Timeout
-    }
-  }
-  if($Retries -ne $null)
-  {
-    $Script:DefaultRetries = $Retries
-  }
-}
-
-Function Get-UcsPushAPIConnectionSetting
-{
-  $OutputObject = 1 | Select-Object @{Name='Port';Expression={$Script:Port}},@{Name='UseHTTPS';Expression={$Script:UseHTTPS}},@{Name='Timeout';Expression={$Script:DefaultTimeout}},@{Name='Retries';Expression={$Script:DefaultRetries}}
-  Return $OutputObject
-}
-
-Function Set-UcsPushAPICredential
-{
-  Param([Parameter(Mandatory)][PsCredential[]]$Credential)
-  
-  $Script:PushCredential = $Credential
-}
-
-Function Get-UcsPushAPICredential
-{
-  Return $Script:PushCredential
-}
-
 
 <## Phone cmdlets ##>
 Function Start-UcsPushCall
@@ -405,7 +343,7 @@ Function Get-UcsPushScreenCapture
       Try 
       {
         #This needs to be rewritten to take advantage of the credential arrays.
-        $ScreenCapture = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint $ThisApiEndpoint -Credential (Get-UcsRestAPICredential)[0] 
+        $ScreenCapture = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint $ThisApiEndpoint -Credential (Get-UcsConfigCredential -API REST -CredentialOnly)[0] 
         [Drawing.Image]$Image = $ScreenCapture.Content
         $null = $ImageArray.Add($Image)
       }
