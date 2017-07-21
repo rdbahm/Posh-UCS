@@ -61,49 +61,8 @@ Function Get-UcsWebAPICredential
 
 Function Get-UcsWebConfiguration 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Get-UcsWebConfiguration" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER IgnoreSources
-      Describe parameter -IgnoreSources.
-
-      .PARAMETER IgnoreParameters
-      Describe parameter -IgnoreParameters.
-
-      .PARAMETER SourceNameOverride
-      Describe parameter -SourceNameOverride.
-
-      .PARAMETER Retries
-      Describe parameter -Retries.
-
-      .EXAMPLE
-      Get-UcsWebConfiguration -IPv4Address Value -IgnoreSources Value -IgnoreParameters Value -SourceNameOverride Value -Retries Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-UcsWebConfiguration
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
-    [String[]]$IgnoreSources = ('ParsedHtml', 'RawContent', 'RawContentStream', 'StatusDescription', 'TR69', 'Headers', 'BaseResponse', 'Content', '#comment'),
+    [String[]]$IgnoreSources = ('ParsedHtml', 'RawContent', 'RawContentStream', 'StatusDescription', 'Headers', 'BaseResponse', 'Content', '#comment'),
     [String[]]$IgnoreParameters = ('Length'),
     [Hashtable]$SourceNameOverride = @{
       'CALL_SERVER'   = 'sip'
@@ -207,38 +166,6 @@ Function Get-UcsWebConfiguration
 
 Function Get-UcsWebParameter 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Get-UcsWebParameter" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER Parameter
-      Describe parameter -Parameter.
-
-      .EXAMPLE
-      Get-UcsWebParameter -IPv4Address Value -Parameter Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-UcsWebParameter
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [Parameter(Mandatory,HelpMessage = 'A UCS parameter, such as "Up.Timeout."',ValueFromPipelineByPropertyName)][String[]]$Parameter)
   BEGIN {
@@ -257,44 +184,6 @@ Function Get-UcsWebParameter
 
 Function Set-UcsWebParameter 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Set-UcsWebParameter" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER Parameter
-      Describe parameter -Parameter.
-
-      .PARAMETER Value
-      Describe parameter -Value.
-
-      .PARAMETER PassThru
-      Describe parameter -PassThru.
-
-      .EXAMPLE
-      Set-UcsWebParameter -IPv4Address Value -Parameter Value -Value Value -PassThru
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Set-UcsWebParameter
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(Mandatory,HelpMessage = 'A valid UCS parameter, such as Up.Timeout',ValueFromPipelineByPropertyName)][String]$Parameter,
@@ -340,35 +229,6 @@ $Parameter="$Value"
 
 Function Get-UcsWebLyncStatus 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Get-UcsWebLyncStatus" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .EXAMPLE
-      Get-UcsWebLyncStatus -IPv4Address Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-UcsWebLyncStatus
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
 
   BEGIN {
@@ -404,47 +264,6 @@ Function Get-UcsWebLyncStatus
 }
 Function Get-UcsWebConfigurationOld 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Get-UcsWebConfigurationOld" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER ConfigId
-      Describe parameter -ConfigId.
-
-      .PARAMETER IgnoreSources
-      Describe parameter -IgnoreSources.
-
-      .PARAMETER IgnoreParameters
-      Describe parameter -IgnoreParameters.
-
-      .PARAMETER Retries
-      Describe parameter -Retries.
-
-      .EXAMPLE
-      Get-UcsWebConfigurationOld -IPv4Address Value -ConfigId Value -IgnoreSources Value -IgnoreParameters Value -Retries Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-UcsWebConfigurationOld
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   #The difference between this and the other is that this retrieves one at a time - using the backup capability, we get all of the data, all at once.
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Int[]]$ConfigId = (-1, 1, 2, 5, 6),
@@ -555,42 +374,6 @@ Function Get-UcsWebConfigurationOld
 
 Function Get-UcsWebAvailableFirmware 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Get-UcsWebAvailableFirmware" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER CustomServerUrl
-      Describe parameter -CustomServerUrl.
-
-      .EXAMPLE
-      Get-UcsWebAvailableFirmware -IPv4Address Value
-      Describe what this call does
-
-      .EXAMPLE
-      Get-UcsWebAvailableFirmware -CustomServerUrl Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-UcsWebAvailableFirmware
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [Parameter(ParameterSetName = 'CustomServer')][String]$CustomServerUrl = '')
   
@@ -704,38 +487,6 @@ Function Get-UcsWebAvailableFirmware
 
 Function Update-UcsWebFirmware 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Update-UcsWebFirmware" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER UpdateUri
-      Describe parameter -UpdateUri.
-
-      .EXAMPLE
-      Update-UcsWebFirmware -IPv4Address Value -UpdateUri Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Update-UcsWebFirmware
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [Parameter(Mandatory,ValueFromPipelineByPropertyName)][String]$UpdateUri)
 
@@ -766,37 +517,6 @@ Function Update-UcsWebFirmware
 
 Function Restart-UcsWebPhone 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Restart-UcsWebPhone" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER Type
-      Restart is faster, because it does not fully reinitilize the hardware - it only restarts the application. However, reboot is more complete.
-
-      .EXAMPLE
-      Restart-UcsWebPhone -IPv4Address Value -Type Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Restart-UcsWebPhone
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [String][ValidateSet('Reboot','Restart')]$Type = 'Reboot')
@@ -830,38 +550,6 @@ Function Restart-UcsWebPhone
 
 Function Reset-UcsWebConfiguration 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Reset-UcsWebConfiguration" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER Timeout
-      Describe parameter -Timeout.
-
-      .EXAMPLE
-      Reset-UcsWebConfiguration -IPv4Address Value -Timeout Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Reset-UcsWebConfiguration
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   #sets special long timeout for this operation, as it takes a while to reply.
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
@@ -894,61 +582,6 @@ Function Reset-UcsWebConfiguration
 
 Function Register-UcsWebLyncUser 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Register-UcsWebLyncUser" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER Extension
-      Describe parameter -Extension.
-
-      .PARAMETER PIN
-      Describe parameter -PIN.
-
-      .PARAMETER Address
-      Describe parameter -Address.
-
-      .PARAMETER Domain
-      Describe parameter -Domain.
-
-      .PARAMETER Username
-      Describe parameter -Username.
-
-      .PARAMETER Password
-      Describe parameter -Password.
-
-      .EXAMPLE
-      Register-UcsWebLyncUser -IPv4Address Value
-      Describe what this call does
-
-      .EXAMPLE
-      Register-UcsWebLyncUser -Extension Value -PIN Value
-      Describe what this call does
-
-      .EXAMPLE
-      Register-UcsWebLyncUser -Address Value -Domain Value -Username Value -Password Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Register-UcsWebLyncUser
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(Mandatory,ParameterSetName = 'PIN')][String][ValidatePattern('^\d+$')]$Extension,
     [Parameter(Mandatory,ParameterSetName = 'PIN')][String][ValidatePattern('^\d+$')]$PIN,
@@ -1005,35 +638,6 @@ Function Register-UcsWebLyncUser
 
 Function Unregister-UcsWebLyncUser 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Unregister-UcsWebLyncUser" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .EXAMPLE
-      Unregister-UcsWebLyncUser -IPv4Address Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Unregister-UcsWebLyncUser
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
   
@@ -1065,35 +669,6 @@ Function Unregister-UcsWebLyncUser
 
 Function Stop-UcsWebLyncSignIn 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Stop-UcsWebLyncSignIn" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .EXAMPLE
-      Stop-UcsWebLyncSignIn -IPv4Address Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Stop-UcsWebLyncSignIn
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
   BEGIN {
     $StatusResult = New-Object -TypeName System.Collections.ArrayList
@@ -1120,37 +695,6 @@ Function Stop-UcsWebLyncSignIn
 
 Function Get-UcsWebAuditLog 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Get-UcsWebAuditLogs" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER LogType
-      Describe parameter -LogType.
-
-      .EXAMPLE
-      Get-UcsWebLogs -IPv4Address Value -LogType Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-UcsWebLogs
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
   BEGIN {
     $AllResult = New-Object -TypeName System.Collections.ArrayList
@@ -1223,37 +767,6 @@ Function Get-UcsWebAuditLog
 
 Function Get-UcsWebLog 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Get-UcsWebLogs" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER LogType
-      Describe parameter -LogType.
-
-      .EXAMPLE
-      Get-UcsWebLogs -IPv4Address Value -LogType Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-UcsWebLogs
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [String][ValidateSet('app','boot')]$LogType = 'app')
   BEGIN {
@@ -1317,35 +830,6 @@ Function Clear-UcsWebLog
 
 Function Get-UcsWebLyncSignIn 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Get-UcsWebLyncSignIn" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .EXAMPLE
-      Get-UcsWebLyncSignIn -IPv4Address Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-UcsWebLyncSignIn
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
   BEGIN {
     $AllOutput = New-Object -TypeName System.Collections.ArrayList
@@ -1458,35 +942,6 @@ Function Get-UcsWebLyncSignIn
 
 Function Get-UcsWebDeviceInfo 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Get-UcsWebPhoneInfo" in 1-2 sentences.
-
-      .DESCRIPTION
-      The "LastReboot" parameter may be inaccurate because it is computed based on logs instead of directly provided by the API - usually no more than 12 hours off.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .EXAMPLE
-      Get-UcsWebPhoneInfo -IPv4Address Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-UcsWebPhoneInfo
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
   
   BEGIN {
