@@ -153,28 +153,18 @@ Function New-UcsConfigCredential
     [String]$DisplayName = '',
     [Int]$Priority = 50,
     [String]$Identity = '*',
-    [Boolean]$Enabled = $true,
-    [Switch]$InMemory
+    [Boolean]$Enabled = $true
   )
 
-  Process
-  {
-      $OutputObject = $API | Select-Object @{Name='API';Expression={$API}},
-        @{Name='Identity';Expression={$Identity}},
-        @{Name='DisplayName';Expression={$DisplayName}},
-        @{Name='Credential';Expression={$Credential}},
-        @{Name='Priority';Expression={$Priority}},
-        @{Name='Enabled';Expression={$Enabled}}
+  $OutputObject = $API | Select-Object @{Name='API';Expression={$API}},
+    @{Name='Identity';Expression={$Identity}},
+    @{Name='DisplayName';Expression={$DisplayName}},
+    @{Name='Credential';Expression={$Credential}},
+    @{Name='Priority';Expression={$Priority}},
+    @{Name='Enabled';Expression={$Enabled}}
 
-      if($InMemory)
-      {
-        Return $OutputObject
-      }
-      else
-      {
-        Add-UcsConfigCredential $OutputObject
-      }
-  }
+
+  Add-UcsConfigCredential $OutputObject
 }
 
 Function New-UcsConfigCredentialPlaintext
