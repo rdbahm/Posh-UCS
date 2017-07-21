@@ -1,6 +1,3 @@
-$Script:DefaultRetries = 3
-$Script:DefaultTimeout = New-Timespan -seconds 5
-
 Function Invoke-UcsSipRequest 
 {
   #requires -Version 3.0 -Modules NetTCPIP
@@ -8,10 +5,10 @@ Function Invoke-UcsSipRequest
     [Parameter(Mandatory,HelpMessage = '127.0.0.1')][String]$IPv4Address,
     [Int][ValidateRange(1,9999)]$CSeq = 1,
     [String][ValidateSet('OPTIONS','NOTIFY','INFO')]$Method = 'NOTIFY',
-    [Timespan]$Timeout = $Script:DefaultTimeout,
+    [Timespan]$Timeout = (Get-UcsSipConnectionSetting).Timeout,
     [String]$Event = '',
-    [int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries,
-    [int][ValidateRange(1,65535)]$Port = 5060,
+    [int][ValidateRange(1,100)]$Retries = (Get-UcsSipConnectionSetting).Retries,
+    [int][ValidateRange(1,65535)]$Port = (Get-UcsSipConnectionSetting).Port,
     [switch]$SkipParse
   )
   
