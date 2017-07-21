@@ -10,67 +10,7 @@
     -Right now, UcsApi is relatively low-level. The user has to know which API they want to hit: REST, Web, SIP, Push, or Prov.
     -The idea is that we build out capabilities for each of the APIs, then build an overarching "Ucs" branch that unifies the APIs. So, want to get a list of all parameters? You don't need to know if that's a web function or a REST function.
 #>
-$Script:ProtocolPriority = ('REST', 'Web', 'Poll', 'Push', 'FTP', 'SIP')
-$Script:ValidAPIs = ('SIP', 'REST', 'Poll', 'Web', 'Push', 'FTP')
-
 $Script:PolycomMACPrefixes = ('0004f2', '64167F')
-
-Function Set-UcsAPIPreference 
-{
-  <#
-      .SYNOPSIS
-      Describe purpose of "Set-UcsAPIPreference" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER ProtocolPriority
-      An array of the strings 'SIP', 'REST', 'Web', and 'Push,' in any order. Any can be excluded. Omitting a protocol from the list disables it (exception: a protocol will be used if a feature is requested which is only available with that protocol).
-
-      .EXAMPLE
-      Set-UcsProtocolPreference -ProtocolPriority Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Set-UcsProtocolPreference
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
-  Param([Parameter(Mandatory)][String[]]$APIPriority)
-  
-  
-  $IsValidPriority = $false
-  
-  Foreach($Protocol in $APIPriority) 
-  {
-    $IsValidPriority = $true #This is set to true so that at least one protocol must be enabled for the setting to be set.
-    if($Protocol -notin $Script:ValidAPIs) 
-    {
-      Write-Verbose -Message ('{0} is an invalid API. Valid options are {1}.' -f $Protocol, ($Script:ValidAPIs -join ', '))     
-      $IsValidPriority = $false
-      Break #Leave the loop.
-    }
-  }
-  
-  if($IsValidPriority -eq $true) 
-  {
-    $Script:ProtocolPriority = $APIPriority
-  }
-  else 
-  {
-    Write-Error ('Could not set API priority list. Specify at least one valid API. Valid options are {1}.' -f $Protocol, ($Script:ValidAPIs -join ', '))
-  }
-}
 
 Function Start-UcsCall
 {
@@ -83,7 +23,7 @@ Function Start-UcsCall
   Begin
   {
     $OutputObject = New-Object -TypeName System.Collections.ArrayList
-    $ThisProtocolPriority = $Script:ProtocolPriority
+    $ThisProtocolPriority = Get-UcsConfigPriority
   }
   Process
   {
@@ -157,7 +97,7 @@ Function Stop-UcsCall
   Begin
   {
     $OutputObject = New-Object -TypeName System.Collections.ArrayList
-    $ThisProtocolPriority = $Script:ProtocolPriority
+    $ThisProtocolPriority = Get-UcsConfigPriority
   }
   Process
   {
@@ -224,37 +164,7 @@ Function Stop-UcsCall
     Return $OutputObject
   }
 }
-Function Get-UcsAPIPreference 
-{
-  <#
-      .SYNOPSIS
-      Describe purpose of "Set-UcsProtocolPreference" in 1-2 sentences.
 
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER ProtocolPriority
-      An array of the strings 'SIP', 'REST', 'Web', and 'Push,' in any order. Any can be excluded. Omitting a protocol from the list disables it (exception: a protocol will be used if a feature is requested which is only available with that protocol).
-
-      .EXAMPLE
-      Set-UcsProtocolPreference -ProtocolPriority Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Set-UcsProtocolPreference
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-  Return $Script:ProtocolPriority
-}
 Function Get-UcsPhoneInfo 
 {
   <#
@@ -294,7 +204,7 @@ Function Get-UcsPhoneInfo
 
   BEGIN {
     $OutputArray = New-Object -TypeName System.Collections.ArrayList
-    $ThisProtocolPriority = $Script:ProtocolPriority
+    $ThisProtocolPriority = Get-UcsConfigPriority
   } PROCESS {
     Foreach($ThisIPv4Address in $IPv4Address) 
     {
@@ -461,7 +371,7 @@ Function Restart-UcsPhone
     }
     else 
     {
-      $ThisProtocolPriority = $Script:ProtocolPriority
+      $ThisProtocolPriority = Get-UcsConfigPriority
     }
   }
   PROCESS
@@ -551,7 +461,7 @@ Function Get-UcsParameter
     }
     else
     {
-      $ThisProtocolPriority = $Script:ProtocolPriority
+      $ThisProtocolPriority = Get-UcsConfigPriority
     }
   }
   PROCESS
@@ -631,7 +541,7 @@ Function Get-UcsProvisioningInfo
   Begin
   {
     $OutputObject = New-Object -TypeName System.Collections.ArrayList
-    $ThisProtocolPriority = $Script:ProtocolPriority
+    $ThisProtocolPriority = Get-UcsConfigPriority
   }
   Process
   {
@@ -703,7 +613,7 @@ Function Get-UcsNetworkInfo
   Begin
   {
     $OutputObject = New-Object -TypeName System.Collections.ArrayList
-    $ThisProtocolPriority = $Script:ProtocolPriority
+    $ThisProtocolPriority = Get-UcsConfigPriority
   }
   Process
   {
@@ -774,7 +684,7 @@ Function Get-UcsCallStatus
   Begin
   {
     $OutputObject = New-Object -TypeName System.Collections.ArrayList
-    $ThisProtocolPriority = $Script:ProtocolPriority
+    $ThisProtocolPriority = Get-UcsConfigPriority
   }
   Process
   {
@@ -938,7 +848,7 @@ Function Get-UcsCallLog
   Begin
   {
     $AllCalls = New-Object -TypeName System.Collections.ArrayList
-    $ThisProtocolPriority = $Script:ProtocolPriority
+    $ThisProtocolPriority = Get-UcsConfigPriority
   }
   Process
   {
@@ -1039,7 +949,7 @@ Function Get-UcsLog
   Begin
   {
     $AllLogs = New-Object -TypeName System.Collections.ArrayList
-    $ThisProtocolPriority = $Script:ProtocolPriority
+    $ThisProtocolPriority = Get-UcsConfigPriority
   }
   Process
   {
