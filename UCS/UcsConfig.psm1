@@ -7,6 +7,7 @@ $Script:ConfigFileName = 'UcsConfig.xml'
 $Script:ConfigPath = Join-Path $Script:LocalStorageLocation $Script:ConfigFileName
 $Script:CredentialPath = Join-Path $Script:LocalStorageLocation $Script:CredentialFileName
 $Script:ImportedConfigInUse = $false
+$Script:ImportedCredentialInUse = $false
 
 # Storage initilization at end, after function definitions.
 
@@ -155,20 +156,23 @@ Function New-UcsConfigCredential
     [Switch]$InMemory
   )
 
-  $OutputObject = $API | Select-Object @{Name='API';Expression={$API}},
-    @{Name='Identity';Expression={$Identity}},
-    @{Name='DisplayName';Expression={$DisplayName}},
-    @{Name='Credential';Expression={$Credential}},
-    @{Name='Priority';Expression={$Priority}},
-    @{Name='Enabled';Expression={$Enabled}}
+  Process
+  {
+      $OutputObject = $API | Select-Object @{Name='API';Expression={$API}},
+        @{Name='Identity';Expression={$Identity}},
+        @{Name='DisplayName';Expression={$DisplayName}},
+        @{Name='Credential';Expression={$Credential}},
+        @{Name='Priority';Expression={$Priority}},
+        @{Name='Enabled';Expression={$Enabled}}
 
-  if($InMemory)
-  {
-    Return $OutputObject
-  }
-  else
-  {
-    Add-UcsConfigCredential $OutputObject
+      if($InMemory)
+      {
+        Return $OutputObject
+      }
+      else
+      {
+        Add-UcsConfigCredential $OutputObject
+      }
   }
 }
 
@@ -218,19 +222,25 @@ Function Add-UcsConfigCredential
   Param (
     [Parameter(Mandatory)][Object]$UcsConfigCredential
   )
-
-  if($UcsConfigCredential.Credential.GetType().Name -ne 'PSCredential' -or $UcsConfigCredential.Priority -eq $null)
+  Process
   {
-    Write-Error "Invalid UcsConfigCredential supplied."
+      if($UcsConfigCredential.Credential.GetType().Name -ne 'PSCredential' -or $UcsConfigCredential.Priority -eq $null)
+      {
+        Write-Error "Invalid UcsConfigCredential supplied."
+      }
+
+      $HighestIndex = $Script:MasterCredentials | Sort-Object -Property Index -Descending | Select -First 1 | Select -ExpandProperty Index
+      $ThisIndex = $HighestIndex + 1
+
+      $IndexRemoved = $UcsConfigCredential | Select-Object -Property * -ExcludeProperty Index
+      $CredentialToSave = $IndexRemoved | Select-Object -Property *,@{Name='Index';Expression={$ThisIndex}}
+
+      $null = $Script:MasterCredentials.Add($CredentialToSave)
   }
-
-  $HighestIndex = $Script:MasterCredentials | Sort-Object -Property Index -Descending | Select -First 1 | Select -ExpandProperty Index
-  $ThisIndex = $HighestIndex + 1
-
-  $IndexRemoved = $UcsConfigCredential | Select-Object -Property * -ExcludeProperty Index
-  $CredentialToSave = $IndexRemoved | Select-Object -Property *,@{Name='Index';Expression={$ThisIndex}}
-
-  $null = $Script:MasterCredentials.Add($CredentialToSave)
+  End
+  {
+    Update-UcsConfigCredential
+  }
 }
 
 Function Remove-UcsConfigCredential
@@ -257,6 +267,7 @@ Function Remove-UcsConfigCredential
   End
   {
     $Script:MasterCredentials = $NewMasterCredentials
+    Update-UcsConfigCredential
   }
 }
 
@@ -327,10 +338,14 @@ Function Set-UcsConfigCredential
       }
     }
   }
+  End
+  {
+    Update-UcsConfigCredential
+  }
 }
 
 
-<## Persistence functions for internal use ##>
+<## Config storage ##>
 Function Import-UcsConfig
 {
   Param (
@@ -381,8 +396,69 @@ Function Enable-UcsConfigStorage
 
    if($PSCmdlet.ShouldProcess($Script:ConfigPath))
    {
-     Update-UcsConfig
      $Script:ImportedConfigInUse = $true
+     Update-UcsConfig
+   }
+}
+
+<## Credential storage ##>
+Function Import-UcsConfigCredential
+{
+  Param (
+    [String]$Path = $Script:CredentialPath
+  )
+
+  if((Test-Path $Path) -eq $false)
+  {
+    Write-Error "Could not find file at $Path." -ErrorAction Stop
+  }
+
+  Write-Debug "Importing $Path to UcsConfig."
+  $Imported = Import-Clixml -Path $Path
+
+  $Script:MasterCredentials = New-Object Collections.ArrayList
+  Foreach($Cred in $Imported)
+  {
+    $null = $Script:MasterCredentials.Add($Cred)
+  }
+
+  $Script:ImportedCredentialInUse = $true
+}
+
+Function Update-UcsConfigCredential
+{
+  Param (
+    [String]$Path = $Script:CredentialPath
+  )
+
+  $Directory = Split-Path $Path
+
+  if( (Test-Path $Directory) -eq $false)
+  {
+    Write-Debug "Path $Directory not found. Creating..."
+    $null = New-Item -Path $Directory -ItemType Directory -Force
+  }
+
+  if($Script:ImportedCredentialInUse)
+  {
+    Write-Debug "Writing XML file to $Path."
+    $Script:MasterCredentials | Export-Clixml -Path $Path -Depth 1
+  }
+  else
+  {
+    Write-Debug "Imported credentials not currently in use, not updating."
+  }
+}
+
+Function Enable-UcsConfigCredential
+{
+   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
+   Param()
+
+   if($PSCmdlet.ShouldProcess($Script:CredentialPath))
+   {
+     $Script:ImportedCredentialInUse = $true
+     Update-UcsConfigCredential
    }
 }
 
@@ -411,4 +487,10 @@ if( Test-Path $Script:ConfigPath )
 {
  Write-Debug "Found config file at $Script:ConfigPath."
  Import-UcsConfig
+}
+
+if( Test-Path $Script:CredentialPath )
+{
+ Write-Debug "Found credential file at $Script:CredentialPath."
+ Import-UcsConfigCredential
 }
