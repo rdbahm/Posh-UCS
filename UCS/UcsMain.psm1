@@ -856,7 +856,7 @@ Function Get-UcsCallLog
     {
       Try 
       {
-        $PhoneInfo = Get-UcsPhoneInfo -IPv4Address $ThisIPv4Address
+        $PhoneInfo = Get-UcsPhoneInfo -IPv4Address $ThisIPv4Address -ErrorAction Stop
       }
       Catch 
       {
@@ -873,7 +873,7 @@ Function Get-UcsCallLog
       Try
       {
         $ProvInfo = Get-UcsProvisioningInfo -IPv4Address $ThisIPv4Address -ErrorAction Stop
-        $ProvCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ($ProvInfo.ProvServerUser, (ConvertTo-SecureString -String $ProvInfo.ProvServerUser -AsPlainText -Force))
+        $ProvCredential = Get-UcsConfigCredential -API FTP -CredentialOnly | Select-Object -First 1
       }
       Catch
       {
