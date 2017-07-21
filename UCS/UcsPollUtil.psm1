@@ -7,9 +7,11 @@ Function Invoke-UcsPollRequest {
     [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$IPv4Address,
     [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$ApiEndpoint,
     [ValidateSet('Get')][String]$Method = 'Get',
-    [Timespan]$Timeout = $Script:DefaultTimeout,
-    [System.Management.Automation.Credential()][pscredential]$Credential = $Script:PollingCredential,
-    [int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries
+    [Timespan]$Timeout = (Get-UcsPollAPIConnectionSetting).Timeout,
+    [pscredential]$Credential = (Get-UcsPollAPICredential),
+    [int][ValidateRange(1,100)]$Retries = (Get-UcsPollAPIConnectionSetting).Retries,
+    [int][ValidateRange(1,65535)]$Port = (Get-UcsPollAPIConnectionSetting).Port,
+    [boolean]$UseHTTPS = (Get-UcsPollAPIConnectionSetting).UseHTTPS
     )
     
     #TODO: Support for HTTPS
@@ -17,9 +19,7 @@ Function Invoke-UcsPollRequest {
   $Protocol = "http"
   $ThisIPv4Address = $IPv4Address
   $ThisHost = $ThisIPv4Address
-  $ThisPort = 80
-  $ThisTimeout = $Timeout
-  $ThisUri = ('{0}://{1}:{2}/{3}' -f $Protocol, $ThisHost, $ThisPort, $ApiEndpoint)
+  $ThisUri = ('{0}://{1}:{2}/{3}' -f $Protocol, $ThisHost, $Port, $ApiEndpoint)
   #The retry system works by try/catching the command multiple times
   $RetriesRemaining = $Retries
 
@@ -27,9 +27,9 @@ Function Invoke-UcsPollRequest {
   {
     Try 
     {
-
+      $ThisCredential = $Credential[0] #TODO: We don't yet support credential arrays, so for now, we get the first one.
       Write-Debug -Message ("Invoking webrequest for `"{0}`", no body to send." -f $ThisUri)
-      $RestOutput = Invoke-WebRequest -Uri $ThisUri -TimeoutSec $ThisTimeout.TotalSeconds -Method $Method -Credential $Credential -ErrorAction Stop
+      $RestOutput = Invoke-WebRequest -Uri $ThisUri -TimeoutSec $Timeout.TotalSeconds -Method $Method -Credential $ThisCredential -ErrorAction Stop
       Break #We only break if the previous thing didn't fail.
     }
     Catch 

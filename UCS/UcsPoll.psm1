@@ -7,6 +7,73 @@ apps.statePolling.password = user-selected
 Also for some reason, the requirement for a secure tunnel is set with a push parameter:
 apps.push.secureTunnelRequired= 0
 #>
+
+<#### API-Specific Configuration ####>
+$Script:Port = 80
+$Script:UseHTTPS = $false
+$Script:DefaultTimeout = New-Timespan -Seconds 2
+$Script:DefaultRetries = 3 
+
+$Script:PollCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ('UCSToolkit', (ConvertTo-SecureString -String 'UCSToolkit' -AsPlainText -Force))
+
+
+<#### FUNCTION DEFINITONS ####>
+
+<## API Configuration ##>
+Function Set-UcsPollAPIConnectionSetting
+{
+  Param([Int][ValidateRange(1,65535)]$Port = $null,
+    [Bool]$UseHTTPS = $null,
+    [Timespan]$Timeout = $null,
+    [Int][ValidateRange(1,100)]$Retries = $null
+  )
+  
+  if($Port -ne $null)
+  {
+    $Script:Port = $Port
+  }
+  if($UseHTTPS -ne $null)
+  {
+    Write-Warning "Poll API implementation doesn't yet support HTTPS."
+    $Script:UseHTTPS = $UseHTTPS
+  }
+  if($Timeout -ne $null)
+  {
+    if($Timeout.TotalSeconds -le 0)
+    {
+      Write-Error "Timeout value too low. Please set a value over 0 seconds."
+    }
+    else
+    {
+      $Script:DefaultTimeout = $Timeout
+    }
+  }
+  if($Retries -ne $null)
+  {
+    $Script:DefaultRetries = $Retries
+  }
+}
+
+Function Get-UcsPollAPIConnectionSetting
+{
+  $OutputObject = 1 | Select-Object @{Name='Port';Expression={$Script:Port}},@{Name='UseHTTPS';Expression={$Script:UseHTTPS}},@{Name='Timeout';Expression={$Script:DefaultTimeout}},@{Name='Retries';Expression={$Script:DefaultRetries}}
+  Return $OutputObject
+}
+
+Function Set-UcsPollAPICredential
+{
+  Param([Parameter(Mandatory)][PsCredential[]]$Credential)
+  
+  $Script:PollCredential = $Credential
+}
+
+Function Get-UcsPollAPICredential
+{
+  Return $Script:PollCredential
+}
+
+<## Phone Functions ##>
+
 Function Get-UcsPollDeviceInfo
 {
   Param(
