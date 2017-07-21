@@ -1,9 +1,3 @@
-$Script:Port = 80
-$Script:UseSSL = $false
-$Script:DefaultTimeout = New-TimeSpan -Seconds 5
-$Script:DefaultRetries = 3
-$Script:PushCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ('UCSToolkit', (ConvertTo-SecureString -String 'UCSToolkit' -AsPlainText -Force))
-
 Function Invoke-UcsPushWebRequest 
 {
   <#
@@ -44,12 +38,12 @@ Function Invoke-UcsPushWebRequest
     [ValidateSet('Get','Post')][String]$Method = 'Post',
     [String]$Body,
     [String]$ContentType = 'text/xml',
-    [Timespan]$Timeout = $Script:DefaultTimeout,
-    [System.Management.Automation.Credential()][pscredential]$Credential = $Script:PushCredential,
-    [int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries
+    [Timespan]$Timeout = (Get-UcsPushAPIConnectionSetting).Timeout,
+    [pscredential]$Credential = (Get-UcsRestAPICredential),
+    [int][ValidateRange(1,100)]$Retries = (Get-UcsPushAPIConnectionSetting).Retries,
+    [int][ValidateRange(1,65535)]$Port = (Get-UcsPushAPIConnectionSetting).Port,
+    [boolean]$UseHTTPS = (Get-UcsPushAPIConnectionSetting).UseHTTPS
   )
-
-  $ThisTimeout = $Timeout
 
   if($Script:UseSSL -eq $true) 
   {
@@ -93,6 +87,7 @@ Function Invoke-UcsPushWebRequest
 
   While($RetriesRemaining -gt 0) 
   {
+    $ThisCredential = $Credential[0] #Temporary until credential array support is added.
     Try 
     {
       $ThisUri = New-Object -TypeName System.Uri -ArgumentList ($ThisUri)
@@ -100,12 +95,12 @@ Function Invoke-UcsPushWebRequest
       if($Body.Length -gt 0) 
       {
         Write-Debug -Message ("Invoking webrequest for `"{0}`" and sending {1}." -f $ThisUri, $Body)
-        $RestOutput = Invoke-WebRequest -Uri $ThisUri -Credential $Credential -Body $Body -ContentType $ContentType -TimeoutSec $ThisTimeout.TotalSeconds -Method $Method -ErrorAction Stop
+        $RestOutput = Invoke-WebRequest -Uri $ThisUri -Credential $ThisCredential -Body $Body -ContentType $ContentType -TimeoutSec $Timeout.TotalSeconds -Method $Method -ErrorAction Stop
       }
       else 
       {
         Write-Debug -Message ("Invoking webrequest for `"{0}`", no body to send." -f $ThisUri)
-        $RestOutput = Invoke-WebRequest -Uri $ThisUri -Credential $Credential -ContentType $ContentType -TimeoutSec $ThisTimeout.TotalSeconds -Method $Method -ErrorAction Stop
+        $RestOutput = Invoke-WebRequest -Uri $ThisUri -Credential $ThisCredential -ContentType $ContentType -TimeoutSec $Timeout.TotalSeconds -Method $Method -ErrorAction Stop
       }
       Break
     }

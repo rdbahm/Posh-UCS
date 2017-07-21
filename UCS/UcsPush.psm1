@@ -1,8 +1,61 @@
-$Script:UseSSL = $false
+<#### API-Specific Configuration ####>
+$Script:Port = 80
+$Script:UseHTTPS = $false
+$Script:DefaultTimeout = New-Timespan -Seconds 2
+$Script:DefaultRetries = 3 
 
 $Script:PushCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ('UCSToolkit', (ConvertTo-SecureString -String 'UCSToolkit' -AsPlainText -Force))
 
 
+<#### FUNCTION DEFINITONS ####>
+
+<## API Configuration ##>
+Function Set-UcsPushAPIConnectionSetting
+{
+  Param([Int][ValidateRange(1,65535)]$Port = $null,
+    [Bool]$UseHTTPS = $null,
+    [Timespan]$Timeout = $null,
+    [Int]$Retries = $null
+  )
+  
+  if($Port -ne $null)
+  {
+    $Script:Port = $Port
+  }
+  if($UseHTTPS -ne $null)
+  {
+    $Script:UseHTTPS = $UseHTTPS
+  }
+  if($Timeout -ne $null)
+  {
+    $Script:DefaultTimeout = $Timeout
+  }
+  if($Retries -ne $null)
+  {
+    $Script:DefaultRetries = $Retries
+  }
+}
+
+Function Get-UcsPushAPIConnectionSetting
+{
+  $OutputObject = 1 | Select-Object @{Name='Port';Expression={$Script:Port}},@{Name='UseHTTPS';Expression={$Script:UseHTTPS}},@{Name='Timeout';Expression={$Script:DefaultTimeout}},@{Name='Retries';Expression={$Script:DefaultRetries}}
+  Return $OutputObject
+}
+
+Function Set-UcsPushAPICredential
+{
+  Param([Parameter(Mandatory)][PsCredential[]]$Credential)
+  
+  $Script:PushCredential = $Credential
+}
+
+Function Get-UcsPushAPICredential
+{
+  Return $Script:PushCredential
+}
+
+
+<## Phone cmdlets ##>
 Function Start-UcsPushCall
 {
   <#
@@ -125,7 +178,7 @@ Function Send-UcsPushMessage
     {
       Try
       {
-        $Output = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'push' -Method Post -Body $MessageHTML -ContentType 'text/xml' -Credential $Script:PushCredential -ErrorAction Stop
+        $Output = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'push' -Method Post -Body $MessageHTML -ContentType 'text/xml' -ErrorAction Stop
         Write-Debug $Output
       } 
       Catch
@@ -183,7 +236,7 @@ Function Send-UcsPushCallAction
   $MessageHTML = ("<PolycomIPPhone><Data priority=`"{0}`">CallAction:{1};nCallReference={2}</Data></PolycomIPPhone>" -f $Priority, $CallAction, $ThisCallRef)
 
   Try {
-    $null = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'push' -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Credential $Script:PushCredential -ErrorAction Stop
+    $null = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'push' -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -ErrorAction Stop
   }
   Catch
   {
@@ -253,7 +306,7 @@ Function Send-UcsPushKeyPress
     {
       Try
       {
-        $ThisResult = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'push' -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Credential $Script:PushCredential -ErrorAction Stop
+        $ThisResult = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'push' -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -ErrorAction Stop
       }
       Catch
       {
@@ -336,7 +389,8 @@ Function Get-UcsPushScreenCapture
 
       Try 
       {
-        $ScreenCapture = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint $ThisApiEndpoint -Credential (Get-UcsRestAPICredential)[0]
+        #This needs to be rewritten to take advantage of the credential arrays.
+        $ScreenCapture = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint $ThisApiEndpoint -Credential (Get-UcsRestAPICredential)[0] 
         [Drawing.Image]$Image = $ScreenCapture.Content
         $null = $ImageArray.Add($Image)
       }
