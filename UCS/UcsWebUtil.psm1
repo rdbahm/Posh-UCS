@@ -11,17 +11,11 @@ Function Invoke-UcsWebRequest
     [int][ValidateRange(1,65535)]$Port = (Get-UcsConfig -API Web).Port,
     [boolean]$UseHTTPS = (Get-UcsConfig -API Web).EnableEncryption
   )
-  
-  
-
-  $ThisTimeout = $Timeout
 
   $ThisIPv4Address = $IPv4Address
   
   $Protocol = "http" #SSL support has been removed from this invoke.
   $ThisHost = $ThisIPv4Address
-  
-  
   
   $ThisUri = ('{0}://{1}:{2}/{3}' -f $Protocol, $ThisHost, $Port, $ApiEndpoint)
   #The retry system works by try/catching the command multiple times
@@ -55,12 +49,12 @@ Function Invoke-UcsWebRequest
       if($Body.Length -gt 0) 
       {
         Write-Debug -Message ("Invoking webrequest for `"{0}`" and sending {1}." -f $ThisUri, $Body)
-        $RestOutput = Invoke-WebRequest -Uri $ThisUri -WebSession $Session -Headers $Header -Body $Body -ContentType $ContentType -TimeoutSec $ThisTimeout.TotalSeconds -Method $Method -ErrorAction Stop
+        $RestOutput = Invoke-WebRequest -Uri $ThisUri -WebSession $Session -Headers $Header -Body $Body -ContentType $ContentType -TimeoutSec $Timeout.TotalSeconds -Method $Method -ErrorAction Stop
       }
       else 
       {
         Write-Debug -Message ("Invoking webrequest for `"{0}`", no body to send." -f $ThisUri)
-        $RestOutput = Invoke-WebRequest -Uri $ThisUri -WebSession $Session -Headers $Header -ContentType $ContentType -TimeoutSec $ThisTimeout.TotalSeconds -Method $Method -ErrorAction Stop
+        $RestOutput = Invoke-WebRequest -Uri $ThisUri -WebSession $Session -Headers $Header -ContentType $ContentType -TimeoutSec $Timeout.TotalSeconds -Method $Method -ErrorAction Stop
       }
       Break
     }
