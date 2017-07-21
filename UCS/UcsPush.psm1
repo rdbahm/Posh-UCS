@@ -405,7 +405,7 @@ Function Get-UcsPushScreenCapture
       Try 
       {
         #This needs to be rewritten to take advantage of the credential arrays.
-        $ScreenCapture = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint $ThisApiEndpoint -Credential (Get-UcsRestAPICredential)[0] 
+        $ScreenCapture = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint $ThisApiEndpoint -Credential (Get-UcsConfigCredential -API REST -CredentialOnly)[0] 
         [Drawing.Image]$Image = $ScreenCapture.Content
         $null = $ImageArray.Add($Image)
       }
