@@ -276,7 +276,7 @@ Function Get-UcsSipPhoneInfo
             }
           } default 
           {
-            Write-Debug -Message "$Property`: This SIP property is not currently supported."
+            Write-Debug -Message "$Property`: This SIP property is not currently supported. Value was $Value"
           }
         }
       }
