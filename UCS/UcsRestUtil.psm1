@@ -41,12 +41,11 @@ Function Invoke-UcsRestMethod
     [Timespan]$Timeout = (Get-UcsRestAPIConnectionSetting).Timeout,
     [PsCredential[]]$Credential = (Get-UcsRestAPICredential),
     [int][ValidateRange(1,100)]$Retries = (Get-UcsRestAPIConnectionSetting).Retries,
-    [int][ValidateRange(1,65535)]$Port = (Get-UcsRestAPIConnectionSetting).Port
+    [int][ValidateRange(1,65535)]$Port = (Get-UcsRestAPIConnectionSetting).Port,
+    [boolean]$UseHTTPS = (Get-UcsRestAPIConnectionSetting).UseHTTPS
   )
 
-  $ThisTimeout = $Timeout
-
-  if((Get-UcsRestAPIConnectionSetting).UseHTTPS -eq $true) 
+  if($UseHTTPS -eq $true) 
   {
     <#
         HTTPS requires some extra work.
@@ -59,10 +58,10 @@ Function Invoke-UcsRestMethod
     $Protocol = 'https'
     Try 
     {
-      $ThisHost = Get-UcsHostname -IPv4Address $IPv4Address
-      Write-Debug -Message (('Got hostname {0}.' -f $ThisHost))
       if(Test-UcsIsAdministrator -eq $true) 
       {
+        $ThisHost = Get-UcsHostname -IPv4Address $IPv4Address
+        Write-Debug -Message (('Got hostname {0}.' -f $ThisHost))
         Add-UcsHost -IPv4Address $IPv4Address -Hostname $ThisHost #We'll only set this if we get a hostname.
       }
       else
@@ -78,6 +77,7 @@ Function Invoke-UcsRestMethod
   }
   else 
   {
+    #Regular HTTP codepath.
     $Protocol = 'http'
     $ThisHost = $IPv4Address
   }
@@ -97,12 +97,12 @@ Function Invoke-UcsRestMethod
       if($Body.Length -gt 0) 
       {
         Write-Debug -Message ("Invoking RestMethod for `"{0}`" and sending {1}." -f $ThisUri, $Body)
-        $RestOutput = Invoke-RestMethod -Uri $ThisUri -Credential $ThisCredential -Body $Body -ContentType $ContentType -TimeoutSec $ThisTimeout.TotalSeconds -Method $Method -ErrorAction Stop
+        $RestOutput = Invoke-RestMethod -Uri $ThisUri -Credential $ThisCredential -Body $Body -ContentType $ContentType -TimeoutSec $Timeout.TotalSeconds -Method $Method -ErrorAction Stop
       }
       else 
       {
         Write-Debug -Message ("Invoking RestMethod for `"{0}`", no body to send." -f $ThisUri)
-        $RestOutput = Invoke-RestMethod -Uri $ThisUri -Credential $ThisCredential -ContentType $ContentType -TimeoutSec $ThisTimeout.TotalSeconds -Method $Method -ErrorAction Stop
+        $RestOutput = Invoke-RestMethod -Uri $ThisUri -Credential $ThisCredential -ContentType $ContentType -TimeoutSec $Timeout.TotalSeconds -Method $Method -ErrorAction Stop
       }
       Break #If we got here, there was no error, so we break from the loop.
     }
@@ -115,7 +115,7 @@ Function Invoke-UcsRestMethod
             if($ErrorStatusCode -eq '403' -or $ErrorStatusCode -eq '401')
             {
               #No number of retries will fix an authentication error.
-              $AdditionalInfo =  "403 error returned - unauthorized or wrong credentials. Skipping retries."
+              $AdditionalInfo =  "403 error returned - unauthorized or wrong credentials."
               Write-Debug $AdditionalInfo
               
               $Category = "AuthenticationError"
@@ -141,7 +141,7 @@ Function Invoke-UcsRestMethod
       if($RetriesRemaining -le 0) 
       {
         #Cleanup for SSL. Copypasta'd from below to avoid issues where we litter the hosts file.
-        if((Get-UcsRestAPIConnectionSetting).UseHTTPS -eq $true) 
+        if($UseHTTPS -eq $true) 
         {
           if(Test-UcsIsAdministrator -eq $true) 
           {
@@ -161,7 +161,7 @@ Function Invoke-UcsRestMethod
   }
 
   #Cleanup for SSL.
-  if((Get-UcsRestAPIConnectionSetting).UseHTTPS -eq $true) 
+  if($UseHTTPS -eq $true)
   {
     if(Test-UcsIsAdministrator -eq $true) 
     {
@@ -175,7 +175,7 @@ Function Invoke-UcsRestMethod
     $RestOutput.Status = $ThisStatus
     if($ThisStatus.IsSuccess -eq $false) 
     {
-      Write-Error -Message ('An error occurred for API endpoint {0} with status code {1}: {2}' -f $ApiEndpoint, $ThisStatus.StatusCode, $ThisStatus.StatusString)
+      Write-Error -Message ('An error occurred for API endpoint {0} with status code {1}: {2}' -f $ApiEndpoint, $ThisStatus.StatusCode, $ThisStatus.StatusString) -Category InvalidResult
     }
   }
 
