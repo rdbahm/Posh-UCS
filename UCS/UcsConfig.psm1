@@ -136,8 +136,7 @@ Function New-UcsConfigCredential
     [String]$DisplayName = '',
     [Int]$Priority = 50,
     [String]$Identity = '*',
-    [Boolean]$Enabled = $true,
-    [Switch]$InMemory
+    [Boolean]$Enabled = $true
   )
 
   $OutputObject = $API | Select-Object @{Name='API';Expression={$API}},
@@ -147,14 +146,8 @@ Function New-UcsConfigCredential
     @{Name='Priority';Expression={$Priority}},
     @{Name='Enabled';Expression={$Enabled}}
 
-  if($InMemory)
-  {
-    Return $OutputObject
-  }
-  else
-  {
-    Add-UcsConfigCredential $OutputObject
-  }
+
+  Add-UcsConfigCredential $OutputObject
 }
 
 Function New-UcsConfigCredentialPlaintext
