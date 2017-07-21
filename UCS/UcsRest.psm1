@@ -111,7 +111,7 @@ Function Get-UcsRestParameter
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(Mandatory,HelpMessage = 'A UCS parameter, such as "Up.Timeout."',ValueFromPipelineByPropertyName)][String[]]$Parameter,
     [Switch]$Quiet,
-  [Int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries)
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
     
   BEGIN {
     $OutputArray = New-Object -TypeName System.Collections.ArrayList
@@ -255,7 +255,7 @@ Function Get-UcsRestNetworkInfo
 
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Switch]$Quiet,
-  [Int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries)
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
 
   BEGIN {
     $OutputArray = New-Object -TypeName System.Collections.ArrayList
@@ -307,7 +307,7 @@ Function Get-UcsRestDeviceInfo
   #>
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Switch]$Quiet,
-  [Int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries)
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
 
   BEGIN {
     $OutputArray = New-Object -TypeName System.Collections.ArrayList
@@ -379,7 +379,7 @@ Function Restart-UcsRestPhone
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Switch]$PassThru,
-  [Int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries)
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
 
   BEGIN {
     #$Output = New-Object -TypeName System.Collections.ArrayList
@@ -443,7 +443,7 @@ Function Reset-UcsRestConfiguration
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Switch]$ToFactoryDefaults,
-  [Int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries)
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
 
   BEGIN {
     #$OutputArray = New-Object -TypeName System.Collections.ArrayList
@@ -505,7 +505,7 @@ Function Get-UcsRestCallStatus
   #>
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Switch]$Quiet,
-  [Int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries)
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
 
   BEGIN {
     $OutputArray = New-Object -TypeName System.Collections.ArrayList
@@ -571,7 +571,7 @@ Function Get-UcsRestPresence
       Tested only in Skype for Business environment.
   #>
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
-  [Int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries)
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
 
   BEGIN {
     $OutputArray = New-Object -TypeName System.Collections.ArrayList
@@ -639,7 +639,7 @@ Function Get-UcsRestLineInfo
   #>
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Switch]$Quiet,
-  [Int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries)
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
 
   BEGIN {
     $OutputArray = New-Object -TypeName System.Collections.ArrayList
@@ -737,7 +737,7 @@ Function Get-UcsRestSipStatus
   #>
 
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
-  [Int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries)
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
 
   BEGIN {
     $OutputArray = New-Object -TypeName System.Collections.ArrayList
@@ -793,7 +793,7 @@ Function Get-UcsRestNetworkStats
   #>
 
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
-  [Int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries)
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
 
   BEGIN {
     $OutputArray = New-Object -TypeName System.Collections.ArrayList
@@ -865,7 +865,7 @@ Function Start-UcsRestCall
     [Int][ValidateRange(1,24)]$LineId = 1,
     [String][ValidateSet('SIP')]$CallType = 'SIP',
     [Switch]$PassThru,
-  [Int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries)
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
     
   BEGIN {
     $OutputArray = New-Object -TypeName System.Collections.ArrayList
@@ -943,7 +943,7 @@ Function Stop-UcsRestCall
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'Medium')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(ValueFromPipelineByPropertyName)][String][ValidatePattern('^0x[a-f0-9]{7,8}$')]$CallHandle,
-  [Int][ValidateRange(1,100)]$Retries = $Script:DefaultRetries)
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
     
   BEGIN {
     $OutputArray = New-Object -TypeName System.Collections.ArrayList

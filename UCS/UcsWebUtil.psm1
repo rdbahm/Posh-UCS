@@ -9,7 +9,7 @@ Function Invoke-UcsWebRequest
     [PsCredential[]]$Credential = (Get-UcsConfigCredential -API Web -CredentialOnly),
     [int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -API Web).Retries,
     [int][ValidateRange(1,65535)]$Port = (Get-UcsConfig -API Web).Port,
-    [boolean]$UseHTTPS = (Get-UcsConfig -API Web).EnableEncryption
+    [Nullable[boolean]]$UseHTTPS = (Get-UcsConfig -API Web).EnableEncryption
   )
   
   
