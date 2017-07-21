@@ -99,7 +99,14 @@ Function Set-UcsConfig
 
   if($EnableEncryption -ne $null)
   {
-    $WorkingConfig.EnableEncryption = $EnableEncryption
+    if($WorkingConfig.EnableEncryption -eq $null)
+    {
+      Write-Error ('Encryption is not supported by the {0} API.' -f $API)
+    }
+    else
+    {
+      $WorkingConfig.EnableEncryption = $EnableEncryption
+    }
   }
 
   if($Priority -ne $null)
@@ -124,7 +131,7 @@ Function Set-UcsConfig
 Function New-UcsConfigCredential
 {
   Param (
-    [Parameter(Mandatory)][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API,
+    [Parameter(Mandatory)][ValidateSet('REST','Poll','Push','Web','FTP')][String]$API,
     [Parameter(Mandatory)][PSCredential]$Credential,
     [String]$DisplayName = '',
     [Int]$Priority = 50,
@@ -166,7 +173,7 @@ Function New-UcsConfigCredentialPlaintext
 Function Get-UcsConfigCredential
 {
   Param (
-    [Parameter(Mandatory)][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API,
+    [Parameter(Mandatory)][ValidateSet('REST','Poll','Push','Web','FTP')][String]$API,
     [Switch]$IncludeDisabled,
     [Switch]$CredentialOnly
   )
@@ -242,7 +249,7 @@ Function Set-UcsConfigCredential
 {
    Param (
     [Parameter(Mandatory,ValueFromPipelineByPropertyName)][Int[]]$Index,
-    [AllowEmptyString()][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API = '',
+    [AllowEmptyString()][ValidateSet('REST','Poll','Push','Web','FTP')][String]$API = '',
     $Credential = $null,
     [String]$DisplayName = '',
     [Nullable[Int]]$Priority = $null,
@@ -320,9 +327,9 @@ New-UcsConfigCredential -API FTP -Credential (New-UcsConfigCredentialPlaintext -
 <#### Define defaults for configs ####>
 $Script:MasterConfig = (
   (New-UcsConfig -API REST -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $false -Priority 1 -Enabled $true),
-  (New-UcsConfig -API SIP -Timeout (New-TimeSpan -Seconds 5) -Retries 2 -Port 5060 -EnableEncryption $false -Priority 90 -Enabled $true),
-  (New-UcsConfig -API Poll -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $false -Priority 30 -Enabled $true),
+  (New-UcsConfig -API SIP -Timeout (New-TimeSpan -Seconds 5) -Retries 2 -Port 5060 -EnableEncryption $null -Priority 90 -Enabled $true),
+  (New-UcsConfig -API Poll -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $null -Priority 30 -Enabled $true),
   (New-UcsConfig -API Push -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $false -Priority 40 -Enabled $true),
   (New-UcsConfig -API Web -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $false -Priority 20 -Enabled $true),
-  (New-UcsConfig -API FTP -Timeout (New-TimeSpan -Seconds 5) -Retries 2 -Port 21 -EnableEncryption $false -Priority 100 -Enabled $true)
+  (New-UcsConfig -API FTP -Timeout (New-TimeSpan -Seconds 5) -Retries 2 -Port 21 -EnableEncryption $null -Priority 100 -Enabled $true)
 )
