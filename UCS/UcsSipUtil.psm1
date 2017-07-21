@@ -5,10 +5,10 @@ Function Invoke-UcsSipRequest
     [Parameter(Mandatory,HelpMessage = '127.0.0.1')][String]$IPv4Address,
     [Int][ValidateRange(1,9999)]$CSeq = 1,
     [String][ValidateSet('OPTIONS','NOTIFY','INFO')]$Method = 'NOTIFY',
-    [Timespan]$Timeout = (Get-UcsSipConnectionSetting).Timeout,
     [String]$Event = '',
-    [int][ValidateRange(1,100)]$Retries = (Get-UcsSipConnectionSetting).Retries,
-    [int][ValidateRange(1,65535)]$Port = (Get-UcsSipConnectionSetting).Port,
+    [Timespan]$Timeout = (Get-UcsConfig -API SIP).Timeout,
+    [int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -API SIP).Retries,
+    [int][ValidateRange(1,65535)]$Port = (Get-UcsConfig -API SIP).Port,
     [switch]$SkipParse
   )
   

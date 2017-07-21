@@ -5,10 +5,11 @@ Function Invoke-UcsWebRequest
     [ValidateSet('Get','Post','Put')][String]$Method = 'Get',
     $Body = $null,
     [String]$ContentType,
-    [Timespan]$Timeout = (Get-UcsWebAPIConnectionSetting).Timeout,
-    [pscredential[]]$Credential = (Get-UcsWebAPICredential),
-    [int][ValidateRange(1,100)]$Retries = (Get-UcsWebAPIConnectionSetting).Retries,
-    [int][ValidateRange(1,65535)]$Port = (Get-UcsWebAPIConnectionSetting).Port
+    [Timespan]$Timeout = (Get-UcsConfig -API Web).Timeout,
+    [PsCredential[]]$Credential = (Get-UcsConfigCredential -API Web -CredentialOnly),
+    [int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -API Web).Retries,
+    [int][ValidateRange(1,65535)]$Port = (Get-UcsConfig -API Web).Port,
+    [boolean]$UseHTTPS = (Get-UcsConfig -API Web).EnableEncryption
   )
   
   

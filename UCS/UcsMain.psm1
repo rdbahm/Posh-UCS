@@ -967,7 +967,14 @@ Function Get-UcsLog
             'FTP'
             {
               $ProvInfo = Get-UcsProvisioningInfo -IPv4Address $ThisIPv4Address -ErrorAction Stop
-              $ProvCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ($ProvInfo.ProvServerUser, (ConvertTo-SecureString -String $ProvInfo.ProvServerUser -AsPlainText -Force))
+              $ProvCredential = Get-UcsConfigCredential -API FTP | Select-Object -ExpandProperty Credential | Where-Object UserName -eq $ProvInfo.ProvServerUser | Select -First 1
+
+              if($ProvCredential.Count -eq 0)
+              {
+                Write-Error "Couldn't find a credential for $ThisIPv4Address."
+                Break
+              }
+
               $MacAddress = Get-UcsPhoneInfo -IPv4Address $IPv4Address -ErrorAction Stop | Select-Object -ExpandProperty MacAddress -ErrorAction Stop
               $Logs = Get-UcsProvFTPLog -MacAddress $MacAddress -FTPServer $ProvInfo.ProvServerAddress -Credential $ProvCredential -LogType $LogType -ErrorAction Stop
               $Logs = $Logs | Select-Object -Property *, @{

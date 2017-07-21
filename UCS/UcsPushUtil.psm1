@@ -39,14 +39,14 @@ Function Invoke-UcsPushWebRequest
     [ValidateSet('Get','Post')][String]$Method = 'Post',
     [String]$Body,
     [String][ValidateSet('text/xml','application/x-com-polycom-spipx')]$ContentType = 'application/x-com-polycom-spipx',
-    [Timespan]$Timeout = (Get-UcsPushAPIConnectionSetting).Timeout,
-    [pscredential]$Credential = (Get-UcsRestAPICredential),
-    [int][ValidateRange(1,100)]$Retries = (Get-UcsPushAPIConnectionSetting).Retries,
-    [int][ValidateRange(1,65535)]$Port = (Get-UcsPushAPIConnectionSetting).Port,
-    [boolean]$UseHTTPS = (Get-UcsPushAPIConnectionSetting).UseHTTPS
+    [Timespan]$Timeout = (Get-UcsConfig -API Push).Timeout,
+    [PsCredential[]]$Credential = (Get-UcsConfigCredential -API Push -CredentialOnly),
+    [int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -API Push).Retries,
+    [int][ValidateRange(1,65535)]$Port = (Get-UcsConfig -API Push).Port,
+    [boolean]$UseHTTPS = (Get-UcsConfig -API Push).EnableEncryption
   )
 
-  if($Script:UseSSL -eq $true) 
+  if($UseHTTPS -eq $true) 
   {
     <#
         HTTPS requires some extra work.
@@ -112,7 +112,7 @@ Function Invoke-UcsPushWebRequest
       if($RetriesRemaining -le 0) 
       {
           #Cleanup for SSL.
-        if($Script:UseSSL -eq $true) 
+        if($UseHTTPS -eq $true) 
         {
           if(Test-UcsPushIsAdministrator -eq $true) 
           {
@@ -130,7 +130,7 @@ Function Invoke-UcsPushWebRequest
   }
 
   #Cleanup for SSL.
-  if($Script:UseSSL -eq $true) 
+  if($UseHTTPS -eq $true) 
   {
     if(Test-UcsPushIsAdministrator -eq $true) 
     {
