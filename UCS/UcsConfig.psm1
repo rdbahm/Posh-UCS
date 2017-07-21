@@ -1,5 +1,13 @@
 <###### UCS Configuration Utilities ######>
 
+<#### PARAMETERS ####>
+$Script:LocalStorageLocation = "$env:LOCALAPPDATA\UCS"
+$Script:CredentialFileName = 'UcsCredential.xml'
+$Script:ConfigFileName = 'UcsConfig.xml'
+$Script:ConfigPath = Join-Path $Script:LocalStorageLocation $Script:ConfigFileName
+$Script:CredentialPath = Join-Path $Script:LocalStorageLocation $Script:CredentialFileName
+$Script:ImportedConfigInUse = $false
+
 # Storage initilization at end, after function definitions.
 
 <#### Function definitions ####>
@@ -73,58 +81,65 @@ Function Set-UcsConfig
     [Nullable[bool]]$Enabled = $null
   )
 
-  $WorkingConfig = Get-UcsConfig -API $API
-
-  if($Retries -ne $null)
+  Process
   {
-    $WorkingConfig.Retries = $Retries
+      $WorkingConfig = Get-UcsConfig -API $API
+
+      if($Retries -ne $null)
+      {
+        $WorkingConfig.Retries = $Retries
+      }
+
+      if($Timeout -ne $null)
+      {
+        if($Timeout.TotalSeconds -lt 0)
+        {
+          Write-Error "Couldn't create options because timeout was set to less than 0." -ErrorAction Stop -Category InvalidArgument
+        }
+        else
+        {
+          $WorkingConfig.Timeout = $Timeout
+        }
+      }
+
+      if($Port -ne $null)
+      {
+        $WorkingConfig.Port = $Port
+      }
+
+      if($EnableEncryption -ne $null)
+      {
+        if($WorkingConfig.EnableEncryption -eq $null)
+        {
+          Write-Error ('Encryption is not supported by the {0} API.' -f $API)
+        }
+        else
+        {
+          $WorkingConfig.EnableEncryption = $EnableEncryption
+        }
+      }
+
+      if($Priority -ne $null)
+      {
+        $WorkingConfig.Priority = $Priority
+      }
+
+      if($Enabled -ne $null)
+      {
+        $WorkingConfig.Enabled = $Enabled
+      }
+
+      Foreach($Configuration in $Script:MasterConfig)
+      {
+        if($Configuration.API -eq $API)
+        {
+         $Configuration = $WorkingConfig
+        }
+      }
   }
-
-  if($Timeout -ne $null)
+  End
   {
-    if($Timeout.TotalSeconds -lt 0)
-    {
-      Write-Error "Couldn't create options because timeout was set to less than 0." -ErrorAction Stop -Category InvalidArgument
-    }
-    else
-    {
-      $WorkingConfig.Timeout = $Timeout
-    }
-  }
-
-  if($Port -ne $null)
-  {
-    $WorkingConfig.Port = $Port
-  }
-
-  if($EnableEncryption -ne $null)
-  {
-    if($WorkingConfig.EnableEncryption -eq $null)
-    {
-      Write-Error ('Encryption is not supported by the {0} API.' -f $API)
-    }
-    else
-    {
-      $WorkingConfig.EnableEncryption = $EnableEncryption
-    }
-  }
-
-  if($Priority -ne $null)
-  {
-    $WorkingConfig.Priority = $Priority
-  }
-
-  if($Enabled -ne $null)
-  {
-    $WorkingConfig.Enabled = $Enabled
-  }
-
-  Foreach($Configuration in $Script:MasterConfig)
-  {
-    if($Configuration.API -eq $API)
-    {
-     $Configuration = $WorkingConfig
-    }
+     Update-UcsConfig
   }
 }
 
@@ -314,6 +329,63 @@ Function Set-UcsConfigCredential
   }
 }
 
+
+<## Persistence functions for internal use ##>
+Function Import-UcsConfig
+{
+  Param (
+    [String]$Path = $Script:ConfigPath
+  )
+
+  if((Test-Path $Path) -eq $false)
+  {
+    Write-Error "Could not find file at $Path." -ErrorAction Stop
+  }
+
+  Write-Debug "Importing $Path to UcsConfig."
+  $Imported = Import-Clixml -Path $Path
+
+  $Script:MasterConfig = $Imported
+  $Script:ImportedConfigInUse = $true
+}
+
+Function Update-UcsConfig
+{
+  Param (
+    [String]$Path = $Script:ConfigPath
+  )
+
+  $Directory = Split-Path $Path
+
+  if( (Test-Path $Directory) -eq $false)
+  {
+    Write-Debug "Path $Directory not found. Creating..."
+    $null = New-Item -Path $Directory -ItemType Directory -Force
+  }
+
+  if($Script:ImportedConfigInUse)
+  {
+    Write-Debug "Writing XML file to $Path."
+    $Script:MasterConfig | Export-Clixml -Path $Path -Depth 1
+  }
+  else
+  {
+    Write-Debug "Imported config not currently in use, not updating."
+  }
+}
+
+Function Enable-UcsConfigStorage
+{
+   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
+   Param()
+
+   if($PSCmdlet.ShouldProcess($Script:ConfigPath))
+   {
+     Update-UcsConfig
+     $Script:ImportedConfigInUse = $true
+   }
+}
+
 <#### Create Credential Storage ####>
 $Script:MasterCredentials = New-Object Collections.ArrayList
 
@@ -333,3 +405,10 @@ $Script:MasterConfig = (
   (New-UcsConfig -API Web -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $null -Priority 20 -Enabled $true),
   (New-UcsConfig -API FTP -Timeout (New-TimeSpan -Seconds 5) -Retries 2 -Port 21 -EnableEncryption $null -Priority 100 -Enabled $true)
 )
+
+<#### Check for preferences ####>
+if( Test-Path $Script:ConfigPath )
+{
+ Write-Debug "Found config file at $Script:ConfigPath."
+ Import-UcsConfig
+}
