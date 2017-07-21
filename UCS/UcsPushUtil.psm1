@@ -34,10 +34,11 @@ Function Invoke-UcsPushWebRequest
   #[ValidatePattern("^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$")]
   Param(
     [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$IPv4Address,
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$ApiEndpoint,
+    [String]$ApiEndpoint = 'push',
+    [ValidateSet('Critical','Important','High','Normal')][String]$Priority = 'Critical',
     [ValidateSet('Get','Post')][String]$Method = 'Post',
     [String]$Body,
-    [String]$ContentType = 'text/xml',
+    [String][ValidateSet('text/xml','application/x-com-polycom-spipx')]$ContentType = 'application/x-com-polycom-spipx',
     [Timespan]$Timeout = (Get-UcsPushAPIConnectionSetting).Timeout,
     [pscredential]$Credential = (Get-UcsRestAPICredential),
     [int][ValidateRange(1,100)]$Retries = (Get-UcsPushAPIConnectionSetting).Retries,
@@ -80,11 +81,11 @@ Function Invoke-UcsPushWebRequest
     $ThisHost = $IPv4Address
   }
 
-  $ArgumentString = ''
-  $ThisUri = ('{0}://{1}:{2}/{3}' -f $Protocol, $ThisHost, $Script:Port, $ApiEndpoint, $ArgumentString)
-  #The retry system works by try/catching the command multiple times
-  $RetriesRemaining = $Retries
+  #Build request URI
+  $ThisUri = ('{0}://{1}:{2}/{3}' -f $Protocol, $ThisHost, $Script:Port, $ApiEndpoint)
+  $ThisBody = ('<PolycomIPPhone><Data priority="{0}">{1}</Data></PolycomIPPhone>' -f $Priority, $Body)
 
+  $RetriesRemaining = $Retries
   While($RetriesRemaining -gt 0) 
   {
     $ThisCredential = $Credential[0] #Temporary until credential array support is added.

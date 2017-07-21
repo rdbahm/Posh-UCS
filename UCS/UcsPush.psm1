@@ -105,10 +105,10 @@ Function Start-UcsPushCall
     $ThisDestination = $Destination
   }
 
-  $MessageHTML = ("<PolycomIPPhone><Data priority=`"{0}`">tel:{1};line{2}</Data></PolycomIPPhone>" -f $Priority, $Destination, $LineId)
+  $MessageHTML = ('tel:{0};line{1}' -f $Destination, $LineId)
 
   Try {
-    $null = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'push' -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -ErrorAction Stop
+    $null = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
 
     if($PassThru -eq $true) 
     {
@@ -169,7 +169,7 @@ Function Send-UcsPushMessage
 
   Begin
   {
-    $MessageHTML = ("<PolycomIPPhone><Data priority=`"{0}`"><h1>{1}</h1>{2}</Data></PolycomIPPhone>" -f $Priority, $Title, $Message)
+    $MessageHTML = ("<h1>{0}</h1>{1}" -f $Title, $Message)
   }
 
   Process
@@ -178,7 +178,7 @@ Function Send-UcsPushMessage
     {
       Try
       {
-        $Output = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'push' -Method Post -Body $MessageHTML -ContentType 'text/xml' -ErrorAction Stop
+        $Output = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Method Post -Body $MessageHTML -ContentType 'text/xml' -Priority $Priority -ErrorAction Stop
         Write-Debug $Output
       } 
       Catch
@@ -233,10 +233,10 @@ Function Send-UcsPushCallAction
   {
     $ThisCallRef = (Get-UcsCallStatus -IPv4Address $ThisIPv4Address).CallHandle
   }
-  $MessageHTML = ("<PolycomIPPhone><Data priority=`"{0}`">CallAction:{1};nCallReference={2}</Data></PolycomIPPhone>" -f $Priority, $CallAction, $ThisCallRef)
+  $MessageHTML = ('CallAction:{0};nCallReference={1}' -f $CallAction, $ThisCallRef)
 
   Try {
-    $null = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'push' -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -ErrorAction Stop
+    $null = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
   }
   Catch
   {
@@ -279,7 +279,7 @@ Function Send-UcsPushKeyPress
   #>
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String]$IPv4Address,
     [ValidateSet('Critical','Important','High','Normal')][String]$Priority = 'Critical',
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][ValidateSet('Line1','Line2','Line3','Line4','Line5','Line6','Line7','Line8','Line9','Line10',
+    [Parameter(Mandatory,HelpMessage = 'VolDown')][ValidateSet('Line1','Line2','Line3','Line4','Line5','Line6','Line7','Line8','Line9','Line10',
         'Line11','Line12','Line13','Line14','Line15','Line16','Line17','Line18','Line19','Line20','Line21','Line22','Line23',
         'Line24','Line25','Line26','Line27','Line28','Line29','Line30','Line31','Line32','Line33','Line34','Line35','Line36',
         'Line37','Line38','Line39','Line40','Line41','Line42','Line43','Line44','Line45','Line46','Line47','Line48','Dialpad0',
@@ -299,14 +299,14 @@ Function Send-UcsPushKeyPress
     }
     #$KeysToPress = $KeysToPress.Substring(0,(($KeysToPress.Length) - 2))
 
-    $MessageHTML = ("<PolycomIPPhone><Data priority=`"{0}`">{1}</Data></PolycomIPPhone>" -f $Priority, $KeysToPress)
+    $MessageHTML = $KeysToPress
     Write-Debug -Message ('Will send {0}.' -f $MessageHTML)
   } PROCESS {
     Foreach($ThisIPv4Address in $IPv4Address) 
     {
       Try
       {
-        $ThisResult = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'push' -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -ErrorAction Stop
+        $ThisResult = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
       }
       Catch
       {
@@ -314,9 +314,6 @@ Function Send-UcsPushKeyPress
       }
       $null = $ResultArray.Add($ThisResult)
     }
-  } END {
-    #Return $ResultArray
-  }
 }
 
 Function Get-UcsPushScreenCapture 
@@ -381,7 +378,7 @@ Function Get-UcsPushScreenCapture
   } PROCESS {
     Foreach ($ThisIPv4Address in $IPv4Address) 
     {
-      $CurrentScreenCaptureSetting = Get-UcsPushParameter -IPv4Address $ThisIPv4Address -Parameter $ScreencaptureParameterName
+      $CurrentScreenCaptureSetting = Get-UcsParameter -IPv4Address $ThisIPv4Address -Parameter $ScreencaptureParameterName
       if(($CurrentScreenCaptureSetting | Where-Object -Property Parameter -EQ -Value $ScreencaptureParameterName).Value -ne '1') 
       {
         Set-UcsRestParameter -IPv4Address $ThisIPv4Address -Parameter $ScreencaptureParameterName -Value $true
