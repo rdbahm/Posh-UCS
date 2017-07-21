@@ -1,5 +1,15 @@
 <###### UCS Configuration Utilities ######>
 
+<#### PARAMETERS ####>
+$Script:LocalStorageLocation = "$env:LOCALAPPDATA\UCS"
+$Script:CredentialFileName = 'UcsCredential.xml'
+$Script:ConfigFileName = 'UcsConfig.xml'
+$Script:DisabledSuffix = '-disabled'
+$Script:ConfigPath = Join-Path $Script:LocalStorageLocation $Script:ConfigFileName
+$Script:CredentialPath = Join-Path $Script:LocalStorageLocation $Script:CredentialFileName
+$Script:ImportedConfigInUse = $false
+$Script:ImportedCredentialInUse = $false
+
 # Storage initilization at end, after function definitions.
 
 <#### Function definitions ####>
@@ -73,58 +83,65 @@ Function Set-UcsConfig
     [Nullable[bool]]$Enabled = $null
   )
 
-  $WorkingConfig = Get-UcsConfig -API $API
-
-  if($Retries -ne $null)
+  Process
   {
-    $WorkingConfig.Retries = $Retries
+      $WorkingConfig = Get-UcsConfig -API $API
+
+      if($Retries -ne $null)
+      {
+        $WorkingConfig.Retries = $Retries
+      }
+
+      if($Timeout -ne $null)
+      {
+        if($Timeout.TotalSeconds -lt 0)
+        {
+          Write-Error "Couldn't create options because timeout was set to less than 0." -ErrorAction Stop -Category InvalidArgument
+        }
+        else
+        {
+          $WorkingConfig.Timeout = $Timeout
+        }
+      }
+
+      if($Port -ne $null)
+      {
+        $WorkingConfig.Port = $Port
+      }
+
+      if($EnableEncryption -ne $null)
+      {
+        if($WorkingConfig.EnableEncryption -eq $null)
+        {
+          Write-Error ('Encryption is not supported by the {0} API.' -f $API)
+        }
+        else
+        {
+          $WorkingConfig.EnableEncryption = $EnableEncryption
+        }
+      }
+
+      if($Priority -ne $null)
+      {
+        $WorkingConfig.Priority = $Priority
+      }
+
+      if($Enabled -ne $null)
+      {
+        $WorkingConfig.Enabled = $Enabled
+      }
+
+      Foreach($Configuration in $Script:MasterConfig)
+      {
+        if($Configuration.API -eq $API)
+        {
+         $Configuration = $WorkingConfig
+        }
+      }
   }
-
-  if($Timeout -ne $null)
+  End
   {
-    if($Timeout.TotalSeconds -lt 0)
-    {
-      Write-Error "Couldn't create options because timeout was set to less than 0." -ErrorAction Stop -Category InvalidArgument
-    }
-    else
-    {
-      $WorkingConfig.Timeout = $Timeout
-    }
-  }
-
-  if($Port -ne $null)
-  {
-    $WorkingConfig.Port = $Port
-  }
-
-  if($EnableEncryption -ne $null)
-  {
-    if($WorkingConfig.EnableEncryption -eq $null)
-    {
-      Write-Error ('Encryption is not supported by the {0} API.' -f $API)
-    }
-    else
-    {
-      $WorkingConfig.EnableEncryption = $EnableEncryption
-    }
-  }
-
-  if($Priority -ne $null)
-  {
-    $WorkingConfig.Priority = $Priority
-  }
-
-  if($Enabled -ne $null)
-  {
-    $WorkingConfig.Enabled = $Enabled
-  }
-
-  Foreach($Configuration in $Script:MasterConfig)
-  {
-    if($Configuration.API -eq $API)
-    {
-     $Configuration = $WorkingConfig
-    }
+     Update-UcsConfigStorage
   }
 }
 
@@ -196,19 +213,25 @@ Function Add-UcsConfigCredential
   Param (
     [Parameter(Mandatory)][Object]$UcsConfigCredential
   )
-
-  if($UcsConfigCredential.Credential.GetType().Name -ne 'PSCredential' -or $UcsConfigCredential.Priority -eq $null)
+  Process
   {
-    Write-Error "Invalid UcsConfigCredential supplied."
+      if($UcsConfigCredential.Credential.GetType().Name -ne 'PSCredential' -or $UcsConfigCredential.Priority -eq $null)
+      {
+        Write-Error "Invalid UcsConfigCredential supplied."
+      }
+
+      $HighestIndex = $Script:MasterCredentials | Sort-Object -Property Index -Descending | Select -First 1 | Select -ExpandProperty Index
+      $ThisIndex = $HighestIndex + 1
+
+      $IndexRemoved = $UcsConfigCredential | Select-Object -Property * -ExcludeProperty Index
+      $CredentialToSave = $IndexRemoved | Select-Object -Property *,@{Name='Index';Expression={$ThisIndex}}
+
+      $null = $Script:MasterCredentials.Add($CredentialToSave)
   }
-
-  $HighestIndex = $Script:MasterCredentials | Sort-Object -Property Index -Descending | Select -First 1 | Select -ExpandProperty Index
-  $ThisIndex = $HighestIndex + 1
-
-  $IndexRemoved = $UcsConfigCredential | Select-Object -Property * -ExcludeProperty Index
-  $CredentialToSave = $IndexRemoved | Select-Object -Property *,@{Name='Index';Expression={$ThisIndex}}
-
-  $null = $Script:MasterCredentials.Add($CredentialToSave)
+  End
+  {
+    Update-UcsConfigCredentialStorage
+  }
 }
 
 Function Remove-UcsConfigCredential
@@ -235,6 +258,7 @@ Function Remove-UcsConfigCredential
   End
   {
     $Script:MasterCredentials = $NewMasterCredentials
+    Update-UcsConfigCredentialStorage
   }
 }
 
@@ -305,6 +329,182 @@ Function Set-UcsConfigCredential
       }
     }
   }
+  End
+  {
+    Update-UcsConfigCredentialStorage
+  }
+}
+
+
+<## Config storage ##>
+Function Import-UcsConfigStorage
+{
+  Param (
+    [String]$Path = $Script:ConfigPath
+  )
+
+  if((Test-Path $Path) -eq $false)
+  {
+    Write-Error "Could not find file at $Path." -ErrorAction Stop
+  }
+
+  Write-Debug "Importing $Path to UcsConfig."
+  $Imported = Import-Clixml -Path $Path
+
+  $Script:MasterConfig = $Imported
+  $Script:ImportedConfigInUse = $true
+}
+
+Function Update-UcsConfigStorage
+{
+  Param (
+    [String]$Path = $Script:ConfigPath
+  )
+
+  $Directory = Split-Path $Path
+
+  if( (Test-Path $Directory) -eq $false)
+  {
+    Write-Debug "Path $Directory not found. Creating..."
+    $null = New-Item -Path $Directory -ItemType Directory -Force
+  }
+
+  if($Script:ImportedConfigInUse)
+  {
+    Write-Debug "Writing XML file to $Path."
+    $Script:MasterConfig | Export-Clixml -Path $Path -Depth 1
+  }
+  else
+  {
+    Write-Debug "Imported config not currently in use, not updating."
+  }
+}
+
+Function Enable-UcsConfigStorage
+{
+   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
+   Param()
+
+   if($Script:ImportedConfigInUse -eq $true)
+   {
+    Write-Error "Config storage already in use."
+    Break
+   }
+
+   if($PSCmdlet.ShouldProcess($Script:ConfigPath))
+   {
+     $Script:ImportedConfigInUse = $true
+     Update-UcsConfigStorage
+   }
+}
+
+Function Disable-UcsConfigStorage
+{
+   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
+   Param()
+
+   if($Script:ImportedConfigInUse -ne $true)
+   {
+    Write-Error "Config storage not in use."
+    Break
+   }
+
+   if($PSCmdlet.ShouldProcess($Script:CredentialPath))
+   {
+     $Script:ImportedConfigInUse = $false
+     $ThisItem = Get-Item -Path $Script:ConfigPath
+     $NewName = ('{0}{1}{2}' -f $ThisItem.BaseName,$Script:DisabledSuffix,$ThisItem.Extension)
+     $NewPath = Join-Path $ThisItem.Directory $NewName
+     $null = Rename-Item -Path $Script:ConfigPath -NewName $NewPath -Force
+   }
+}
+
+<## Credential storage ##>
+Function Import-UcsConfigCredentialStorage
+{
+  Param (
+    [String]$Path = $Script:CredentialPath
+  )
+
+  if((Test-Path $Path) -eq $false)
+  {
+    Write-Error "Could not find file at $Path." -ErrorAction Stop
+  }
+
+  Write-Debug "Importing $Path to UcsConfig."
+  $Imported = Import-Clixml -Path $Path
+
+  $Script:MasterCredentials = New-Object Collections.ArrayList
+  Foreach($Cred in $Imported)
+  {
+    $null = $Script:MasterCredentials.Add($Cred)
+  }
+
+  $Script:ImportedCredentialInUse = $true
+}
+
+Function Update-UcsConfigCredentialStorage
+{
+  Param (
+    [String]$Path = $Script:CredentialPath
+  )
+
+  $Directory = Split-Path $Path
+
+  if( (Test-Path $Directory) -eq $false)
+  {
+    Write-Debug "Path $Directory not found. Creating..."
+    $null = New-Item -Path $Directory -ItemType Directory -Force
+  }
+
+  if($Script:ImportedCredentialInUse)
+  {
+    Write-Debug "Writing XML file to $Path."
+    $Script:MasterCredentials | Export-Clixml -Path $Path -Depth 1
+  }
+  else
+  {
+    Write-Debug "Imported credentials not currently in use, not updating."
+  }
+}
+
+Function Enable-UcsConfigCredentialStorage
+{
+   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
+   Param()
+
+   if($Script:ImportedCredentialInUse -eq $true)
+   {
+    Write-Error "Credential storage already in use."
+    Break
+   }
+
+   if($PSCmdlet.ShouldProcess($Script:CredentialPath))
+   {
+     $Script:ImportedCredentialInUse = $true
+     Update-UcsConfigCredentialStorage
+   }
+}
+
+Function Disable-UcsConfigCredentialStorage
+{
+   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
+   Param()
+
+   if($Script:ImportedCredentialInUse -ne $true)
+   {
+    Write-Error "Credential storage not in use."
+    Break
+   }
+
+   if($PSCmdlet.ShouldProcess($Script:CredentialPath))
+   {
+     $Script:ImportedCredentialInUse = $false
+     $ThisItem = Get-Item -Path $Script:CredentialPath
+     $NewName = ('{0}{1}{2}' -f $ThisItem.BaseName,$Script:DisabledSuffix,$ThisItem.Extension)
+     $NewPath = Join-Path $ThisItem.Directory $NewName
+     $null = Rename-Item -Path $Script:CredentialPath -NewName $NewPath -Force
+   }
 }
 
 <#### Create Credential Storage ####>
@@ -326,3 +526,16 @@ $Script:MasterConfig = (
   (New-UcsConfig -API Web -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $null -Priority 20 -Enabled $true),
   (New-UcsConfig -API FTP -Timeout (New-TimeSpan -Seconds 5) -Retries 2 -Port 21 -EnableEncryption $null -Priority 100 -Enabled $true)
 )
+
+<#### Check for preferences ####>
+if( Test-Path $Script:ConfigPath )
+{
+ Write-Debug "Found config file at $Script:ConfigPath."
+ Import-UcsConfigStorage
+}
+
+if( Test-Path $Script:CredentialPath )
+{
+ Write-Debug "Found credential file at $Script:CredentialPath."
+ Import-UcsConfigCredentialStorage
+}
