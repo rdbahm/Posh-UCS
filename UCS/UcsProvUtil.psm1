@@ -42,6 +42,12 @@ Function Import-UcsProvCallLogXml
   } PROCESS {
     Foreach($ThisFilename in $Filename) 
     {
+      if((Test-Path $ThisFilename) -eq $false)
+      {
+        Write-Error "Skipping $ThisFilename because it does not exist."
+        Continue
+      }
+
       $Count++
       $File = Get-Item -Path $ThisFilename #Turn it into a file object.
       Write-Progress -Activity 'Reading log files' -Status ('Reading log file {0}' -f $File.Name) -PercentComplete (($Count / $Filename.Count) * 100)
