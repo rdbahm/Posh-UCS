@@ -165,9 +165,10 @@ Function Send-UcsPushMessage
       .NOTES
       Additional configuration is required to run this. The phone's "Push" credentials must be set (this script defaults to using "UCSToolkit" for both), "Allow Push Messages" must be set to "Critical" or lower, and "Application Server Root URL" must be specified. HTTPS must be enabled using Set-UcsPushConnectionSettings. Additionally, in Skype for Business deployments, the script must be run from a pool server.
   #>
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$Title,
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$Message,
+    [Parameter(Mandatory,HelpMessage = 'A message in large text at the top')][String]$Title,
+    [Parameter(Mandatory,HelpMessage = 'Additional information to be displayed')][String]$Message,
   [ValidateSet('Critical','Important','High','Normal')][String]$Priority = 'Critical')
 
   #TODO: You can fit more content on the 400+ series because of their higher resolution. Heading up to 18 characters, message up to 69 on 310, heading up to 18, message up to 200 on 400+.
@@ -183,21 +184,19 @@ Function Send-UcsPushMessage
   {
     Foreach($ThisIPv4Address in $IPv4Address)
     {
-      Try
+      if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
       {
-        $Output = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Method Post -Body $MessageHTML -ContentType 'text/xml' -Priority $Priority -ErrorAction Stop
-        Write-Debug $Output
-      } 
-      Catch
-      {
-        Write-Error "Failed to send a Push message to $ThisIPv4Address."
+        Try
+        {
+          $Output = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Method Post -Body $MessageHTML -ContentType 'text/xml' -Priority $Priority -ErrorAction Stop
+          Write-Debug $Output
+        } 
+        Catch
+        {
+          Write-Error "Failed to send a Push message to $ThisIPv4Address."
+        }
       }
     }
-  }
-  
-  End
-  {
-  
   }
 }
 
@@ -226,6 +225,7 @@ Function Send-UcsPushCallAction
       .NOTES
       Additional configuration is required to run this. The phone's "Push" credentials must be set (this script defaults to using "UCSToolkit" for both), "Allow Push Messages" must be set to "Critical" or lower, and "Application Server Root URL" must be specified. HTTPS must be enabled using Set-UcsPushConnectionSettings. Additionally, in Skype for Business deployments, the script must be run from a pool server.
   #>
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String]$IPv4Address,
     [ValidateSet('Critical','Important','High','Normal')][String]$Priority = 'Critical',
   [Parameter(Mandatory,HelpMessage = 'Add help message for user')][ValidateSet('EndCall','Answer','Reject','Ignore','MicMute','Hold','Resume','Transfer','Conference','Join','Split','Remove')][String]$CallAction,
@@ -243,7 +243,10 @@ Function Send-UcsPushCallAction
   $MessageHTML = ('CallAction:{0};nCallReference={1}' -f $CallAction, $ThisCallRef)
 
   Try {
-    $null = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
+    if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+    {
+      $null = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
+    }
   }
   Catch
   {
@@ -284,6 +287,7 @@ Function Send-UcsPushKeyPress
       .NOTES
       Additional configuration is required to run this. The phone's "Push" credentials must be set (this script defaults to using "UCSToolkit" for both), "Allow Push Messages" must be set to "Critical" or lower, and "Application Server Root URL" must be specified. HTTPS must be enabled using Set-UcsPushConnectionSettings. Additionally, in Skype for Business deployments, the script must be run from a pool server.
   #>
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String]$IPv4Address,
     [ValidateSet('Critical','Important','High','Normal')][String]$Priority = 'Critical',
     [Parameter(Mandatory,HelpMessage = 'VolDown')][ValidateSet('Line1','Line2','Line3','Line4','Line5','Line6','Line7','Line8','Line9','Line10',
@@ -295,7 +299,8 @@ Function Send-UcsPushKeyPress
         'MicMute','Menu','Messages','Applications','Directories','Setup','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
   'Backspace','DoNotDisturb','Select','Conference','Transfer','Redial','Hold','Status','CallList')][String[]]$Key)
     
-  BEGIN {
+  BEGIN
+  {
     $ResultArray = New-Object -TypeName System.Collections.ArrayList
 
     #Need to start by building out the series of commands to run.
@@ -308,12 +313,17 @@ Function Send-UcsPushKeyPress
 
     $MessageHTML = $KeysToPress
     Write-Debug -Message ('Will send {0}.' -f $MessageHTML)
-  } PROCESS {
+  }
+  PROCESS
+  {
     Foreach($ThisIPv4Address in $IPv4Address) 
     {
       Try
       {
-        $ThisResult = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
+        if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+        {
+          $ThisResult = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
+        }
       }
       Catch
       {
@@ -321,6 +331,7 @@ Function Send-UcsPushKeyPress
       }
       $null = $ResultArray.Add($ThisResult)
     }
+  }
 }
 
 Function Get-UcsPushScreenCapture 
