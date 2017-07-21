@@ -96,7 +96,7 @@ Function Invoke-UcsPushWebRequest
       if($Body.Length -gt 0) 
       {
         Write-Debug -Message ("Invoking webrequest for `"{0}`" and sending {1}." -f $ThisUri, $Body)
-        $RestOutput = Invoke-WebRequest -Uri $ThisUri -Credential $ThisCredential -Body $Body -ContentType $ContentType -TimeoutSec $Timeout.TotalSeconds -Method $Method -ErrorAction Stop
+        $RestOutput = Invoke-WebRequest -Uri $ThisUri -Credential $ThisCredential -Body $ThisBody -ContentType $ContentType -TimeoutSec $Timeout.TotalSeconds -Method $Method -ErrorAction Stop
       }
       else 
       {
