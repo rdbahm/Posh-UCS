@@ -129,7 +129,8 @@ Function New-UcsConfigCredential
     [String]$DisplayName = '',
     [Int]$Priority = 50,
     [String]$Identity = '*',
-    [Boolean]$Enabled = $true
+    [Boolean]$Enabled = $true,
+    [Switch]$InMemory
   )
 
   $OutputObject = $API | Select-Object @{Name='API';Expression={$API}},
@@ -139,7 +140,14 @@ Function New-UcsConfigCredential
     @{Name='Priority';Expression={$Priority}},
     @{Name='Enabled';Expression={$Enabled}}
 
-  Return $OutputObject
+  if($InMemory)
+  {
+    Return $OutputObject
+  }
+  else
+  {
+    Add-UcsConfigCredential $OutputObject
+  }
 }
 
 Function New-UcsConfigCredentialPlaintext
@@ -155,7 +163,7 @@ Function New-UcsConfigCredentialPlaintext
   Return $Credential
 }
 
-Function Get-UcsCredential
+Function Get-UcsConfigCredential
 {
   Param (
     [Parameter(Mandatory)][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API,
@@ -171,7 +179,7 @@ Function Get-UcsCredential
   }
 
   $ThisAPICredentials = $AllCredentials | Where-Object -Property API -EQ -Value $API
-  $SortedCredentials = $ThisAPICredentials | Sort-Object -Property Priority,API
+  $SortedCredentials = $ThisAPICredentials | Sort-Object -Property Priority,API,Index
 
   if($CredentialOnly)
   {
@@ -183,14 +191,131 @@ Function Get-UcsCredential
   }
 }
 
-<#### Create Credentials ####>
-$Script:MasterCredentials = (
-  (New-UcsConfigCredential -API REST -Credential (New-UcsConfigCredentialPlaintext -Username 'Polycom' -Password '456') -DisplayName "Polycom default REST credential" -Priority 1000),
-  (New-UcsConfigCredential -API Web -Credential (New-UcsConfigCredentialPlaintext -Username 'Polycom' -Password '456') -DisplayName "Polycom default Web credential" -Priority 1000),
-  (New-UcsConfigCredential -API Poll -Credential (New-UcsConfigCredentialPlaintext -Username 'UCSToolkit' -Password 'UCSToolkit') -DisplayName "Script default Polling credential" -Priority 1000),
-  (New-UcsConfigCredential -API Push -Credential (New-UcsConfigCredentialPlaintext -Username 'UCSToolkit' -Password 'UCSToolkit') -DisplayName "Script default Push credential" -Priority 1000),
-  (New-UcsConfigCredential -API FTP -Credential (New-UcsConfigCredentialPlaintext -Username 'PlcmSpIp' -Password 'PlcmSpIp') -DisplayName "Polycom default provisioning credential" -Priority 1000)
-)
+Function Add-UcsConfigCredential
+{
+  Param (
+    [Parameter(Mandatory)][Object]$UcsConfigCredential
+  )
+
+  if($UcsConfigCredential.Credential.GetType().Name -ne 'PSCredential' -or $UcsConfigCredential.Priority -eq $null)
+  {
+    Write-Error "Invalid UcsConfigCredential supplied."
+  }
+
+  $HighestIndex = $Script:MasterCredentials | Sort-Object -Property Index -Descending | Select -First 1 | Select -ExpandProperty Index
+  $ThisIndex = $HighestIndex + 1
+
+  $IndexRemoved = $UcsConfigCredential | Select-Object -Property * -ExcludeProperty Index
+  $CredentialToSave = $IndexRemoved | Select-Object -Property *,@{Name='Index';Expression={$ThisIndex}}
+
+  $null = $Script:MasterCredentials.Add($CredentialToSave)
+}
+
+Function Remove-UcsConfigCredential
+{
+  Param (
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName)][Int[]]$Index   
+  )
+
+  Process
+  {
+    Foreach($ThisIndex in $Index)
+    {
+      #We must rebuild the arraylist because doing a simple filter on the arraylist turns it into a collection of fixed size.
+      $NewMasterCredentials = New-Object Collections.ArrayList
+      Foreach($Credential in $Script:MasterCredentials)
+      {
+        if($Credential.Index -ne $ThisIndex)
+        {
+          $null = $NewMasterCredentials.Add($Credential)
+        }
+      }
+    }
+  }
+  End
+  {
+    $Script:MasterCredentials = $NewMasterCredentials
+  }
+}
+
+Function Set-UcsConfigCredential
+{
+   Param (
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName)][Int[]]$Index,
+    [AllowEmptyString()][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API = '',
+    $Credential = $null,
+    [String]$DisplayName = '',
+    [Nullable[Int]]$Priority = $null,
+    [String]$Identity = '',
+    [Nullable[Boolean]]$Enabled = $null
+  )
+
+  Process
+  {
+    Foreach($ThisIndex in $Index)
+    {
+      $WorkingCredential = $Script:MasterCredentials | Where-Object -Property Index -EQ -Value $ThisIndex
+
+      if($WorkingCredential -eq $null)
+      {
+        Write-Error "Invalid index $ThisIndex."
+        Continue
+      }
+
+      if($API.Length -gt 0)
+      {
+        $WorkingCredential.API = $API
+      }
+
+      if($Credential -ne $null)
+      {
+        if($Credential.GetType().Name -eq 'PSCredential')
+        {
+          $WorkingCredential.Credential = $Credential
+        }
+      }
+
+      if($DisplayName.Length -gt 0)
+      {
+        $WorkingCredential.DisplayName = $DisplayName
+      }
+
+      if($Priority -ne $null)
+      {
+        $WorkingCredential.Priority = $Priority
+      }
+
+      if($Identity.Length -gt 0)
+      {
+        $WorkingCredential.Identity = $Identity
+      }
+
+      if($Enabled -ne $null)
+      {
+        $WorkingCredential.Enabled = $Enabled
+      }
+
+      Foreach($Credential in $Script:MasterCredentials)
+      {
+        if($Credential.Index -eq $ThisIndex)
+        {
+          $Credential = $WorkingCredential
+          Break
+        }
+      }
+    }
+  }
+}
+
+<#### Create Credential Storage ####>
+$Script:MasterCredentials = New-Object Collections.ArrayList
+
+<#### Initialize default credentials ####>
+New-UcsConfigCredential -API REST -Credential (New-UcsConfigCredentialPlaintext -Username 'Polycom' -Password '456') -DisplayName "Polycom default REST credential" -Priority 1000
+New-UcsConfigCredential -API Web -Credential (New-UcsConfigCredentialPlaintext -Username 'Polycom' -Password '456') -DisplayName "Polycom default Web credential" -Priority 1000
+New-UcsConfigCredential -API Poll -Credential (New-UcsConfigCredentialPlaintext -Username 'UCSToolkit' -Password 'UCSToolkit') -DisplayName "Script default Polling credential" -Priority 1000
+New-UcsConfigCredential -API Push -Credential (New-UcsConfigCredentialPlaintext -Username 'UCSToolkit' -Password 'UCSToolkit') -DisplayName "Script default Push credential" -Priority 1000
+New-UcsConfigCredential -API FTP -Credential (New-UcsConfigCredentialPlaintext -Username 'PlcmSpIp' -Password 'PlcmSpIp') -DisplayName "Polycom default provisioning credential" -Priority 1000
 
 <#### Define defaults for configs ####>
 $Script:MasterConfig = (
