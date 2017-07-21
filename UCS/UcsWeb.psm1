@@ -1,15 +1,17 @@
 $Script:Port = 80
 $Script:UseHTTPS = $false
+$Script:DefaultTimeout = New-Timespan -Seconds 2
+$Script:DefaultRetries = 3 #3 means that it'll try to connect 3 times: Once, then two retries.
 
 $Script:Credential = (New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ('Polycom', (ConvertTo-SecureString -String '456' -AsPlainText -Force)))
 
-$Script:DefaultTimeout = New-Timespan -Seconds 2
-$Script:DefaultRetries = 3 #3 means that it'll try to connect 3 times: Once, then two retries.
+
 Function Set-UcsWebAPIConnectionSetting
 {
   Param([Int][ValidateRange(1,65535)]$Port = $null,
+    [Bool]$UseHTTPS = $null,
     [Timespan]$Timeout = $null,
-    [Int]$Retries = $null
+    [Int][ValidateRange(1,100)]$Retries = $null
   )
   
   if($Port -ne $null)
@@ -18,11 +20,19 @@ Function Set-UcsWebAPIConnectionSetting
   }
   if($UseHTTPS -ne $null)
   {
+    Write-Warning "HTTPS is not supported by the Web API."
     $Script:UseHTTPS = $UseHTTPS
   }
   if($Timeout -ne $null)
   {
-    $Script:DefaultTimeout = $Timeout
+    if($Timeout.TotalSeconds -le 0)
+    {
+      Write-Error "Timeout value too low. Please set a value over 0 seconds."
+    }
+    else
+    {
+      $Script:DefaultTimeout = $Timeout
+    }
   }
   if($Retries -ne $null)
   {

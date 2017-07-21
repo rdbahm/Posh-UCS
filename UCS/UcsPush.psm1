@@ -15,7 +15,7 @@ Function Set-UcsPushAPIConnectionSetting
   Param([Int][ValidateRange(1,65535)]$Port = $null,
     [Bool]$UseHTTPS = $null,
     [Timespan]$Timeout = $null,
-    [Int]$Retries = $null
+    [Int][ValidateRange(1,100)]$Retries = $null
   )
   
   if($Port -ne $null)
@@ -28,7 +28,14 @@ Function Set-UcsPushAPIConnectionSetting
   }
   if($Timeout -ne $null)
   {
-    $Script:DefaultTimeout = $Timeout
+    if($Timeout.TotalSeconds -le 0)
+    {
+      Write-Error "Timeout value too low. Please set a value over 0 seconds."
+    }
+    else
+    {
+      $Script:DefaultTimeout = $Timeout
+    }
   }
   if($Retries -ne $null)
   {
