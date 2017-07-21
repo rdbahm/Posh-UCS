@@ -71,7 +71,7 @@ Content-Length: 0
       {
         $receivebytes = $Socket.Receive($buffer)
       } else {
-        Write-Error ('{0}: Timeout of {1} seconds expired.' -f $IPv4Address,$Timeout.TotalSeconds)
+        Write-Error ('{0}: Timeout of {1} seconds expired.' -f $IPv4Address,$Timeout.TotalSeconds) -ErrorAction Stop
       }
   
       [string]$PhoneResponse = $AsciiEncoded.GetString($buffer, 0, $receivebytes)
