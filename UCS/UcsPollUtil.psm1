@@ -7,7 +7,7 @@ Function Invoke-UcsPollRequest {
     [PsCredential[]]$Credential = (Get-UcsConfigCredential -API Poll -CredentialOnly),
     [int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -API Poll).Retries,
     [int][ValidateRange(1,65535)]$Port = (Get-UcsConfig -API Poll).Port,
-    [boolean]$UseHTTPS = (Get-UcsConfig -API Poll).EnableEncryption
+    [Nullable[boolean]]$UseHTTPS = (Get-UcsConfig -API Poll).EnableEncryption
     )
     
     #TODO: Support for HTTPS
