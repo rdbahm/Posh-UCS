@@ -4,6 +4,7 @@
 $Script:LocalStorageLocation = "$env:LOCALAPPDATA\UCS"
 $Script:CredentialFileName = 'UcsCredential.xml'
 $Script:ConfigFileName = 'UcsConfig.xml'
+$Script:DisabledSuffix = '-disabled'
 $Script:ConfigPath = Join-Path $Script:LocalStorageLocation $Script:ConfigFileName
 $Script:CredentialPath = Join-Path $Script:LocalStorageLocation $Script:CredentialFileName
 $Script:ImportedConfigInUse = $false
@@ -140,7 +141,7 @@ Function Set-UcsConfig
   }
   End
   {
-     Update-UcsConfig
+     Update-UcsConfigStorage
   }
 }
 
@@ -239,7 +240,7 @@ Function Add-UcsConfigCredential
   }
   End
   {
-    Update-UcsConfigCredential
+    Update-UcsConfigCredentialStorage
   }
 }
 
@@ -267,7 +268,7 @@ Function Remove-UcsConfigCredential
   End
   {
     $Script:MasterCredentials = $NewMasterCredentials
-    Update-UcsConfigCredential
+    Update-UcsConfigCredentialStorage
   }
 }
 
@@ -340,13 +341,13 @@ Function Set-UcsConfigCredential
   }
   End
   {
-    Update-UcsConfigCredential
+    Update-UcsConfigCredentialStorage
   }
 }
 
 
 <## Config storage ##>
-Function Import-UcsConfig
+Function Import-UcsConfigStorage
 {
   Param (
     [String]$Path = $Script:ConfigPath
@@ -364,7 +365,7 @@ Function Import-UcsConfig
   $Script:ImportedConfigInUse = $true
 }
 
-Function Update-UcsConfig
+Function Update-UcsConfigStorage
 {
   Param (
     [String]$Path = $Script:ConfigPath
@@ -394,15 +395,42 @@ Function Enable-UcsConfigStorage
    [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
    Param()
 
+   if($Script:ImportedConfigInUse -eq $true)
+   {
+    Write-Error "Config storage already in use."
+    Break
+   }
+
    if($PSCmdlet.ShouldProcess($Script:ConfigPath))
    {
      $Script:ImportedConfigInUse = $true
-     Update-UcsConfig
+     Update-UcsConfigStorage
+   }
+}
+
+Function Disable-UcsConfigStorage
+{
+   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
+   Param()
+
+   if($Script:ImportedConfigInUse -ne $true)
+   {
+    Write-Error "Config storage not in use."
+    Break
+   }
+
+   if($PSCmdlet.ShouldProcess($Script:CredentialPath))
+   {
+     $Script:ImportedConfigInUse = $false
+     $ThisItem = Get-Item -Path $Script:ConfigPath
+     $NewName = ('{0}{1}{2}' -f $ThisItem.BaseName,$Script:DisabledSuffix,$ThisItem.Extension)
+     $NewPath = Join-Path $ThisItem.Directory $NewName
+     $null = Rename-Item -Path $Script:ConfigPath -NewName $NewPath -Force
    }
 }
 
 <## Credential storage ##>
-Function Import-UcsConfigCredential
+Function Import-UcsConfigCredentialStorage
 {
   Param (
     [String]$Path = $Script:CredentialPath
@@ -425,7 +453,7 @@ Function Import-UcsConfigCredential
   $Script:ImportedCredentialInUse = $true
 }
 
-Function Update-UcsConfigCredential
+Function Update-UcsConfigCredentialStorage
 {
   Param (
     [String]$Path = $Script:CredentialPath
@@ -450,15 +478,42 @@ Function Update-UcsConfigCredential
   }
 }
 
-Function Enable-UcsConfigCredential
+Function Enable-UcsConfigCredentialStorage
 {
    [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
    Param()
 
+   if($Script:ImportedCredentialInUse -eq $true)
+   {
+    Write-Error "Credential storage already in use."
+    Break
+   }
+
    if($PSCmdlet.ShouldProcess($Script:CredentialPath))
    {
      $Script:ImportedCredentialInUse = $true
-     Update-UcsConfigCredential
+     Update-UcsConfigCredentialStorage
+   }
+}
+
+Function Disable-UcsConfigCredentialStorage
+{
+   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
+   Param()
+
+   if($Script:ImportedCredentialInUse -ne $true)
+   {
+    Write-Error "Credential storage not in use."
+    Break
+   }
+
+   if($PSCmdlet.ShouldProcess($Script:CredentialPath))
+   {
+     $Script:ImportedCredentialInUse = $false
+     $ThisItem = Get-Item -Path $Script:CredentialPath
+     $NewName = ('{0}{1}{2}' -f $ThisItem.BaseName,$Script:DisabledSuffix,$ThisItem.Extension)
+     $NewPath = Join-Path $ThisItem.Directory $NewName
+     $null = Rename-Item -Path $Script:CredentialPath -NewName $NewPath -Force
    }
 }
 
@@ -486,11 +541,11 @@ $Script:MasterConfig = (
 if( Test-Path $Script:ConfigPath )
 {
  Write-Debug "Found config file at $Script:ConfigPath."
- Import-UcsConfig
+ Import-UcsConfigStorage
 }
 
 if( Test-Path $Script:CredentialPath )
 {
  Write-Debug "Found credential file at $Script:CredentialPath."
- Import-UcsConfigCredential
+ Import-UcsConfigCredentialStorage
 }
