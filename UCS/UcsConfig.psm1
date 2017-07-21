@@ -331,5 +331,10 @@ $Script:MasterConfig = (
   (New-UcsConfig -API Poll -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $null -Priority 30 -Enabled $true),
   (New-UcsConfig -API Push -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $false -Priority 40 -Enabled $true),
   (New-UcsConfig -API Web -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $false -Priority 20 -Enabled $true),
+<<<<<<< HEAD:UCS/UcsConfig.psm1
   (New-UcsConfig -API FTP -Timeout (New-TimeSpan -Seconds 5) -Retries 2 -Port 21 -EnableEncryption $null -Priority 100 -Enabled $true)
 )
+=======
+  (New-UcsConfig -API FTP -Timeout (New-TimeSpan -Seconds 5) -Retries 2 -Port 21 -EnableEncryption $false -Priority 100 -Enabled $true)
+)
+>>>>>>> 0d6796d9ac3652f291049df716a2f86b5e4d91db:UCS/UcsConfig.psm1
