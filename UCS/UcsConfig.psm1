@@ -25,7 +25,7 @@ Function New-UcsConfig
       The item with the lowest numerical value priority goes first in order. In case of a tie, APIs are ranked alphabetically.
   #>
   Param (
-    [Parameter(Mandatory)][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API,
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API,
     [Nullable[Timespan]]$Timeout = (New-TimeSpan -Seconds 3),
     [Nullable[Int]][ValidateRange(1,100)]$Retries = 2,
     [Nullable[Int]][ValidateRange(0,65535)]$Port = 80,
@@ -53,7 +53,7 @@ Function New-UcsConfig
 Function Get-UcsConfig
 {
   Param (
-    [Parameter(Mandatory)][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API
   )
 
   $RequestedConfig = $Script:MasterConfig | Where-Object -Property API -EQ -Value $API
@@ -74,7 +74,7 @@ Function Get-UcsConfigPriority
 Function Set-UcsConfig
 {
   Param (
-    [Parameter(Mandatory)][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API,
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API,
     [Nullable[Timespan]]$Timeout = $null,
     [Nullable[Int]][ValidateRange(1,100)]$Retries = $null,
     [Nullable[Int]][ValidateRange(0,65535)]$Port = $null,
@@ -123,7 +123,15 @@ Function Set-UcsConfig
 
       if($Priority -ne $null)
       {
-        $WorkingConfig.Priority = $Priority
+        $MatchingPriority = $Script:MasterConfig | Where-Object -Property Priority -eq $Priority | Measure-Object
+        if($MatchingPriority.Count -gt 0)
+        {
+          Write-Warning ('Cannot set priority of {0} to {1} because that priority level is in use on one or more other APIs.' -f $WorkingConfig.API,$Priority)
+        }
+        else
+        {
+          $WorkingConfig.Priority = $Priority
+        }
       }
 
       if($Enabled -ne $null)
@@ -148,7 +156,7 @@ Function Set-UcsConfig
 Function New-UcsConfigCredential
 {
   Param (
-    [Parameter(Mandatory)][ValidateSet('REST','Poll','Push','Web','FTP')][String]$API,
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','Poll','Push','Web','FTP')][String]$API,
     [Parameter(Mandatory)][PSCredential]$Credential,
     [String]$DisplayName = '',
     [Int]$Priority = 50,
@@ -183,7 +191,7 @@ Function New-UcsConfigCredentialPlaintext
 Function Get-UcsConfigCredential
 {
   Param (
-    [Parameter(Mandatory)][ValidateSet('REST','Poll','Push','Web','FTP')][String]$API,
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','Poll','Push','Web','FTP')][String]$API,
     [Switch]$IncludeDisabled,
     [Switch]$CredentialOnly
   )
