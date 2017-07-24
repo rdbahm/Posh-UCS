@@ -18,11 +18,11 @@ $Script:ImportedCredentialInUse = $false
 Function New-UcsConfig
 {
   <#
-  .NOTES
-  For internal use only - used to create initial config objects.
+      .NOTES
+      For internal use only - used to create initial config objects.
 
-  .PARAMETER Priority
-  The item with the lowest numerical value priority goes first in order. In case of a tie, APIs are ranked alphabetically.
+      .PARAMETER Priority
+      The item with the lowest numerical value priority goes first in order. In case of a tie, APIs are ranked alphabetically.
   #>
   Param (
     [Parameter(Mandatory)][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API,
@@ -419,6 +419,11 @@ Function Disable-UcsConfigStorage
    }
 }
 
+Function Get-UcsConfigStorageIsEnabled
+{
+  Return $Script:ImportedConfigInUse
+}
+
 <## Credential storage ##>
 Function Import-UcsConfigCredentialStorage
 {
@@ -506,6 +511,10 @@ Function Disable-UcsConfigCredentialStorage
      $null = Rename-Item -Path $Script:CredentialPath -NewName $NewPath -Force
    }
 }
+Function Get-UcsConfigCredentialStorageIsEnabled
+{
+  Return $Script:ImportedCredentialInUse
+}
 
 <#### Create Credential Storage ####>
 $Script:MasterCredentials = New-Object Collections.ArrayList
@@ -530,12 +539,12 @@ $Script:MasterConfig = (
 <#### Check for preferences ####>
 if( Test-Path $Script:ConfigPath )
 {
- Write-Debug "Found config file at $Script:ConfigPath."
- Import-UcsConfigStorage
+  Write-Debug "Found config file at $Script:ConfigPath."
+  Import-UcsConfigStorage
 }
 
 if( Test-Path $Script:CredentialPath )
 {
- Write-Debug "Found credential file at $Script:CredentialPath."
- Import-UcsConfigCredentialStorage
+  Write-Debug "Found credential file at $Script:CredentialPath."
+  Import-UcsConfigCredentialStorage
 }
