@@ -775,11 +775,8 @@ Function Find-UcsPhoneByDHCP
       List of output types produced by this function.
   #>
 
-
-  <#
-      SYNOPSIS
-      
-  #>
+  Param([Switch]$DeduplicateMAC)
+  
   $Domain = (Get-ADDomain).DistinguishedName
   $DHCPServers = Get-ADObject -SearchBase ('cn=configuration,{0}' -f $Domain) -Filter "objectclass -eq 'dhcpclass' -AND Name -ne 'dhcproot'"
 
@@ -822,20 +819,47 @@ Function Find-UcsPhoneByDHCP
       }
     }
   }
-
-  <#
-      $PolycomPhones = New-Object -TypeName System.Collections.ArrayList
-      Foreach ($Client in $DiscoveredDhcpPhones) 
-      {
-      $null = $PolycomPhones.Add($Client)
-      #TODO: Maybe add some logic to check when multiple devices claim the same MAC and see which IP, if any, is responding.
-      }
-
-      $PolycomPhones = $PolycomPhones |
-      Sort-Object -Property IPv4Address -Unique
-  #>
   
-  $PolycomPhones = $DiscoveredDhcpPhones | Sort-Object -Property IPv4Address -Unique
+  if(!$DeduplicateMAC)
+  {
+    $PolycomPhones = $DiscoveredDhcpPhones | Sort-Object -Property IPv4Address -Unique
+  }
+  else
+  {
+    $Grouped = $DiscoveredDhcpPhones | Group-Object -Property MacAddress
+    $PolycomPhones = New-Object -TypeName System.Collections.ArrayList
+    Foreach($Group in $Grouped)
+    {
+      if($Group.Count -eq 1)
+      {
+        #If this is the only DHCP lease that claims that MAC address, we can add it directly.
+        $null = $PolycomPhones.Add($Group.Group)
+      } 
+      else
+      {
+        #Multiple leases claim this MAC address.
+        $Candidates = $Group.Group | Sort-Object IPv4Address -Unique #Eliminate duplicate addresses.
+        
+        if(($Candidates | Measure-Object | Select-Object -ExpandProperty Count) -gt 1)
+        {
+          #If multiple MAC/IP pairings are present, we'll ping each to determine which are online.
+          Foreach($Candidate in $Candidates)
+          {
+            if((Test-Connection -ComputerName $Candidate.IPv4Address -Quiet -Count 1) -eq $true)
+            {
+              $null = $PolycomPhones.Add($Candidate)
+            }
+          }
+        }
+        else
+        {
+          $null = $PolycomPhones.Add($Candidates)
+        }
+      }
+    }
+    
+    $PolycomPhones = $PolycomPhones | Sort-Object -Property IPv4Address -Unique
+  }
 
   Return $PolycomPhones
 }
