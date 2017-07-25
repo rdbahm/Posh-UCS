@@ -1088,7 +1088,7 @@ Function Test-UcsAPI
       #Push
       Try
       {
-        $null = Send-UcsPushKeyPress -IPv4Address $ThisIPv4Address -Key ('DoNotDisturb', 'DoNotDisturb') -ErrorAction Stop -WarningAction SilentlyContinue
+        $null = Send-UcsPushKeyPress -IPv4Address $ThisIPv4Address -Key ('DoNotDisturb', 'DoNotDisturb') -ErrorAction Stop -WarningAction SilentlyContinue -Confirm:$false
         $PushStatus = $true
       }
       Catch
