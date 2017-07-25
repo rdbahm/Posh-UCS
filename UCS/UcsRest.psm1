@@ -913,37 +913,21 @@ Function Stop-UcsRestCall
       .SYNOPSIS
       Stop a phone call.
 
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
       .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67.
 
       .PARAMETER CallHandle
       Manually specify the callhandle to end.
 
-      .EXAMPLE
-      Stop-PhoneCall -IPv4Address Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Stop-PhoneCall
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
+      .PARAMETER Force
+      Skip firmware version check. On certain firmware versions, calling Stop-UcsRestCall may cause the REST API to stop responding.
   #>
 
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'Medium')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(ValueFromPipelineByPropertyName)][String][ValidatePattern('^0x[a-f0-9]{7,8}$')]$CallHandle,
-  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
+    [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries,
+    [Switch]$Force)
     
   BEGIN {
     $OutputArray = New-Object -TypeName System.Collections.ArrayList
@@ -954,6 +938,7 @@ Function Stop-UcsRestCall
       {
         if($CallHandle -notmatch '^0x[a-f0-9]{7,8}$') 
         {
+          #This section attempts to get a call handle if one was not provided.
           if($CallHandle.Length -gt 0)
           {
             Write-Error -Message "Invalid call handle $CallHandle provided for $ThisIPv4Address."
@@ -975,6 +960,23 @@ Function Stop-UcsRestCall
 
         if($CallHandle.Length -gt 0) 
         {
+          #This section only starts if we have a callhandle.
+          if($Force -ne $true)
+          {
+            #In certain 5.5.2 releases (5.5.2.8571 on VVX 310/311 tested), using the endCall endpoint causes a failure in the REST API.
+            $DeviceInfo = Get-UcsRestDeviceInfo -IPv4Address $ThisIPv4Address
+            if($DeviceInfo.FirmwareRelease -like '5.5.2.*')
+            {
+              Write-Error ('{0} is running firmware {1} which has a known issue with Stop-UcsRestCall. Use another API or use the Force parameter.' -f $ThisIPv4Address,$DeviceInfo.FirmwareRelease)
+              Continue
+            }
+          } 
+          else
+          {
+            #Trying to be clear at the expense of technical accuracy.
+            Write-Warning "Force was specified to end the call on $ThisIPv4Address. On some phones, ending a call with Force may cause the REST API to stop responding until the next reboot."
+          }
+        
           $CallHandle = Get-UcsCleanJSON -String $CallHandle
 
           $CallEndString = ('{{"data":{{"Ref": "{0}"}}}}' -f $CallHandle)
