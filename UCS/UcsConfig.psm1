@@ -536,7 +536,7 @@ New-UcsConfigCredential -API FTP -Credential (New-UcsConfigCredentialPlaintext -
 
 <#### Define defaults for configs ####>
 $Script:MasterConfig = (
-  (New-UcsConfig -API REST -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $false -Priority 1 -Enabled $true),
+  (New-UcsConfig -API REST -Timeout (New-TimeSpan -Seconds 2) -Retries 1 -Port 80 -EnableEncryption $false -Priority 1 -Enabled $true),
   (New-UcsConfig -API SIP -Timeout (New-TimeSpan -Seconds 5) -Retries 2 -Port 5060 -EnableEncryption $null -Priority 90 -Enabled $true),
   (New-UcsConfig -API Poll -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $null -Priority 30 -Enabled $true),
   (New-UcsConfig -API Push -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $false -Priority 40 -Enabled $true),
