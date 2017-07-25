@@ -1,7 +1,7 @@
 Function Get-UcsProvLog
 {
   Param([Parameter(Mandatory)][ValidatePattern('^[a-f0-9]{12}$')][String[]]$MacAddress,
-    [Parameter(Mandatory)][ValidateSet('app','boot')][String]$LogType)
+  [Parameter(Mandatory)][ValidateSet('app','boot')][String]$LogType)
 
   BEGIN
   {
@@ -14,7 +14,7 @@ Function Get-UcsProvLog
       #Download the call list.
       Try 
       {
-        $LogfileName = ('{0}-{1}.log' -f $ThisMacAddress,$LogType)
+        $LogfileName = ('{0}-{1}.log' -f $ThisMacAddress, $LogType)
         $Logfile = Import-UcsProvFile -FilePath $LogfileName -Type Log
       }
       Catch 
@@ -32,7 +32,9 @@ Function Get-UcsProvLog
     {
       #Run the log list through the parser.
       $Filecontent = $File.Content
-      $Filecontent = ($Filecontent.Split("`n") | Where-Object { $_.Length -ge 1 } )
+      $Filecontent = ($Filecontent.Split("`n") | Where-Object -FilterScript {
+          $_.Length -ge 1 
+      } )
       $TheseLogs = New-UcsLog -LogString $Filecontent -LogType $LogType -MacAddress $ThisMacAddress
       $TheseLogs | ForEach-Object -Process {
         $null = $AllLogs.Add($_)
@@ -51,26 +53,6 @@ Function Get-UcsProvCallLog
 
       .DESCRIPTION
       It attempts to connect to the provisioning server using the username provided by the phone. Once connected, it reads the 000000000000.cfg file to find the directory where call logs are stored. It then looks for the MACADDRESS-calls.xml file corresponding to the requested phone, then parses and returns the result.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .EXAMPLE
-      Get-Calls -IPv4Address Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-Calls
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
   #>
 
   Param([Parameter(Mandatory)][ValidatePattern('^[a-f0-9]{12}$')][String[]]$MacAddress)

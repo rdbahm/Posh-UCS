@@ -21,21 +21,21 @@ Function Import-UcsProvFile
     if($ProvServerIndex -ne $null)
     {
       #If manually specified, we want to force which provisioning server to use. Mostly used for recursion.
-      $ProvisioningConfig = $ProvisioningConfig | Where-Object ProvServerIndex -eq $ProvServerIndex
+      $ProvisioningConfig = $ProvisioningConfig | Where-Object -Property ProvServerIndex -EQ -Value $ProvServerIndex
     }
     
     $OutputContent = ''
     $TypeMapping = @{
-      None='';
-      Misc='MISC_FILES';
-      Log='LOG_FILE_DIRECTORY';
-      Override='OVERRIDES_DIRECTORY'
-      Contact='CONTACTS_DIRECTORY'
-      License='LICENSE_DIRECTORY'
-      Profile='USER_PROFILES_DIRECTORY'
-      Call='CALL_LISTS_DIRECTORY'
-      Corefile='COREFILE_DIRECTORY'
-      }
+      None     = ''
+      Misc     = 'MISC_FILES'
+      Log      = 'LOG_FILE_DIRECTORY'
+      Override = 'OVERRIDES_DIRECTORY'
+      Contact  = 'CONTACTS_DIRECTORY'
+      License  = 'LICENSE_DIRECTORY'
+      Profile  = 'USER_PROFILES_DIRECTORY'
+      Call     = 'CALL_LISTS_DIRECTORY'
+      Corefile = 'COREFILE_DIRECTORY'
+    }
     $ThisType = $TypeMapping[$Type]
 
   }
@@ -46,7 +46,7 @@ Function Import-UcsProvFile
 
     Foreach ($ThisServer in $ProvisioningConfig)
     {
-      Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress,$PSCmdlet.MyInvocation.MyCommand.Name)
+      Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress, $PSCmdlet.MyInvocation.MyCommand.Name)
       
       if($Type -ne 'None')
       {
@@ -58,14 +58,15 @@ Function Import-UcsProvFile
           $MasterConfig = Convert-UcsProvMasterConfig -Content $MasterConfigContent.Content -ErrorAction Stop
           $ThisDirectory = ($MasterConfig.$ThisType).Trim('/\ ')
         
-          if($ThisDirectory.length -gt 0){
+          if($ThisDirectory.length -gt 0)
+          {
             $Working = $FilePath
             $Parent = $Working | Split-Path -Parent
             $Leaf = $Working | Split-Path -Leaf
-            $Working = Join-Path $ThisDirectory $Leaf
+            $Working = Join-Path -Path $ThisDirectory -ChildPath $Leaf
             if($Parent.Length -gt 0)
             {
-              $Working = Join-Path $Parent $Working
+              $Working = Join-Path -Path $Parent -ChildPath $Working
             }
             $FilePath = $Working
           }
@@ -103,21 +104,31 @@ Function Import-UcsProvFile
           }
           Default
           {
-            Write-Debug -Message ('{2}: {0} is not supported for this operation.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress,$PSCmdlet.MyInvocation.MyCommand.Name)
+            Write-Debug -Message ('{2}: {0} is not supported for this operation.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress, $PSCmdlet.MyInvocation.MyCommand.Name)
           }
         }
       }
       Catch
       {
-        Write-Debug ('{2}: Encountered an error using {0} provisioning protocol with {1}.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress,$PSCmdlet.MyInvocation.MyCommand.Name)
-        Write-Debug ('{0}: {1}' -f $ThisServer.DisplayName, $_)
+        Write-Debug -Message ('{2}: Encountered an error using {0} provisioning protocol with {1}.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress, $PSCmdlet.MyInvocation.MyCommand.Name)
+        Write-Debug -Message ('{0}: {1}' -f $ThisServer.DisplayName, $_)
       }
       
       if($ThisSuccess -eq $true)
       {
         #We succeeded, so we don't have to retry.
         $OutputObject = Get-Item -Path $SaveLocation
-        $OutputObject = $OutputObject | Select-Object -Property BaseName,Name,Directory,FullName,Extension,@{Name='Content';Expression={Get-Content -Path $SaveLocation}},@{Name='ProvServerIndex';Expression={$ThisServer.ProvServerIndex}}
+        $OutputObject = $OutputObject | Select-Object -Property BaseName, Name, Directory, FullName, Extension, @{
+          Name       = 'Content'
+          Expression = {
+            Get-Content -Path $SaveLocation
+          }
+        }, @{
+          Name       = 'ProvServerIndex'
+          Expression = {
+            $ThisServer.ProvServerIndex
+          }
+        }
         $OutputContent = $OutputObject
         
         Break
@@ -126,14 +137,13 @@ Function Import-UcsProvFile
     
     if($ThisSuccess -ne $true)
     {
-      Write-Error "Couldn't get file $FilePath." -ErrorAction Stop
+      Write-Error -Message "Couldn't get file $FilePath." -ErrorAction Stop
     }
   }
   End
   {
     Return $OutputContent
   }
-
 }
 
 Function Import-UcsProvCallLogXml 
@@ -188,7 +198,7 @@ Function Import-UcsProvCallLogXml
       }
       Catch
       {
-        Write-Error "Couldn't get content for $Path."
+        Write-Error -Message "Couldn't get content for $Path."
         Continue
       }
 
