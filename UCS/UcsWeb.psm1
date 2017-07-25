@@ -439,7 +439,7 @@ Function Get-UcsWebFirmware
 Function Update-UcsWebFirmware 
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
-  [Parameter(Mandatory,ValueFromPipelineByPropertyName)][String]$UpdateUri)
+  [Parameter(Mandatory,ValueFromPipelineByPropertyName)][ValidatePattern('^https?://.+$')][String]$UpdateUri)
 
   BEGIN {
     $StatusResult = New-Object -TypeName System.Collections.ArrayList
