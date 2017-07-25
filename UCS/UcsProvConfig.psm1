@@ -10,9 +10,9 @@ $Script:ImportedProvConfigInUse = $false
 Function New-UcsProvConfigServer
 {
   Param(
-    [Parameter(Mandatory)][Alias('CN','ComputerName')][String][ValidatePattern('^[^\\/]+$')]$ProvServerAddress,
+    [Parameter(Mandatory)][Alias('CN','ComputerName')][String]$ProvServerAddress,
     [Parameter(Mandatory)][Alias('Type','Protocol')][String][ValidateSet('FTP','FileSystem')]$ProvServerType,
-    [Parameter(Mandatory)][PsCredential]$Credential,
+    [PsCredential]$Credential = $null,
     [Int]$Priority = 100,
     [Parameter(Mandatory)][String]$DisplayName
   )
@@ -80,7 +80,7 @@ Function Set-UcsProvConfigServer
 {
   Param(
     [Parameter(Mandatory,ValueFromPipelineByPropertyName)][Int]$Index,
-    [Alias('CN','ComputerName')][String][ValidatePattern('^[^\\/]+$')]$ProvServerAddress = '',
+    [Alias('CN','ComputerName')][String]$ProvServerAddress = '',
     [Alias('Type','Protocol')][String][ValidateSet('FTP','FileSystem')]$ProvServerType = '',
     [PsCredential]$Credential = $null,
     [Nullable[Int]]$Priority = $null,

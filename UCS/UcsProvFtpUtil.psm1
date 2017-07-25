@@ -15,7 +15,7 @@ Function Get-UcsProvFTPFile
     [Parameter(Mandatory,HelpMessage = 'Name of the file to download')][String]$Filename
   )
 
-  $URI = ('{0}/{1}' -f $Address.Trim(), $Filename.Trim())
+  $URI = ('ftp://{0}/{1}' -f $Address.Trim(), $Filename.Trim())
   $LocalSaveLocation = Join-Path -Path $env:TEMP -ChildPath $Filename
 
   $FTPRequest = New-Object -TypeName System.Net.WebClient

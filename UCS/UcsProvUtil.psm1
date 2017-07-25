@@ -1,9 +1,13 @@
 
 Function Import-UcsProvFile
 {
+  <#
+      .PARAMETER ReturnPath
+      If specified, return local path instead of content.
+  #>
   Param(
-    [Parameter(Mandatory)][Alias('CN','ComputerName')][String][ValidatePattern('^[^\\/]+$')]$ProvServerAddress,
-    [Parameter(Mandatory)][Alias('Path','Filename')][String]$FilePath
+    [Parameter(Mandatory)][Alias('Path','Filename')][String]$FilePath,
+    [Switch]$ReturnPath
   )
   
   <#Example file to download:
@@ -15,48 +19,84 @@ Function Import-UcsProvFile
   
   Begin
   {
-    $ProvPriority = ('FileSystem','FTP','Fake') #Temporary while we don't have a config utility for provisioning protocols.
+    $ProvisioningConfig = Get-UcsProvConfig
     $OutputContent = ''
   }
   Process
   {
-    Foreach ($API in $ProvPriority)
+    $SaveLocation = ''
+    $ThisSuccess = $false
+
+    Foreach ($ThisServer in $ProvisioningConfig)
     {
-      $ThisSuccess = $false
-      Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $API, $ComputerName,$PSCmdlet.MyInvocation.MyCommand.Name)
+      Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress,$PSCmdlet.MyInvocation.MyCommand.Name)
       
       Try
       {
-        Switch($API)
+        Switch($ThisServer.ProvServerType)
         {
           'FileSystem'
           {
-            Write-Error "Not implemented" -ErrorAction Stop -Category NotImplemented
+            $FullPath = Join-Path -Path $ThisServer.ProvServerAddress -ChildPath $FilePath
+            
+            if($ThisServer.Credential -ne $null)
+            {
+              $Item = Copy-Item -Path $FullPath -Destination $env:TEMP -Credential $ThisServer.Credential -PassThru -ErrorAction Stop
+            }
+            else
+            {
+              $Item = Copy-Item -Path $FullPath -Destination $env:TEMP -PassThru -ErrorAction Stop
+            }
+            
+            $SaveLocation = $Item.FullName
+            $ThisSuccess = $true
           }
           'FTP'
           {
-            $SaveLocation = Get-UcsProvFTPFile -Address $ComputerName -Filename $FilePath -Credential (Get-UcsProvFTPAPICredential)[0]
-            $ThisContent = Get-Content -Path $SaveLocation
+            $SaveLocation = Get-UcsProvFTPFile -Address $ThisServer.ProvServerAddress -Filename $FilePath -Credential $ThisServer.Credential -ErrorAction Stop
+            $ThisSuccess = $true
           }
           Default
           {
-            Write-Debug -Message ('{2}: {0} is not supported for this operation.' -f $API, $ComputerName,$PSCmdlet.MyInvocation.MyCommand.Name)
+            Write-Debug -Message ('{2}: {0} is not supported for this operation.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress,$PSCmdlet.MyInvocation.MyCommand.Name)
           }
         }
       }
       Catch
       {
-        Write-Debug ('{2}: Encountered an error using {0} provisioning protocol with {1}.' -f $API, $ComputerName,$PSCmdlet.MyInvocation.MyCommand.Name)
-        Write-Debug ('{0}: {1}' -f $API, $_)
+        Write-Debug ('{2}: Encountered an error using {0} provisioning protocol with {1}.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress,$PSCmdlet.MyInvocation.MyCommand.Name)
+        Write-Debug ('{0}: {1}' -f $ThisServer.DisplayName, $_)
       }
       
       if($ThisSuccess -eq $true)
       {
         #We succeeded, so we don't have to retry.
-        $OutputContent = $ThisContent
+        if($ReturnPath)
+        {
+          $OutputContent = ($SaveLocation)
+        }
+        else
+        {
+          Try
+          {
+            $Content = Get-Content $SaveLocation -ErrorAction Stop
+            $OutputContent = ($Content)
+          }
+          Catch
+          {
+            Write-Debug "Couldn't get content from $SaveLocation." -ErrorAction 
+            $ThisSuccess = $false
+            Continue
+          }
+        }
         
         Break
       }
+    }
+    
+    if($ThisSuccess -ne $true)
+    {
+      Write-Error "Couldn't get file $FilePath." -ErrorAction Stop
     }
   }
   End
@@ -102,33 +142,33 @@ Function Import-UcsProvCallLogXml
       Takes a filename, reads the file, and parses its call information.
   #>
   Param(
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String[]]$Filename
+    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String[]]$Path
   )
   BEGIN {
     $AllCalls = New-Object -TypeName System.Collections.ArrayList
     $Count = 0
   } PROCESS {
-    Foreach($ThisFilename in $Filename) 
+    Foreach($ThisFilename in $Path) 
     {
-      if((Test-Path $ThisFilename) -eq $false)
+      $Count++
+      Try
       {
-        Write-Error "Skipping $ThisFilename because it does not exist."
+        $File = Get-Item $Path
+        $Content = $File | Get-Content
+      }
+      Catch
+      {
+        Write-Error "Couldn't get content for $Path."
         Continue
       }
 
-      $Count++
-      $File = Get-Item -Path $ThisFilename #Turn it into a file object.
-      Write-Progress -Activity 'Reading log files' -Status ('Reading log file {0}' -f $File.Name) -PercentComplete (($Count / $Filename.Count) * 100)
       $Error.Clear()
-      Write-Debug -Message ('Opening {0}.' -f $ThisFilename)
-            
-      $Content = Get-Content -Path $ThisFilename
       $Content = $Content.Replace('&','&amp;') #Polycom's log files don't conform to XML specifications and can include & within a set of XML tags. This mitigates that.
       $Content = [Xml] $Content
 
       if($Error.Count -ne 0) 
       {
-        Write-Warning -Message ('Error detected in file {0}.' -f $File.FullName)
+        Write-Warning -Message ('Error detected in file.')
         Continue
       }
 
@@ -274,7 +314,7 @@ Function Convert-UcsProvMasterConfig
   #>
 
   Param(
-    [Parameter(Mandatory,HelpMessage = 'The content of the master config file')][String]$Content
+    [Parameter(Mandatory,HelpMessage = 'The content of the master config file')][String[]]$Content
   )
   Try 
   {
@@ -379,7 +419,7 @@ Function Convert-UcsProvDuration
       .OUTPUTS
       Timespan
   #>
-  Param ([Parameter(Mandatory,HelpMessage = 'Add help message for user')][ValidatePattern('^P(\d+D)?(T)?(\d+H)?(\d+M)?(\d+S)?$')][String]$Duration)
+  Param ([Parameter(Mandatory,HelpMessage = 'P1DT5H6M3')][ValidatePattern('^P(\d+D)?(T)?(\d+H)?(\d+M)?(\d+S)?$')][String]$Duration)
 
   $Seconds = 0
   $Minutes = 0
