@@ -76,13 +76,92 @@ Function Add-UcsProvConfigServer
   Update-UcsProvConfigStorage
 }
 
+Function Set-UcsProvConfigServer
+{
+  Param(
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName)][Int]$Index,
+    [Alias('CN','ComputerName')][String][ValidatePattern('^[^\\/]+$')]$ProvServerAddress = '',
+    [Alias('Type','Protocol')][String][ValidateSet('FTP','FileSystem')]$ProvServerType = '',
+    [PsCredential]$Credential = $null,
+    [Nullable[Int]]$Priority = $null,
+    [String]$DisplayName = ''
+  )
+  
+  $WorkingConfig = Get-UcsProvConfig | Where-Object -Property Index -EQ -Value $Index
+  
+  if($ProvServerAddress.Length -gt 0)
+  {
+    $WorkingConfig.ProvServerAddress = $ProvServerAddress
+  }
+  
+  if($ProvServerType.length -gt 0)
+  {
+    $WorkingConfig.ProvServerType = $ProvServerType
+  }
+  
+  if($Credential -ne $null)
+  {
+    $WorkingConfig.Credential = $Credential
+  }
+  
+  if($Priority -ne $null)
+  {
+    $WorkingConfig.Priority = $Priority
+  }
+  
+  if($DisplayName.Length -gt 0)
+  {
+    $WorkingConfig.DisplayName = $DisplayName
+  }
+  
+  Foreach($ThisConfig in $Script:ProvConfig)
+  {
+    if($ThisConfig.Index -eq $Index)
+    {
+      $ThisConfig = $WorkingConfig
+      Break
+    }
+  }
+  
+  Update-UcsProvConfigStorage
+}
+
+Function Remove-UcsProvConfigServer
+{
+  Param(
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName)][Int[]]$Index
+  )
+  
+  Process
+  {
+    Foreach($ThisIndex in $Index)
+    {
+      $NewConfig = New-Object System.Collections.ArrayList
+      
+      Foreach($ThisConfig in $Script:ProvConfig)
+      {
+        if($ThisConfig.Index -ne $ThisIndex)
+        {
+          $null = $NewConfig.Add($ThisConfig)
+        }
+      }
+      
+      $Script:ProvConfig = $NewConfig
+    }
+  }
+  
+  End
+  {
+    Update-UcsProvConfigStorage
+  }
+}
 
 
 <## Config storage ##>
 Function Import-UcsProvConfigStorage
 {
   Param (
-    [String]$Path = $Script:ConfigPath
+    [String]$Path = $Script:ProvConfigPath
   )
 
   if((Test-Path $Path) -eq $false)
@@ -93,14 +172,19 @@ Function Import-UcsProvConfigStorage
   Write-Debug -Message "Importing $Path to UcsConfig."
   $Imported = Import-Clixml -Path $Path
 
-  $Script:ProvConfig = $Imported
+  $Script:ProvConfig = New-Object Collections.ArrayList
+  Foreach($ThisConfig in $Imported)
+  {
+    $null = $Script:ProvConfig.Add($ThisConfig)
+  }
+  
   $Script:ImportedProvConfigInUse = $true
 }
 
 Function Update-UcsProvConfigStorage
 {
   Param (
-    [String]$Path = $Script:ConfigPath
+    [String]$Path = $Script:ProvConfigPath
   )
 
   $Directory = Split-Path $Path
@@ -151,7 +235,7 @@ Function Disable-UcsProvConfigStorage
     Break
   }
 
-  if($PSCmdlet.ShouldProcess($Script:ConfigPath))
+  if($PSCmdlet.ShouldProcess($Script:ProvConfigPath))
   {
     $Script:ImportedProvConfigInUse = $false
     $ThisItem = Get-Item -Path $Script:ProvConfigPath
