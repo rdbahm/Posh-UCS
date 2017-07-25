@@ -10,9 +10,9 @@ Function Get-UcsProvFTPFile
   #>
 
   Param(
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$Address,
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][System.Management.Automation.Credential()][pscredential]$Credential,
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$Filename
+    [Parameter(Mandatory,HelpMessage = 'Full path to the file to download')][String]$Address,
+    [Parameter(Mandatory,HelpMessage = 'Credential for the specified server')][pscredential]$Credential,
+    [Parameter(Mandatory,HelpMessage = 'Name of the file to download')][String]$Filename
   )
 
   $URI = ('{0}/{1}' -f $Address.Trim(), $Filename.Trim())
@@ -37,12 +37,12 @@ Function Get-UcsProvFTPFileList
 {
   <#
       .SYNOPSIS
-      Downloads a file by name from the specified server, with the specified credential.
+      Returns a list of files in the requested directory.
   #>
 
   Param(
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$Address,
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][System.Management.Automation.Credential()][pscredential]$Credential
+    [Parameter(Mandatory,HelpMessage = 'Path to get file list for')][String]$Address,
+    [Parameter(Mandatory,HelpMessage = 'Credential for server')][pscredential]$Credential
   )
 
   $URI = ('{0}' -f $Address)
