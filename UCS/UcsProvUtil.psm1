@@ -1,3 +1,91 @@
+
+Function Import-UcsProvFile
+{
+  Param(
+    [Parameter(Mandatory)][Alias('Path','Filename')][String]$FilePath,
+  )
+  
+  <#Example file to download:
+      192.168.1.50/example/file.txt
+      COMPUTERNAME/FILEPATH
+
+      We disallow slashes in a computer name to prevent ftp:// etc from being included.
+  #>
+  
+  Begin
+  {
+    $ProvisioningConfig = Get-UcsProvConfig
+    $OutputContent = ''
+  }
+  Process
+  {
+    $SaveLocation = ''
+    $ThisSuccess = $false
+
+    Foreach ($ThisServer in $ProvisioningConfig)
+    {
+      Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress,$PSCmdlet.MyInvocation.MyCommand.Name)
+      
+      Try
+      {
+        Switch($ThisServer.ProvServerType)
+        {
+          'FileSystem'
+          {
+            $FullPath = Join-Path -Path $ThisServer.ProvServerAddress -ChildPath $FilePath
+            
+            if($ThisServer.Credential -ne $null)
+            {
+              $Item = Copy-Item -Path $FullPath -Destination $env:TEMP -Credential $ThisServer.Credential -PassThru -ErrorAction Stop
+            }
+            else
+            {
+              $Item = Copy-Item -Path $FullPath -Destination $env:TEMP -PassThru -ErrorAction Stop
+            }
+            
+            $SaveLocation = $Item.FullName
+            $ThisSuccess = $true
+          }
+          'FTP'
+          {
+            $SaveLocation = Get-UcsProvFTPFile -Address $ThisServer.ProvServerAddress -Filename $FilePath -Credential $ThisServer.Credential -ErrorAction Stop
+            $ThisSuccess = $true
+          }
+          Default
+          {
+            Write-Debug -Message ('{2}: {0} is not supported for this operation.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress,$PSCmdlet.MyInvocation.MyCommand.Name)
+          }
+        }
+      }
+      Catch
+      {
+        Write-Debug ('{2}: Encountered an error using {0} provisioning protocol with {1}.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress,$PSCmdlet.MyInvocation.MyCommand.Name)
+        Write-Debug ('{0}: {1}' -f $ThisServer.DisplayName, $_)
+      }
+      
+      if($ThisSuccess -eq $true)
+      {
+        #We succeeded, so we don't have to retry.
+        $OutputObject = Get-Item -Path $SaveLocation
+        $OutputObject = $OutputObject | Select-Object -Property BaseName,Name,Directory,FullName,Extension,@{Name='Content';Expression={Get-Content -Path $SaveLocation}},@{Name='ProvServerIndex';Expression={$ThisServer.ProvServerIndex}}
+        $OutputContent = $OutputObject
+        
+        Break
+      }
+    }
+    
+    if($ThisSuccess -ne $true)
+    {
+      Write-Error "Couldn't get file $FilePath." -ErrorAction Stop
+    }
+  }
+  End
+  {
+    Return $OutputContent
+  }
+
+}
+
 Function Import-UcsProvCallLogXml 
 {
   <#
@@ -34,33 +122,33 @@ Function Import-UcsProvCallLogXml
       Takes a filename, reads the file, and parses its call information.
   #>
   Param(
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String[]]$Filename
+    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String[]]$Path
   )
   BEGIN {
     $AllCalls = New-Object -TypeName System.Collections.ArrayList
     $Count = 0
   } PROCESS {
-    Foreach($ThisFilename in $Filename) 
+    Foreach($ThisFilename in $Path) 
     {
-      if((Test-Path $ThisFilename) -eq $false)
+      $Count++
+      Try
       {
-        Write-Error "Skipping $ThisFilename because it does not exist."
+        $File = Get-Item $Path
+        $Content = $File | Get-Content
+      }
+      Catch
+      {
+        Write-Error "Couldn't get content for $Path."
         Continue
       }
 
-      $Count++
-      $File = Get-Item -Path $ThisFilename #Turn it into a file object.
-      Write-Progress -Activity 'Reading log files' -Status ('Reading log file {0}' -f $File.Name) -PercentComplete (($Count / $Filename.Count) * 100)
       $Error.Clear()
-      Write-Debug -Message ('Opening {0}.' -f $ThisFilename)
-            
-      $Content = Get-Content -Path $ThisFilename
       $Content = $Content.Replace('&','&amp;') #Polycom's log files don't conform to XML specifications and can include & within a set of XML tags. This mitigates that.
       $Content = [Xml] $Content
 
       if($Error.Count -ne 0) 
       {
-        Write-Warning -Message ('Error detected in file {0}.' -f $File.FullName)
+        Write-Warning -Message ('Error detected in file.')
         Continue
       }
 
@@ -175,130 +263,7 @@ Function Import-UcsProvCallLogXml
     Return $AllCalls
   }
 }
-
-
-Function Get-UcsProvFTPFile 
-{
-  <#
-      .SYNOPSIS
-      Downloads a file by name from the specified server, with the specified credential. Returns the file name of the downloaded file, which is saved to the temporary folder.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER Address
-      Describe parameter -Address.
-
-      .PARAMETER Credential
-      Describe parameter -Credential.
-
-      .PARAMETER Filename
-      Describe parameter -Filename.
-
-      .EXAMPLE
-      Get-UcsProvFTPFile -Address Value -Credential Value -Filename Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      http://www.thomasmaurer.ch/2010/11/powershell-ftp-upload-and-download/
-      https://social.technet.microsoft.com/Forums/scriptcenter/en-US/ff18a705-eeee-4ba7-bd3e-2fcc9fd5cbee/using-powershell-to-download-from-ftp-site-file-name-has-wildcard?forum=ITCG
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-  Param(
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$Address,
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][System.Management.Automation.Credential()][pscredential]$Credential,
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$Filename
-  )
-
-  $URI = ('{0}/{1}' -f $Address.Trim(), $Filename.Trim())
-  $LocalSaveLocation = Join-Path -Path $env:TEMP -ChildPath $Filename
-
-  $FTPRequest = New-Object -TypeName System.Net.WebClient
-  $FTPRequest.Credentials = $Credential
-  Try 
-  {
-    $FTPRequest.DownloadFile($URI,$LocalSaveLocation)
-  }
-  Catch 
-  {
-    Throw ("Couldn't download the file! Check credentials and filename. Requested URI was {0}." -f $URI)
-  }
-
-  Return $LocalSaveLocation
-}
-
-
-Function Get-UcsProvFTPFileList 
-{
-  <#
-      .SYNOPSIS
-      Downloads a file by name from the specified server, with the specified credential.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER Address
-      Describe parameter -Address.
-
-      .PARAMETER Credential
-      Describe parameter -Credential.
-
-      .EXAMPLE
-      Get-UcsProvFTPFileList -Address Value -Credential Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-UcsProvFTPFileList
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-  Param(
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$Address,
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][System.Management.Automation.Credential()][pscredential]$Credential
-  )
-
-  $URI = ('{0}' -f $Address)
-
-  $FTPRequest = [Net.FtpWebRequest]::Create($URI)
-  $FTPRequest = [Net.FtpWebRequest]$FTPRequest
-  $FTPRequest.Method = [Net.WebRequestMethods+Ftp]::ListDirectory
-  $FTPRequest.Credentials = $Credential
-  $Response = $FTPRequest.GetResponse()
-  $Reader = New-Object -TypeName IO.StreamReader -ArgumentList $Response.GetResponseStream()
-
-  $Output = $Reader.ReadToEnd()
-  $Reader.Close()
-  $Response.Close()
-
-  $Output = $Output.Split("`n") | Select-Object -Property @{
-    Name       = 'Filename'
-    Expression = {
-      $_
-    }
-  } #Split the output by line.
-
-  Return $Output
-}
-
-Function Get-UcsProvMasterConfig 
+Function Convert-UcsProvMasterConfig 
 {
   <#
       .SYNOPSIS
@@ -329,24 +294,15 @@ Function Get-UcsProvMasterConfig
   #>
 
   Param(
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][ValidatePattern('^.+[/\\][0]{12}\.cfg$')][String]$Filename
+    [Parameter(Mandatory,HelpMessage = 'The content of the master config file')][String[]]$Content
   )
-
-  if((Test-Path -Path $Filename) -eq $false) 
-  {
-    Throw 'The file could not be found.'
-    Break
-  }
-
-  $Content = Get-Content -Path $Filename
-
   Try 
   {
     [XML]$XMLContent = $Content
   }
   Catch 
   {
-    Throw "Couldn't read XML."
+    Write-Error ('Unable to read content from master config file.')
     Break
   }
 
@@ -443,7 +399,7 @@ Function Convert-UcsProvDuration
       .OUTPUTS
       Timespan
   #>
-  Param ([Parameter(Mandatory,HelpMessage = 'Add help message for user')][ValidatePattern('^P(\d+D)?(T)?(\d+H)?(\d+M)?(\d+S)?$')][String]$Duration)
+  Param ([Parameter(Mandatory,HelpMessage = 'P1DT5H6M3')][ValidatePattern('^P(\d+D)?(T)?(\d+H)?(\d+M)?(\d+S)?$')][String]$Duration)
 
   $Seconds = 0
   $Minutes = 0

@@ -417,7 +417,7 @@ Function Disable-UcsConfigStorage
     Break
    }
 
-   if($PSCmdlet.ShouldProcess($Script:CredentialPath))
+   if($PSCmdlet.ShouldProcess($Script:ConfigPath))
    {
      $Script:ImportedConfigInUse = $false
      $ThisItem = Get-Item -Path $Script:ConfigPath

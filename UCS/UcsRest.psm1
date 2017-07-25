@@ -264,7 +264,18 @@ Function Get-UcsRestNetworkInfo
     {
       $Output = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/network/info' -Retries $Retries
       $Modified = $Output.data
-      $Modified.ProvServerAddress = $Modified.ProvServerAddress.Trim()
+      
+      #Process the provisioning server for consistency with other cmdlets.
+      $ProvisioningServer = $Modified.ProvServerAddress.Trim()
+      $ProvisioningServer = $ProvisioningServer.Replace('/','\') #Make all slashes the same.
+      $ProvisioningServerIndex = $ProvisioningServer.LastIndexOf('\') + 1
+      if($ProvisioningServerIndex -gt 0)
+      {
+        $ProvisioningServer = $ProvisioningServer.Substring($ProvisioningServerIndex)
+      }
+      $Modified.ProvServerAddress = $ProvisioningServer
+      
+      
       if($Modified.DHCP -eq "enabled")
       {
         $DHCPEnabled = $true  
@@ -860,12 +871,12 @@ Function Start-UcsRestCall
       .OUTPUTS
       List of output types produced by this function.
   #>
-  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$Destination,
-    [Int][ValidateRange(1,24)]$LineId = 1,
-    [String][ValidateSet('SIP')]$CallType = 'SIP',
-    [Switch]$PassThru,
-  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
+  Param([Parameter(Position = 1,Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [Parameter(Position = 2,Mandatory,HelpMessage = 'The call''s destination, such as +15555555555@example.com or example@example.com')][ValidatePattern('.+@.+\..+')][String]$Destination,
+    [Parameter(Position = 3)][Int][ValidateRange(1,24)]$LineId = 1,
+    [Parameter(Position = 4)][String][ValidateSet('SIP')]$CallType = 'SIP',
+    [Parameter(Position = 5)][Switch]$PassThru,
+    [Parameter(Position = 6)][Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
     
   BEGIN {
     $OutputArray = New-Object -TypeName System.Collections.ArrayList
