@@ -1,3 +1,71 @@
+
+Function Import-UcsProvFile
+{
+  Param(
+    [Parameter(Mandatory)][Alias('CN','ComputerName')][String][ValidatePattern('^[^\\/]+$')]$ProvServerAddress,
+    [Parameter(Mandatory)][Alias('Path','Filename')][String]$FilePath
+  )
+  
+  <#Example file to download:
+      192.168.1.50/example/file.txt
+      COMPUTERNAME/FILEPATH
+
+      We disallow slashes in a computer name to prevent ftp:// etc from being included.
+  #>
+  
+  Begin
+  {
+    $ProvPriority = ('FileSystem','FTP','Fake') #Temporary while we don't have a config utility for provisioning protocols.
+    $OutputContent = ''
+  }
+  Process
+  {
+    Foreach ($API in $ProvPriority)
+    {
+      $ThisSuccess = $false
+      Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $API, $ComputerName,$PSCmdlet.MyInvocation.MyCommand.Name)
+      
+      Try
+      {
+        Switch($API)
+        {
+          'FileSystem'
+          {
+            Write-Error "Not implemented" -ErrorAction Stop -Category NotImplemented
+          }
+          'FTP'
+          {
+            $SaveLocation = Get-UcsProvFTPFile -Address $ComputerName -Filename $FilePath -Credential (Get-UcsProvFTPAPICredential)[0]
+            $ThisContent = Get-Content -Path $SaveLocation
+          }
+          Default
+          {
+            Write-Debug -Message ('{2}: {0} is not supported for this operation.' -f $API, $ComputerName,$PSCmdlet.MyInvocation.MyCommand.Name)
+          }
+        }
+      }
+      Catch
+      {
+        Write-Debug ('{2}: Encountered an error using {0} provisioning protocol with {1}.' -f $API, $ComputerName,$PSCmdlet.MyInvocation.MyCommand.Name)
+        Write-Debug ('{0}: {1}' -f $API, $_)
+      }
+      
+      if($ThisSuccess -eq $true)
+      {
+        #We succeeded, so we don't have to retry.
+        $OutputContent = $ThisContent
+        
+        Break
+      }
+    }
+  }
+  End
+  {
+    Return $OutputContent
+  }
+
+}
+
 Function Import-UcsProvCallLogXml 
 {
   <#
@@ -175,7 +243,7 @@ Function Import-UcsProvCallLogXml
     Return $AllCalls
   }
 }
-Function Get-UcsProvMasterConfig 
+Function Convert-UcsProvMasterConfig 
 {
   <#
       .SYNOPSIS
@@ -206,24 +274,15 @@ Function Get-UcsProvMasterConfig
   #>
 
   Param(
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][ValidatePattern('^.+[/\\][0]{12}\.cfg$')][String]$Filename
+    [Parameter(Mandatory,HelpMessage = 'The content of the master config file')][String]$Content
   )
-
-  if((Test-Path -Path $Filename) -eq $false) 
-  {
-    Throw 'The file could not be found.'
-    Break
-  }
-
-  $Content = Get-Content -Path $Filename
-
   Try 
   {
     [XML]$XMLContent = $Content
   }
   Catch 
   {
-    Throw "Couldn't read XML."
+    Write-Error ('Unable to read content from master config file.')
     Break
   }
 

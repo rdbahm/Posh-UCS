@@ -1,21 +1,18 @@
 Function Get-UcsProvLog
 {
   Param([Parameter(Mandatory)][ValidatePattern('^[a-f0-9]{12}$')][String[]]$MacAddress,
-    [Parameter(Mandatory)][String]$FTPServer,
-    [Parameter(Mandatory)][ValidateSet('app','boot')][String]$LogType,
-  [Parameter(Mandatory)][Management.Automation.PSCredential]$Credential)
+    [Parameter(Mandatory)][String]$ProvServerAddress,
+    [Parameter(Mandatory)][ValidateSet('app','boot')][String]$LogType)
 
   BEGIN
   {
     $CallFiles = New-Object -TypeName System.Collections.ArrayList
-    $ProvisioningServer = $FTPServer
-    $ProvisioningCredential = $Credential
     
     #Get the master config file so we can know the path we need to take for the call list
     Try 
     {
-      $MasterConfigFilename = Get-UcsProvFTPFile -Address $ProvisioningServer -Credential $ProvisioningCredential -Filename '000000000000.cfg'
-      $MasterConfig = Get-UcsProvMasterConfig -Filename $MasterConfigFilename
+      $MasterConfigContent = Import-UcsProvFile -ComputerName $ProvisioningServer -FilePath '000000000000.cfg'
+      $MasterConfig = Convert-UcsProvMasterConfig -Content $MasterConfigContent
     }
     Catch 
     {
@@ -29,9 +26,9 @@ Function Get-UcsProvLog
       #Download the call list.
       Try 
       {
-        $LogsDirectory = ('{0}{1}' -f $ProvisioningServer, $MasterConfig.LOG_FILE_DIRECTORY)
+        $LogsDirectory = ('{0}{1}' -f $ProvServerAddress, $MasterConfig.LOG_FILE_DIRECTORY)
         $LogfileName = ('{0}-{1}.log' -f $ThisMacAddress,$LogType)
-        $Logfile = Get-UcsProvFTPFile -Address $LogsDirectory -Credential $ProvisioningCredential -Filename $LogfileName
+        $Logfile = Import-UcsProvFile -ProvServerAddress $ProvServerAddress -Filename $LogfileName
       }
       Catch 
       {
@@ -46,7 +43,7 @@ Function Get-UcsProvLog
     Foreach ($File in $CallFiles) 
     {
       #Run the log list through the parser.
-      $Filecontent = Get-Content $File
+      $Filecontent = $File
       $Filecontent = ($Filecontent.Split("`n") | Where-Object { $_.Length -ge 1 } )
       $TheseLogs = New-UcsLog -LogString $Filecontent -LogType $LogType -MacAddress $ThisMacAddress
       $TheseLogs | ForEach-Object -Process {
