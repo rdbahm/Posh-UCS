@@ -1006,7 +1006,15 @@ Function Get-UcsWebProvisioningInfo {
           $Logs = $Logs | Where-Object Message -like "Prov|Server*is unresponsive" | Select-Object -Last 1
           $null = $Logs.Message -match "(?<=Prov|Server ').+(?='.+)"
         }
+        
         $ProvisioningServer = $Matches[0].Trim(' ')
+        #Remove a leading FTP:// or similar.
+        $ProvisioningServer = $ProvisioningServer.Replace('/','\') #Make all slashes the same.
+        $ProvisioningServerIndex = $ProvisioningServer.LastIndexOf('\') + 1
+        if($ProvisioningServerIndex -gt 0)
+        {
+          $ProvisioningServer = $ProvisioningServer.Substring($ProvisioningServerIndex)
+        }
         
         $ThisOutput = $ProvisioningServer | Select-Object @{Name="ProvServerAddress";Expression={$ProvisioningServer}},@{Name="ProvServerUser";Expression={$ProvUser.Value}},@{Name="ProvServerType";Expression={$ProvType.Value}},@{Name="IPv4Address";Expression={$ThisIPv4Address}}
         $null = $OutputObject.Add($ThisOutput)

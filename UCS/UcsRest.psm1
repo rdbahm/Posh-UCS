@@ -264,7 +264,18 @@ Function Get-UcsRestNetworkInfo
     {
       $Output = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/network/info' -Retries $Retries
       $Modified = $Output.data
-      $Modified.ProvServerAddress = $Modified.ProvServerAddress.Trim()
+      
+      #Process the provisioning server for consistency with other cmdlets.
+      $ProvisioningServer = $Modified.ProvServerAddress.Trim()
+      $ProvisioningServer = $ProvisioningServer.Replace('/','\') #Make all slashes the same.
+      $ProvisioningServerIndex = $ProvisioningServer.LastIndexOf('\') + 1
+      if($ProvisioningServerIndex -gt 0)
+      {
+        $ProvisioningServer = $ProvisioningServer.Substring($ProvisioningServerIndex)
+      }
+      $Modified.ProvServerAddress = $ProvisioningServer
+      
+      
       if($Modified.DHCP -eq "enabled")
       {
         $DHCPEnabled = $true  
