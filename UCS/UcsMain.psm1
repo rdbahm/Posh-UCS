@@ -52,7 +52,7 @@ Function Start-UcsCall
         }
         Catch 
         {
-          Write-Debug -Message "Encountered an error on $ThisIPv4Address. '$_'"
+          Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
         
         if($GetSuccess -eq $true) 
@@ -72,7 +72,7 @@ Function Start-UcsCall
       
       if($GetSuccess -eq $false) 
       {
-        Write-Error -Message "Could not get call info for $ThisIPv4Address."
+        Write-Error -Message ('Could not get call info for {0}.' -f $ThisIPv4Address)
       }
     }
   }
@@ -142,7 +142,7 @@ Function Stop-UcsCall
           }
           Catch 
           {
-            Write-Debug -Message "Encountered an error on $ThisIPv4Address. '$_'"
+            Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
           }
         
           if($GetSuccess)
@@ -153,7 +153,7 @@ Function Stop-UcsCall
       
         if($GetSuccess -eq $false) 
         {
-          Write-Error -Message "Could not get call info for $ThisIPv4Address."
+          Write-Error -Message ('Could not get call info for {0}.' -f $ThisIPv4Address)
         }
       }
     }
@@ -283,7 +283,7 @@ Function Get-UcsPhoneInfo
         }
         Catch 
         {
-          Write-Debug -Message "Encountered an error on $ThisIPv4Address via $Protocol. '$_'"
+          Write-Debug -Message ("Encountered an error on {0} via {1}. '{2}'" -f $ThisIPv4Address, $Protocol, $_)
           $Success = $false
         }
         
@@ -296,7 +296,7 @@ Function Get-UcsPhoneInfo
       if($Success -eq $false) 
       {
         #All protocols have failed.
-        Write-Error -Message "Could not connect to $ThisIPv4Address."
+        Write-Error -Message ('Could not connect to {0}.' -f $ThisIPv4Address)
         Continue
       }
 
@@ -407,7 +407,7 @@ Function Restart-UcsPhone
             }
             'SIP'
             {
-              Write-Debug -Message "Starting check-sync reboot for $ThisIPv4Address. If it does not work, ensure that configuration allows this type of reboot."
+              Write-Debug -Message ('Starting check-sync reboot for {0}. If it does not work, ensure that configuration allows this type of reboot.' -f $ThisIPv4Address)
               $null = Restart-UcsSipPhone -IPv4Address $ThisIPv4Address -ErrorAction Stop -Confirm:$false -WhatIf:$WhatIf
               $RebootSuccess = $true
             }
@@ -419,7 +419,7 @@ Function Restart-UcsPhone
         }
         Catch 
         {
-          Write-Debug -Message "Encountered an error on $ThisIPv4Address. '$_'"
+          Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
         
         if($RebootSuccess -eq $true) 
@@ -430,7 +430,7 @@ Function Restart-UcsPhone
       
       if($RebootSuccess -eq $false) 
       {
-        Write-Error -Message "Could not $Type $ThisIPv4Address."
+        Write-Error -Message ('Could not {0} {1}.' -f $Type, $ThisIPv4Address)
       }
     }
   }
@@ -501,7 +501,7 @@ Function Get-UcsParameter
         }
         Catch 
         {
-          Write-Debug -Message "Encountered an error on $ThisIPv4Address. '$_'"
+          Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
         
         if($GetSuccess -eq $true) 
@@ -521,7 +521,7 @@ Function Get-UcsParameter
       
       if($GetSuccess -eq $false) 
       {
-        Write-Error -Message "Could not get parameter for $ThisIPv4Address."
+        Write-Error -Message ('Could not get parameter for {0}.' -f $ThisIPv4Address)
       }
     }
   }
@@ -573,7 +573,7 @@ Function Get-UcsProvisioningInfo
         }
         Catch 
         {
-          Write-Debug -Message "Encountered an error on $ThisIPv4Address. '$_'"
+          Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
         
         if($GetSuccess -eq $true) 
@@ -593,7 +593,7 @@ Function Get-UcsProvisioningInfo
       
       if($GetSuccess -eq $false) 
       {
-        Write-Error -Message "Could not get provisioning info for $ThisIPv4Address."
+        Write-Error -Message ('Could not get provisioning info for {0}.' -f $ThisIPv4Address)
       }
     }
   }
@@ -645,7 +645,7 @@ Function Get-UcsNetworkInfo
         }
         Catch 
         {
-          Write-Debug -Message "Encountered an error on $ThisIPv4Address. '$_'"
+          Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
         
         if($GetSuccess -eq $true) 
@@ -665,7 +665,7 @@ Function Get-UcsNetworkInfo
       
       if($GetSuccess -eq $false) 
       {
-        Write-Error -Message "Could not get network info for $ThisIPv4Address."
+        Write-Error -Message ('Could not get network info for {0}.' -f $ThisIPv4Address)
       }
     }
   }
@@ -716,7 +716,7 @@ Function Get-UcsCall
         }
         Catch 
         {
-          Write-Debug -Message "Encountered an error on $ThisIPv4Address. '$_'"
+          Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
         
         if($GetSuccess -eq $true) 
@@ -736,7 +736,7 @@ Function Get-UcsCall
       
       if($GetSuccess -eq $false) 
       {
-        Write-Error -Message "Could not get call info for $ThisIPv4Address."
+        Write-Error -Message ('Could not get call info for {0}.' -f $ThisIPv4Address)
       }
     }
   }
@@ -859,13 +859,13 @@ Function Get-UcsCallLog
       }
       Catch 
       {
-        Write-Error -Message "Couldn't get call information for $ThisIPv4Address. Unable to connect to phone."
+        Write-Error -Message ("Couldn't get call information for {0}. Unable to connect to phone." -f $ThisIPv4Address)
         Continue
       }
       
       if($PhoneInfo.MacAddress -notmatch '^[a-f0-9]{12}$')
       {
-        Write-Error -Message "Couldn't get call information for $ThisIPv4Address. Unable to get MAC address."
+        Write-Error -Message ("Couldn't get call information for {0}. Unable to get MAC address." -f $ThisIPv4Address)
         Continue
       }
       
@@ -876,7 +876,7 @@ Function Get-UcsCallLog
       }
       Catch
       {
-        Write-Error -Message "Couldn't get call information for $ThisIPv4Address. Unable to get provisioning information."
+        Write-Error -Message ("Couldn't get call information for {0}. Unable to get provisioning information." -f $ThisIPv4Address)
       }
       
       
@@ -902,7 +902,7 @@ Function Get-UcsCallLog
         }
         Catch 
         {
-          Write-Debug -Message "Encountered an error on $ThisIPv4Address. '$_'"
+          Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
         
         if($GetSuccess -eq $true) 
@@ -927,7 +927,7 @@ Function Get-UcsCallLog
       
       if($GetSuccess -eq $false) 
       {
-        Write-Error -Message "Could not get provisioning info for $ThisIPv4Address."
+        Write-Error -Message ('Could not get provisioning info for {0}.' -f $ThisIPv4Address)
         Continue
       }
     }
@@ -966,11 +966,11 @@ Function Get-UcsLog
             'FTP'
             {
               $ProvInfo = Get-UcsProvisioningInfo -IPv4Address $ThisIPv4Address -ErrorAction Stop
-              $ProvCredential = Get-UcsConfigCredential -API FTP | Select-Object -ExpandProperty Credential | Where-Object UserName -eq $ProvInfo.ProvServerUser | Select -First 1
+              $ProvCredential = Get-UcsConfigCredential -API FTP | Select-Object -ExpandProperty Credential | Where-Object UserName -eq $ProvInfo.ProvServerUser | Select-Object -First 1
 
               if($ProvCredential.Count -eq 0)
               {
-                Write-Error "Couldn't find a credential for $ThisIPv4Address."
+                Write-Error -Message ("Couldn't find a credential for {0}." -f $ThisIPv4Address)
                 Break
               }
 
@@ -997,7 +997,7 @@ Function Get-UcsLog
         }
         Catch 
         {
-          Write-Debug -Message "Encountered an error on $ThisIPv4Address. '$_'"
+          Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
         
         if($GetSuccess -eq $true) 
@@ -1017,7 +1017,7 @@ Function Get-UcsLog
       
       if($GetSuccess -eq $false) 
       {
-        Write-Error -Message "Could not get log info for $ThisIPv4Address."
+        Write-Error -Message ('Could not get log info for {0}.' -f $ThisIPv4Address)
         Continue
       }
     }
