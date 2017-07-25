@@ -311,7 +311,7 @@ Function Get-UcsWebConfigurationOld
   }
 }
 
-Function Get-UcsWebAvailableFirmware 
+Function Get-UcsWebFirmware 
 {
 <#
   .PARAMETER Latest
