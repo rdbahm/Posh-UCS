@@ -3,6 +3,8 @@ Function Import-UcsProvFile
 {
   Param(
     [Parameter(Mandatory)][Alias('Path','Filename')][String]$FilePath,
+    [ValidateSet('None','Misc','Log','Override','Contact','License','Profile','Call','Corefile')][String]$Type = 'None',
+    [Nullable[Int]]$ProvServerIndex = $null
   )
   
   <#Example file to download:
@@ -15,7 +17,27 @@ Function Import-UcsProvFile
   Begin
   {
     $ProvisioningConfig = Get-UcsProvConfig
+    
+    if($ProvServerIndex -ne $null)
+    {
+      #If manually specified, we want to force which provisioning server to use. Mostly used for recursion.
+      $ProvisioningConfig = $ProvisioningConfig | Where-Object ProvServerIndex -eq $ProvServerIndex
+    }
+    
     $OutputContent = ''
+    $TypeMapping = @{
+      None='';
+      Misc='MISC_FILES';
+      Log='LOG_FILE_DIRECTORY';
+      Override='OVERRIDES_DIRECTORY'
+      Contact='CONTACTS_DIRECTORY'
+      License='LICENSE_DIRECTORY'
+      Profile='USER_PROFILES_DIRECTORY'
+      Call='CALL_LISTS_DIRECTORY'
+      Corefile='COREFILE_DIRECTORY'
+      }
+    $ThisType = $TypeMapping[$Type]
+
   }
   Process
   {
@@ -25,6 +47,33 @@ Function Import-UcsProvFile
     Foreach ($ThisServer in $ProvisioningConfig)
     {
       Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress,$PSCmdlet.MyInvocation.MyCommand.Name)
+      
+      if($Type -ne 'None')
+      {
+        #We must start by getting the location of the file in question if mode hasn't been set to "none."
+        Try 
+        {
+          $MasterConfigContent = Import-UcsProvFile -FilePath '000000000000.cfg' -Type None -ProvServerIndex $ThisServer.ProvServerIndex -ErrorAction Stop
+          $MasterConfig = Convert-UcsProvMasterConfig -Content $MasterConfigContent.Content -ErrorAction Stop
+          $ThisDirectory = ($MasterConfig.$ThisType).Trim('/\ ')
+        
+          if($ThisDirectory.length -gt 0){
+            $Working = $FilePath
+            $Parent = $Working | Split-Path -Parent
+            $Leaf = $Working | Split-Path -Leaf
+            $Working = Join-Path $ThisDirectory $Leaf
+            if($Parent.Length -gt 0)
+            {
+              $Working = Join-Path $Parent $Working
+            }
+            $FilePath = $Working
+          }
+        }
+        Catch 
+        {
+          Write-Error -Message ('Couldn''t get master config file for {0}.' -f $ThisServer.DisplayName) -ErrorAction Stop
+        }
+      }
       
       Try
       {

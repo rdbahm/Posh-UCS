@@ -9,32 +9,17 @@ Function Get-UcsProvLog
   }
   PROCESS
   {
-    #Get the master config file so we can know the path we need to take for the call list
-    Try 
-    {
-      $MasterConfigContent = Import-UcsProvFile -FilePath '000000000000.cfg'
-      $MasterConfig = Convert-UcsProvMasterConfig -Content $MasterConfigContent.Content
-    }
-    Catch 
-    {
-      Write-Error -Message ('Couldn''t get master config file for {0}.' -f $MacAddress) -ErrorAction Stop
-    }
     Foreach($ThisMacAddress in $MacAddress) 
     {
       #Download the call list.
       Try 
       {
-        $LogPath = $MasterConfig.LOG_FILE_DIRECTORY
         $LogfileName = ('{0}-{1}.log' -f $ThisMacAddress,$LogType)
-        if($LogPath.length -gt 0)
-        {
-          $LogfileName = Join-Path -Path $LogPath -ChildPath $LogfileName
-        }
-        $Logfile = Import-UcsProvFile -FilePath $LogfileName
+        $Logfile = Import-UcsProvFile -FilePath $LogfileName -Type Log
       }
       Catch 
       {
-        Write-Error -Message ('Couldn''t get log file for {0}, download path was {1}. Filename was {2}.' -f $MacAddress, $LogPath, $LogfileName)
+        Write-Error -Message ('Couldn''t get log file for {0}, filename was {1}.' -f $MacAddress, $LogfileName)
         Continue
       }
 
@@ -96,34 +81,17 @@ Function Get-UcsProvCallLog
   }
   PROCESS
   {
-    #Get the master config file so we can know the path we need to take for the call list
-    Try 
-    {
-      $MasterConfigContent = Import-UcsProvFile -FilePath '000000000000.cfg' -ErrorAction Stop
-      $MasterConfig = Convert-UcsProvMasterConfig -Content $MasterConfigContent.Content -ErrorAction Stop
-    }
-    Catch 
-    {
-      Write-Error -Message ('Couldn''t get master config file for {0}.' -f $MacAddress) -ErrorAction Stop
-    }
     Foreach($ThisMacAddress in $MacAddress) 
     {
       #Download the call list.
       Try 
       {
-        $CallsDirectory = $MasterConfig.CALL_LISTS_DIRECTORY
-        $CallFileName = ('{0}-calls.xml' -f $ThisMacAddress)
-        
-        if($CallsDirectory.length -gt 0)
-        {
-          $CallFileName = Join-Path -Path $CallsDirectory -ChildPath $CallFileName
-        }
-        
-        $Logfile = Import-UcsProvFile -FilePath $CallFileName
+        $CallFileName = ('{0}-calls.xml' -f $ThisMacAddress)     
+        $Logfile = Import-UcsProvFile -FilePath $CallFileName -Type Call
       }
       Catch 
       {
-        Write-Error -Message ('Couldn''t get log file for {0}, download path was {1}. Filename was {2}.' -f $MacAddress, $CallsDirectory, $CallFileName)
+        Write-Error -Message ('Couldn''t get log file for {0}, filename was {2}.' -f $MacAddress, $null, $CallFileName)
         Continue
       }
 
