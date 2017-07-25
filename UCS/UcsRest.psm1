@@ -962,7 +962,7 @@ Function Stop-UcsRestCall
           {
             Try
             {
-              $CallStatus = Get-UcsRestCallStatus -IPv4Address $ThisIPv4Address -ErrorAction Stop
+              $CallStatus = Get-UcsRestCall -IPv4Address $ThisIPv4Address -ErrorAction Stop
               $CallHandle = $CallStatus.CallHandle
             }
             Catch
