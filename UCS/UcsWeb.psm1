@@ -313,8 +313,14 @@ Function Get-UcsWebConfigurationOld
 
 Function Get-UcsWebAvailableFirmware 
 {
+<#
+  .PARAMETER Latest
+  Returns only the most recent firmware available for this phone model.
+#>
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
-  [Parameter(ParameterSetName = 'CustomServer')][String]$CustomServerUrl = '')
+    [Parameter(ParameterSetName = 'CustomServer')][String]$CustomServerUrl = '',
+    [Switch]$Latest
+  )
   
   BEGIN {
   
@@ -379,6 +385,12 @@ Function Get-UcsWebAvailableFirmware
       } Catch 
       {
         Write-Debug -Message "Skipped $ThisIPv4Address due to error $_."
+      }
+      
+      if($Latest -eq $true)
+      {
+        Write-Debug ('{0} results were returned but the -Latest parameter was included, so dropping all but last one.' -f $Result.Count)
+        $Result = $Result | Select-Object -Last 1
       }
       
       Foreach($Version in $Result) 
