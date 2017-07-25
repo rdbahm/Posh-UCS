@@ -33,7 +33,7 @@ Function Start-UcsCall
       
       Foreach($Protocol in $ThisProtocolPriority)
       {
-        Write-Debug -Message ('Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address)
+        Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
         Try
         {
           Switch($Protocol)
@@ -107,7 +107,7 @@ Function Stop-UcsCall
       
       Foreach($Protocol in $ThisProtocolPriority)
       {
-        Write-Debug -Message ('Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address)
+        Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
         Try
         {
           Switch($Protocol)
@@ -210,7 +210,7 @@ Function Get-UcsPhoneInfo
     {
       Foreach($Protocol in $ThisProtocolPriority)
       {
-        Write-Debug -Message ('Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address)
+        Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
         $Success = $true
         $Model = $null
         $FirmwareRelease = $null
@@ -551,7 +551,7 @@ Function Get-UcsProvisioningInfo
       
       Foreach($Protocol in $ThisProtocolPriority)
       {
-        Write-Debug -Message ('Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address)
+        Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
         Try
         {
           Switch($Protocol)
@@ -623,7 +623,7 @@ Function Get-UcsNetworkInfo
       
       Foreach($Protocol in $ThisProtocolPriority)
       {
-        Write-Debug -Message ('Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address)
+        Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
         Try
         {
           Switch($Protocol)
@@ -694,7 +694,7 @@ Function Get-UcsCallStatus
       
       Foreach($Protocol in $ThisProtocolPriority)
       {
-        Write-Debug -Message ('Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address)
+        Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
         Try
         {
           Switch($Protocol)
@@ -885,7 +885,7 @@ Function Get-UcsCallLog
       
       Foreach($Protocol in $ThisProtocolPriority)
       {
-        Write-Debug -Message ('Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address)
+        Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
         Try
         {
           Switch($Protocol)
@@ -959,7 +959,7 @@ Function Get-UcsLog
       
       Foreach($Protocol in $ThisProtocolPriority)
       {
-        Write-Debug -Message ('Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address)
+        Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
         Try
         {
           Switch($Protocol)
