@@ -2,10 +2,10 @@
 
 <#### PARAMETERS ####>
 $Script:LocalStorageLocation = "$env:LOCALAPPDATA\UCS"
-$Script:ConfigFileName = 'UcsProvConfig.xml'
+$Script:ProvConfigFileName = 'UcsProvConfig.xml'
 $Script:DisabledSuffix = '-disabled'
-$Script:ConfigPath = Join-Path -Path $Script:LocalStorageLocation -ChildPath $Script:ConfigFileName
-$Script:ImportedConfigInUse = $false
+$Script:ProvConfigPath = Join-Path -Path $Script:LocalStorageLocation -ChildPath $Script:ProvConfigFileName
+$Script:ImportedProvConfigInUse = $false
 
 Function New-UcsProvConfigServer
 {
@@ -94,7 +94,7 @@ Function Import-UcsProvConfigStorage
   $Imported = Import-Clixml -Path $Path
 
   $Script:ProvConfig = $Imported
-  $Script:ImportedConfigInUse = $true
+  $Script:ImportedProvConfigInUse = $true
 }
 
 Function Update-UcsProvConfigStorage
@@ -111,7 +111,7 @@ Function Update-UcsProvConfigStorage
     $null = New-Item -Path $Directory -ItemType Directory -Force
   }
 
-  if($Script:ImportedConfigInUse)
+  if($Script:ImportedProvConfigInUse)
   {
     Write-Debug -Message "Writing XML file to $Path."
     $Script:ProvConfig | Export-Clixml -Path $Path -Depth 1
@@ -127,15 +127,15 @@ Function Enable-UcsProvConfigStorage
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param()
 
-  if($Script:ImportedConfigInUse -eq $true)
+  if($Script:ImportedProvConfigInUse -eq $true)
   {
     Write-Error -Message 'Config storage already in use.'
     Break
   }
 
-  if($PSCmdlet.ShouldProcess($Script:ConfigPath))
+  if($PSCmdlet.ShouldProcess($Script:ProvConfigPath))
   {
-    $Script:ImportedConfigInUse = $true
+    $Script:ImportedProvConfigInUse = $true
     Update-UcsConfigStorage
   }
 }
@@ -145,7 +145,7 @@ Function Disable-UcsProvConfigStorage
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param()
 
-  if($Script:ImportedConfigInUse -ne $true)
+  if($Script:ImportedProvConfigInUse -ne $true)
   {
     Write-Error -Message 'Config storage not in use.'
     Break
@@ -153,17 +153,17 @@ Function Disable-UcsProvConfigStorage
 
   if($PSCmdlet.ShouldProcess($Script:ConfigPath))
   {
-    $Script:ImportedConfigInUse = $false
-    $ThisItem = Get-Item -Path $Script:ConfigPath
+    $Script:ImportedProvConfigInUse = $false
+    $ThisItem = Get-Item -Path $Script:ProvConfigPath
     $NewName = ('{0}{1}{2}' -f $ThisItem.BaseName, $Script:DisabledSuffix, $ThisItem.Extension)
     $NewPath = Join-Path -Path $ThisItem.Directory -ChildPath $NewName
-    $null = Rename-Item -Path $Script:ConfigPath -NewName $NewPath -Force
+    $null = Rename-Item -Path $Script:ProvConfigPath -NewName $NewPath -Force
   }
 }
 
 Function Get-UcsProvConfigStorageIsEnabled
 {
-  Return $Script:ImportedConfigInUse
+  Return $Script:ImportedProvConfigInUse
 }
 
 
@@ -172,8 +172,8 @@ Function Get-UcsProvConfigStorageIsEnabled
 $Script:ProvConfig = New-Object -TypeName System.Collections.ArrayList
 
 <#### Check for preferences ####>
-if( Test-Path $Script:ConfigPath )
+if( Test-Path $Script:ProvConfigPath )
 {
-  Write-Debug -Message "Found config file at $Script:ConfigPath."
+  Write-Debug -Message "Found config file at $Script:ProvConfigPath."
   Import-UcsProvConfigStorage
 }
