@@ -38,34 +38,34 @@ Function Start-UcsPushCall
   }
   Process
   {
-  $ThisIPv4Address = $IPv4Address
+    $ThisIPv4Address = $IPv4Address
   
-  #Calls to numbers need to be prefixed with \\, all other calls need to be \\ prefix free.
-  if($Destination -match '^\+?\d+$')
-  {
-    $ThisDestination = ('\\{0}' -f $Destination)
-  }
-  else
-  {
-    $ThisDestination = $Destination
-  }
-
-  $MessageHTML = ('tel:{0};line{1}' -f $Destination, $LineId)
-
-  Try {
-    $null = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
-
-    if($PassThru -eq $true) 
+    #Calls to numbers need to be prefixed with \\, all other calls need to be \\ prefix free.
+    if($Destination -match '^\+?\d+$')
     {
+      $ThisDestination = ('\\{0}' -f $Destination)
+    }
+    else
+    {
+      $ThisDestination = $Destination
+    }
+
+    $MessageHTML = ('tel:{0};line{1}' -f $Destination, $LineId)
+
+    Try {
+      $null = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
+
+      if($PassThru -eq $true) 
+      {
         Start-Sleep -Seconds 1
         $ThisCall = Get-UcsCall -IPv4Address $IPv4Address -ErrorAction SilentlyContinue
         $null = $OutputArray.Add($ThisCall)
+      }
     }
-  }
-  Catch
-  {
-    Write-Error "Couldn't start call to $Destination on $ThisIPv4Address."
-  }
+    Catch
+    {
+      Write-Error "Couldn't start call to $Destination on $ThisIPv4Address."
+    }
   }
   End
   {
@@ -166,7 +166,7 @@ Function Send-UcsPushCallAction
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String]$IPv4Address,
     [ValidateSet('Critical','Important','High','Normal')][String]$Priority = 'Critical',
-  [Parameter(Mandatory,HelpMessage = 'Add help message for user')][ValidateSet('EndCall','Answer','Reject','Ignore','MicMute','Hold','Resume','Transfer','Conference','Join','Split','Remove')][String]$CallAction,
+    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][ValidateSet('EndCall','Answer','Reject','Ignore','MicMute','Hold','Resume','Transfer','Conference','Join','Split','Remove')][String]$CallAction,
   [Parameter(ValueFromPipelineByPropertyName)][String][ValidatePattern('^0x[a-f0-9]{7,8}$')]$CallHandle)
 
   $ThisIPv4Address = $IPv4Address
@@ -235,17 +235,27 @@ Function Send-UcsPushKeyPress
         'Dialpad1','Dialpad2','Dialpad3','Dialpad4','Dialpad5','Dialpad6','Dialpad7','Dialpad8','Dialpad9','DialPadStar',
         'DialPadPound','Softkey1','Softkey2','Softkey3','Softkey4','Softkey5','VolDown','VolUp','Headset','Handsfree',
         'MicMute','Menu','Messages','Applications','Directories','Setup','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
-  'Backspace','DoNotDisturb','Select','Conference','Transfer','Redial','Hold','Status','CallList')][String[]]$Key)
+        'Backspace','DoNotDisturb','Select','Conference','Transfer','Redial','Hold','Status','CallList','Home','Back','Exit',
+        'Cancel','Refresh')][String[]]$Key)
     
   BEGIN
   {
     $ResultArray = New-Object -TypeName System.Collections.ArrayList
+    $SoftKeys = ('Home','Back','Exit','Cancel','Refresh')
 
     #Need to start by building out the series of commands to run.
     [String]$KeysToPress = ''
     Foreach($ThisKey in $Key) 
     {
-      $KeysToPress += ("Key:{0}`n" -f $ThisKey)
+      if($ThisKey -in $SoftKeys)
+      {
+        #Certain keys require a different prefix. Softkeys are noted in the documentation to not work on VVX phones.
+        $KeysToPress += ("SoftKey:{0}`n" -f $ThisKey)
+      }
+      else
+      {
+        $KeysToPress += ("Key:{0}`n" -f $ThisKey)
+      }
     }
     #$KeysToPress = $KeysToPress.Substring(0,(($KeysToPress.Length) - 2))
 
@@ -268,6 +278,95 @@ Function Send-UcsPushKeyPress
         Write-Error ("Couldn't send {0} to {1}" -f ($Key -join ", "),$ThisIPv4Address)
       }
       $null = $ResultArray.Add($ThisResult)
+    }
+  }
+}
+
+Function Start-UcsPushAudioFile 
+{
+  <#
+      .SYNOPSIS
+      Send an audio file stored on the Push server to a phone to play immediately.
+
+      .PARAMETER IPv4Address
+      The network address in IPv4 notation, such as 192.123.45.67.
+
+      .PARAMETER Priority
+      Defaults to 'Critical.' Lower priorities may not be shown on some phones.
+
+      .NOTES
+      Untested. Additional configuration is required to run this. The phone's "Push" credentials must be set (this script defaults to using "UCSToolkit" for both), "Allow Push Messages" must be set to "Critical" or lower, and "Application Server Root URL" must be specified. HTTPS must be enabled using Set-UcsPushConnectionSettings. Additionally, in Skype for Business deployments, the script must be run from a pool server.
+  #>
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [Parameter(Mandatory,HelpMessage = 'Path to an audio file, relative to the parameter ''apps.push.serverRootURL''.')][String]$Path,
+    [ValidateSet('Critical','Important','High','Normal')][String]$Priority = 'Critical')
+
+  Begin
+  {
+    $MessageHTML = ('Play:{0}' -f $Path)
+  }
+
+  Process
+  {
+    Foreach($ThisIPv4Address in $IPv4Address)
+    {
+      if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+      {
+        Try
+        {
+          $Output = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
+          Write-Debug $Output
+        } 
+        Catch
+        {
+          Write-Error "Failed to send an audio file to $ThisIPv4Address."
+        }
+      }
+    }
+  }
+}
+
+Function Update-UcsPushConfiguration
+{
+  <#
+      .SYNOPSIS
+      Forces the device to check for configuration updates from its provisioning server, and reboot if required.
+
+      .PARAMETER IPv4Address
+      The network address in IPv4 notation, such as 192.123.45.67.
+
+      .PARAMETER Priority
+      Defaults to 'Critical.' Lower priorities may not be shown on some phones.
+
+      .NOTES
+      Additional configuration is required to run this. The phone's "Push" credentials must be set (this script defaults to using "UCSToolkit" for both), "Allow Push Messages" must be set to "Critical" or lower, and "Application Server Root URL" must be specified. HTTPS must be enabled using Set-UcsPushConnectionSettings. Additionally, in Skype for Business deployments, the script must be run from a pool server.
+  #>
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'Medium')]
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [ValidateSet('Critical','Important','High','Normal')][String]$Priority = 'Critical')
+
+  Begin
+  {
+    $MessageHTML = ('Action:UpdateConfig')
+  }
+
+  Process
+  {
+    Foreach($ThisIPv4Address in $IPv4Address)
+    {
+      if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+      {
+        Try
+        {
+          $Output = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
+          Write-Debug $Output
+        } 
+        Catch
+        {
+          Write-Error "Failed to request update for $ThisIPv4Address."
+        }
+      }
     }
   }
 }
