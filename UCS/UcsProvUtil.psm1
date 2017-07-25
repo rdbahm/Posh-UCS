@@ -51,6 +51,7 @@ Function Import-UcsProvFile
       if($Type -ne 'None')
       {
         #We must start by getting the location of the file in question if mode hasn't been set to "none."
+        #We mostly need 'none' available for recursion.
         Try 
         {
           $MasterConfigContent = Import-UcsProvFile -FilePath '000000000000.cfg' -Type None -ProvServerIndex $ThisServer.ProvServerIndex -ErrorAction Stop
