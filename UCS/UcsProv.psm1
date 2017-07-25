@@ -13,7 +13,7 @@ Function Get-UcsProvLog
     Try 
     {
       $MasterConfigContent = Import-UcsProvFile -FilePath '000000000000.cfg'
-      $MasterConfig = Convert-UcsProvMasterConfig -Content $MasterConfigContent
+      $MasterConfig = Convert-UcsProvMasterConfig -Content $MasterConfigContent.Content
     }
     Catch 
     {
@@ -46,7 +46,7 @@ Function Get-UcsProvLog
     Foreach ($File in $CallFiles) 
     {
       #Run the log list through the parser.
-      $Filecontent = $File
+      $Filecontent = $File.Content
       $Filecontent = ($Filecontent.Split("`n") | Where-Object { $_.Length -ge 1 } )
       $TheseLogs = New-UcsLog -LogString $Filecontent -LogType $LogType -MacAddress $ThisMacAddress
       $TheseLogs | ForEach-Object -Process {
@@ -100,7 +100,7 @@ Function Get-UcsProvCallLog
     Try 
     {
       $MasterConfigContent = Import-UcsProvFile -FilePath '000000000000.cfg' -ErrorAction Stop
-      $MasterConfig = Convert-UcsProvMasterConfig -Content $MasterConfigContent -ErrorAction Stop
+      $MasterConfig = Convert-UcsProvMasterConfig -Content $MasterConfigContent.Content -ErrorAction Stop
     }
     Catch 
     {
@@ -119,7 +119,7 @@ Function Get-UcsProvCallLog
           $CallFileName = Join-Path -Path $CallsDirectory -ChildPath $CallFileName
         }
         
-        $Logfile = Import-UcsProvFile -FilePath $CallFileName -ReturnPath
+        $Logfile = Import-UcsProvFile -FilePath $CallFileName
       }
       Catch 
       {
@@ -132,7 +132,7 @@ Function Get-UcsProvCallLog
     
   } END {
     $AllCalls = New-Object -TypeName System.Collections.ArrayList
-    Foreach ($File in $CallFiles) 
+    Foreach ($File in $CallFiles.FullName) 
     {
       #Run the call list through the parser.
       $TheseCalls = Import-UcsProvCallLogXml -Path $File

@@ -1,13 +1,8 @@
 
 Function Import-UcsProvFile
 {
-  <#
-      .PARAMETER ReturnPath
-      If specified, return local path instead of content.
-  #>
   Param(
     [Parameter(Mandatory)][Alias('Path','Filename')][String]$FilePath,
-    [Switch]$ReturnPath
   )
   
   <#Example file to download:
@@ -71,24 +66,9 @@ Function Import-UcsProvFile
       if($ThisSuccess -eq $true)
       {
         #We succeeded, so we don't have to retry.
-        if($ReturnPath)
-        {
-          $OutputContent = ($SaveLocation)
-        }
-        else
-        {
-          Try
-          {
-            $Content = Get-Content $SaveLocation -ErrorAction Stop
-            $OutputContent = ($Content)
-          }
-          Catch
-          {
-            Write-Debug "Couldn't get content from $SaveLocation." -ErrorAction 
-            $ThisSuccess = $false
-            Continue
-          }
-        }
+        $OutputObject = Get-Item -Path $SaveLocation
+        $OutputObject = $OutputObject | Select-Object -Property BaseName,Name,Directory,FullName,Extension,@{Name='Content';Expression={Get-Content -Path $SaveLocation}},@{Name='ProvServerIndex';Expression={$ThisServer.ProvServerIndex}}
+        $OutputContent = $OutputObject
         
         Break
       }

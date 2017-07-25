@@ -62,10 +62,10 @@ Function Add-UcsProvConfigServer
   )
   
   $ToAddObject = $UcsProvConfigServer
-  $Index = [Int](Get-UcsProvConfig | Measure-Object -Property Index -Maximum).Maximum
+  $Index = [Int](Get-UcsProvConfig | Measure-Object -Property ProvServerIndex -Maximum).Maximum
   $Index++
   $ToAddObject = $ToAddObject | Select-Object -Property *, @{
-    Name       = 'Index'
+    Name       = 'ProvServerIndex'
     Expression = {
       $Index
     }
@@ -79,7 +79,7 @@ Function Add-UcsProvConfigServer
 Function Set-UcsProvConfigServer
 {
   Param(
-    [Parameter(Mandatory,ValueFromPipelineByPropertyName)][Int]$Index,
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName)][Int]$ProvServerIndex,
     [Alias('CN','ComputerName')][String]$ProvServerAddress = '',
     [Alias('Type','Protocol')][String][ValidateSet('FTP','FileSystem')]$ProvServerType = '',
     [PsCredential]$Credential = $null,
@@ -87,7 +87,7 @@ Function Set-UcsProvConfigServer
     [String]$DisplayName = ''
   )
   
-  $WorkingConfig = Get-UcsProvConfig | Where-Object -Property Index -EQ -Value $Index
+  $WorkingConfig = Get-UcsProvConfig | Where-Object -Property Index -EQ -Value $ProvServerIndex
   
   if($ProvServerAddress.Length -gt 0)
   {
@@ -116,7 +116,7 @@ Function Set-UcsProvConfigServer
   
   Foreach($ThisConfig in $Script:ProvConfig)
   {
-    if($ThisConfig.Index -eq $Index)
+    if($ThisConfig.Index -eq $ProvServerIndex)
     {
       $ThisConfig = $WorkingConfig
       Break
@@ -129,18 +129,18 @@ Function Set-UcsProvConfigServer
 Function Remove-UcsProvConfigServer
 {
   Param(
-    [Parameter(Mandatory,ValueFromPipelineByPropertyName)][Int[]]$Index
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName)][Int[]]$ProvServerIndex
   )
   
   Process
   {
-    Foreach($ThisIndex in $Index)
+    Foreach($ThisIndex in $ProvServerIndex)
     {
       $NewConfig = New-Object System.Collections.ArrayList
       
       Foreach($ThisConfig in $Script:ProvConfig)
       {
-        if($ThisConfig.Index -ne $ThisIndex)
+        if($ThisConfig.ProvServerIndex -ne $ThisIndex)
         {
           $null = $NewConfig.Add($ThisConfig)
         }
