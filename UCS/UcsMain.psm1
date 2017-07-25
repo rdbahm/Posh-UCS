@@ -91,6 +91,7 @@ Function Start-UcsCall
 
 Function Stop-UcsCall
 {
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'Medium')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [Parameter(ValueFromPipelineByPropertyName)][String][ValidatePattern('^0x[a-f0-9]{7,8}$')]$CallHandle)
   
@@ -104,58 +105,60 @@ Function Stop-UcsCall
     Foreach($ThisIPv4Address in $IPv4Address)
     {
       $GetSuccess = $false
-      
-      Foreach($Protocol in $ThisProtocolPriority)
+      if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address)))
       {
-        Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
-        Try
+        Foreach($Protocol in $ThisProtocolPriority)
         {
-          Switch($Protocol)
+          Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
+          Try
           {
-            'REST'
+            Switch($Protocol)
             {
-              if($CallHandle)
+              'REST'
               {
-                $ThisOutput = Stop-UcsRestCall -IPv4Address $ThisIPv4Address -CallHandle $CallHandle -ErrorAction Stop
+                if($CallHandle)
+                {
+                  $ThisOutput = Stop-UcsRestCall -IPv4Address $ThisIPv4Address -CallHandle $CallHandle -ErrorAction Stop -Confirm:$false
+                }
+                else
+                {
+                  $ThisOutput = Stop-UcsRestCall -IPv4Address $ThisIPv4Address -ErrorAction Stop -Confirm:$false
+                }
+                $GetSuccess = $true
               }
-              else
+              'Push'
               {
-                $ThisOutput = Stop-UcsRestCall -IPv4Address $ThisIPv4Address -ErrorAction Stop
+                if($CallHandle)
+                {
+                  $ThisOutput = Send-UcsPushCallAction -IPv4Address $ThisIPv4Address -CallAction EndCall -CallHandle $CallHandle -ErrorAction Stop -Confirm:$false
+                }
+                else
+                {
+                  $ThisOutput = Send-UcsPushCallAction -IPv4Address $ThisIPv4Address -CallAction EndCall -ErrorAction Stop -Confirm:$false
+                }
+                $GetSuccess = $true
               }
-              $GetSuccess = $true
-            }
-            'Push'
-            {
-              if($CallHandle)
+              Default
               {
-                $ThisOutput = Send-UcsPushCallAction -IPv4Address $ThisIPv4Address -CallAction EndCall -CallHandle $CallHandle -ErrorAction Stop
+                Write-Debug -Message ('Protocol {0} is not supported for the operation.' -f $Protocol)
               }
-              else
-              {
-                $ThisOutput = Send-UcsPushCallAction -IPv4Address $ThisIPv4Address -CallAction EndCall -ErrorAction Stop
-              }
-              $GetSuccess = $true
-            }
-            Default
-            {
-              Write-Debug -Message ('Protocol {0} is not supported for the operation.' -f $Protocol)
             }
           }
-        }
-        Catch 
-        {
-          Write-Debug -Message "Encountered an error on $ThisIPv4Address. '$_'"
-        }
+          Catch 
+          {
+            Write-Debug -Message "Encountered an error on $ThisIPv4Address. '$_'"
+          }
         
-        if($GetSuccess)
-        {
-          Break #Get out of the protocol loop once we succeed.
+          if($GetSuccess)
+          {
+            Break #Get out of the protocol loop once we succeed.
+          }
         }
-      }
       
-      if($GetSuccess -eq $false) 
-      {
-        Write-Error -Message "Could not get call info for $ThisIPv4Address."
+        if($GetSuccess -eq $false) 
+        {
+          Write-Error -Message "Could not get call info for $ThisIPv4Address."
+        }
       }
     }
   }
