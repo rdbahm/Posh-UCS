@@ -1052,15 +1052,15 @@ Function Test-UcsAPI
         $PollStatus = $false
       }
       
-      #FTP
-      $FTP = Get-UcsCallLog -IPv4Address $ThisIPv4Address -ErrorAction SilentlyContinue
-      if($FTP.count -gt 0)
+      #Provisioning
+      $Provisioning = Get-UcsCallLog -IPv4Address $ThisIPv4Address -ErrorAction SilentlyContinue
+      if($Provisioning.count -gt 0)
       {
-        $FTPStatus = $true
+        $ProvisioningStatus = $true
       }
       else
       {
-        $FTPStatus = $false
+        $ProvisioningStatus = $false
       }
       
       #Push
@@ -1097,9 +1097,9 @@ Function Test-UcsAPI
           $PollStatus
         }
       }, @{
-        Name       = 'FTP'
+        Name       = 'Provisioning'
         Expression = {
-          $FTPStatus
+          $ProvisioningStatus
         }
       }, @{
         Name       = 'Push'
