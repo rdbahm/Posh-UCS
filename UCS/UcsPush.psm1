@@ -17,7 +17,7 @@ Function Start-UcsPushCall
       Describe parameter -Priority.
 
       .PARAMETER PassThru
-      Returns an object with call status for this phone. Uses Get-UcsCallStatus, so either REST or Poll APIs must be available.
+      Returns an object with call status for this phone. Uses Get-UcsCall, so either REST or Poll APIs must be available.
 
       .EXAMPLE
       Send-CallAction -IPv4Address Value -Priority Value -CallAction Value
@@ -58,7 +58,7 @@ Function Start-UcsPushCall
     if($PassThru -eq $true) 
     {
         Start-Sleep -Seconds 1
-        $ThisCall = Get-UcsCallStatus -IPv4Address $IPv4Address -ErrorAction SilentlyContinue
+        $ThisCall = Get-UcsCall -IPv4Address $IPv4Address -ErrorAction SilentlyContinue
         $null = $OutputArray.Add($ThisCall)
     }
   }
@@ -176,7 +176,7 @@ Function Send-UcsPushCallAction
   }
   else
   {
-    $ThisCallRef = (Get-UcsCallStatus -IPv4Address $ThisIPv4Address).CallHandle
+    $ThisCallRef = (Get-UcsCall -IPv4Address $ThisIPv4Address).CallHandle
   }
   $MessageHTML = ('CallAction:{0};nCallReference={1}' -f $CallAction, $ThisCallRef)
 

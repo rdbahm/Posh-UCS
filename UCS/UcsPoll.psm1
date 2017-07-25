@@ -119,7 +119,7 @@ Function Get-UcsPollNetworkInfo
   }
 }
 
-Function Get-UcsPollCallStatus
+Function Get-UcsPollCall
 {
   Param(
     [Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address

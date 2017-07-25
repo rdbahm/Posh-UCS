@@ -481,7 +481,7 @@ Function Reset-UcsRestConfiguration
   }
 }
 
-Function Get-UcsRestCallStatus 
+Function Get-UcsRestCall 
 {
   <#
       .SYNOPSIS

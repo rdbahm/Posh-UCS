@@ -675,7 +675,7 @@ Function Get-UcsNetworkInfo
     Return $OutputObject
   }
 }
-Function Get-UcsCallStatus 
+Function Get-UcsCall
 {
   Param(
     [Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address
@@ -701,12 +701,12 @@ Function Get-UcsCallStatus
           {
             'REST'
             {
-              $ThisOutput = Get-UcsRestCallStatus -IPv4Address $ThisIPv4Address -ErrorAction Stop
+              $ThisOutput = Get-UcsRestCall -IPv4Address $ThisIPv4Address -ErrorAction Stop
               $GetSuccess = $true
             }
             'Poll'
             {
-              $ThisOutput = Get-UcsPollCallStatus -IPv4Address $ThisIPv4Address -ErrorAction Stop
+              $ThisOutput = Get-UcsPollCall -IPv4Address $ThisIPv4Address -ErrorAction Stop
               $GetSuccess = $true
             }
             Default
