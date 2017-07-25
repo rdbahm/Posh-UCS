@@ -57,7 +57,7 @@ Function Start-UcsCall
         
         if($GetSuccess -eq $true) 
         {
-          $ThisOutput = $ThisOutput | Select-Object -Property *, @{
+          $ThisOutput = $ThisOutput | Select-Object -ExcludeProperty API -Property *, @{
             Name       = 'API'
             Expression = {
               $Protocol
