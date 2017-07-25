@@ -6,10 +6,6 @@
 #We default to HTTP because in Skype for Business deployments, HTTPS only works from pool servers.
 #Windows rejects HTTPS certificates issued by Polycom for VVX phones. Most tools resolve this by setting Powershell to ignore all certificate errors. Instead, this script operates by adding the phone's hostname to the system hosts file so the phone validates correctly.
 
-<#TODO:
-    -Right now, UcsApi is relatively low-level. The user has to know which API they want to hit: REST, Web, SIP, Push, or Prov.
-    -The idea is that we build out capabilities for each of the APIs, then build an overarching "Ucs" branch that unifies the APIs. So, want to get a list of all parameters? You don't need to know if that's a web function or a REST function.
-#>
 $Script:PolycomMACPrefixes = ('0004f2', '64167F')
 
 Function Start-UcsCall
