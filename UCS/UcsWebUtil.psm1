@@ -231,16 +231,21 @@ Function Get-UcsWebHostname
     {
       #We ignore trust failures, since we only want the certificate.
       #Let other exceptions bubble up, or write-error the exception and return from this method
-      throw
+      Write-Error $_ -ErrorAction Stop
     }
   }
 
   #The ServicePoint object should now contain the Certificate for the site.
   $servicePoint = $Request.ServicePoint
   $Subject = $servicePoint.Certificate.Subject #This now contains something like "CN=0004F28B54F4, O=Polycom Inc."
-  $Subject = $Subject.Replace('CN=','') #Remove CN from the front.
-  $CommaIndex = $Subject.IndexOf(',') #Location of the first comma.
-  $Subject = $Subject.Substring(0,$CommaIndex)
-
-  Return $Subject
+  $Matches = $null
+  if($Subject -match '[0-9a-f]{12}')
+  {
+    Return $Matches[0]
+  }
+  else
+  {
+    Write-Error "Couldn't get a result for $IPv4Address."
+    Return $null
+  }
 }
