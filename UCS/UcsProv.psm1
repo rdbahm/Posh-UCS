@@ -1,6 +1,6 @@
 Function Get-UcsProvLog
 {
-  Param([Parameter(Mandatory)][ValidatePattern('^[a-f0-9]{12}$')][String[]]$MacAddress,
+  Param([Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^[a-f0-9]{12}$')][String[]]$MacAddress,
   [Parameter(Mandatory)][ValidateSet('app','boot')][String]$LogType)
 
   BEGIN
@@ -55,7 +55,7 @@ Function Get-UcsProvCallLog
       It attempts to connect to the provisioning server using the username provided by the phone. Once connected, it reads the 000000000000.cfg file to find the directory where call logs are stored. It then looks for the MACADDRESS-calls.xml file corresponding to the requested phone, then parses and returns the result.
   #>
 
-  Param([Parameter(Mandatory)][ValidatePattern('^[a-f0-9]{12}$')][String[]]$MacAddress)
+  Param([Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^[a-f0-9]{12}$')][String[]]$MacAddress)
 
   BEGIN
   {
@@ -73,7 +73,7 @@ Function Get-UcsProvCallLog
       }
       Catch 
       {
-        Write-Error -Message ('Couldn''t get log file for {0}, filename was {2}.' -f $MacAddress, $null, $CallFileName)
+        Write-Error -Message ('Couldn''t get log file for {0}, filename was {2}.' -f $ThisMacAddress, $null, $CallFileName)
         Continue
       }
 
