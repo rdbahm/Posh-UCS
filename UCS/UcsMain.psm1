@@ -878,7 +878,7 @@ Function Get-UcsCallLog
         {
           Switch($Protocol)
           {
-            'FTP'
+            'Provisioning'
             {
               $ThisCallLog = Get-UcsProvCallLog -MacAddress $PhoneInfo.MacAddress -ErrorAction Stop
               $GetSuccess = $true
@@ -950,7 +950,7 @@ Function Get-UcsLog
         {
           Switch($Protocol)
           {
-            'FTP'
+            'Provisioning'
             {
               $MacAddress = Get-UcsPhoneInfo -IPv4Address $IPv4Address -ErrorAction Stop | Select-Object -ExpandProperty MacAddress -ErrorAction Stop
               $Logs = Get-UcsProvLog -MacAddress $MacAddress -LogType $LogType -ErrorAction Stop
