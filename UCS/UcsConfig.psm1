@@ -25,7 +25,7 @@ Function New-UcsConfig
       The item with the lowest numerical value priority goes first in order. In case of a tie, APIs are ranked alphabetically.
   #>
   Param (
-    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API,
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','SIP','Poll','Push','Web','Provisioning')][String]$API,
     [Nullable[Timespan]]$Timeout = (New-TimeSpan -Seconds 3),
     [Nullable[Int]][ValidateRange(1,100)]$Retries = 2,
     [Nullable[Int]][ValidateRange(0,65535)]$Port = 80,
@@ -53,7 +53,7 @@ Function New-UcsConfig
 Function Get-UcsConfig
 {
   Param (
-    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','SIP','Poll','Push','Web','Provisioning')][String]$API
   )
 
   $RequestedConfig = $Script:MasterConfig | Where-Object -Property API -EQ -Value $API
@@ -74,7 +74,7 @@ Function Get-UcsConfigPriority
 Function Set-UcsConfig
 {
   Param (
-    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','SIP','Poll','Push','Web','FTP')][String]$API,
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','SIP','Poll','Push','Web','Provisioning')][String]$API,
     [Nullable[Timespan]]$Timeout = $null,
     [Nullable[Int]][ValidateRange(1,100)]$Retries = $null,
     [Nullable[Int]][ValidateRange(0,65535)]$Port = $null,
@@ -156,7 +156,7 @@ Function Set-UcsConfig
 Function New-UcsConfigCredential
 {
   Param (
-    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','Poll','Push','Web','FTP')][String]$API,
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','Poll','Push','Web')][String]$API,
     [Parameter(Mandatory)][PSCredential]$Credential,
     [String]$DisplayName = '',
     [Int]$Priority = 50,
@@ -191,7 +191,7 @@ Function New-UcsConfigCredentialPlaintext
 Function Get-UcsConfigCredential
 {
   Param (
-    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','Poll','Push','Web','FTP')][String]$API,
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidateSet('REST','Poll','Push','Web')][String]$API,
     [Switch]$IncludeDisabled,
     [Switch]$CredentialOnly
   )
@@ -274,7 +274,7 @@ Function Set-UcsConfigCredential
 {
    Param (
     [Parameter(Mandatory,ValueFromPipelineByPropertyName)][Int[]]$Index,
-    [AllowEmptyString()][ValidateSet('REST','Poll','Push','Web','FTP')][String]$API = '',
+    [AllowEmptyString()][ValidateSet('REST','Poll','Push','Web')][String]$API = '',
     $Credential = $null,
     [String]$DisplayName = '',
     [Nullable[Int]]$Priority = $null,
@@ -532,7 +532,6 @@ New-UcsConfigCredential -API REST -Credential (New-UcsConfigCredentialPlaintext 
 New-UcsConfigCredential -API Web -Credential (New-UcsConfigCredentialPlaintext -Username 'Polycom' -Password '456') -DisplayName "Polycom default Web credential" -Priority 1000
 New-UcsConfigCredential -API Poll -Credential (New-UcsConfigCredentialPlaintext -Username 'UCSToolkit' -Password 'UCSToolkit') -DisplayName "Script default Polling credential" -Priority 1000
 New-UcsConfigCredential -API Push -Credential (New-UcsConfigCredentialPlaintext -Username 'UCSToolkit' -Password 'UCSToolkit') -DisplayName "Script default Push credential" -Priority 1000
-New-UcsConfigCredential -API FTP -Credential (New-UcsConfigCredentialPlaintext -Username 'PlcmSpIp' -Password 'PlcmSpIp') -DisplayName "Polycom default provisioning credential" -Priority 1000
 
 <#### Define defaults for configs ####>
 $Script:MasterConfig = (
@@ -541,7 +540,7 @@ $Script:MasterConfig = (
   (New-UcsConfig -API Poll -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $null -Priority 30 -Enabled $true),
   (New-UcsConfig -API Push -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $false -Priority 40 -Enabled $true),
   (New-UcsConfig -API Web -Timeout (New-TimeSpan -Seconds 2) -Retries 2 -Port 80 -EnableEncryption $null -Priority 20 -Enabled $true),
-  (New-UcsConfig -API FTP -Timeout (New-TimeSpan -Seconds 5) -Retries 2 -Port 21 -EnableEncryption $null -Priority 100 -Enabled $true)
+  (New-UcsConfig -API Provisioning -Timeout (New-TimeSpan -Seconds 5) -Retries 1 -Port 0 -EnableEncryption $null -Priority 100 -Enabled $true)
 )
 
 <#### Check for preferences ####>
