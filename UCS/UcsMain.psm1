@@ -1,20 +1,14 @@
 ﻿#requires -Version 3.0
-#Unofficial Polycom UCS API Toolkit
-#Polycom UC Software API Module
-
-#Some things don't work in HTTP - particularly anything Push API related. Unfortunately, the VVX doesn't provide helpful feedback with its error codes.
-#We default to HTTP because in Skype for Business deployments, HTTPS only works from pool servers.
-#Windows rejects HTTPS certificates issued by Polycom for VVX phones. Most tools resolve this by setting Powershell to ignore all certificate errors. Instead, this script operates by adding the phone's hostname to the system hosts file so the phone validates correctly.
 
 $Script:PolycomMACPrefixes = ('0004f2', '64167F')
 
 Function Start-UcsCall
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
-    [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$Destination,
+    [Parameter(Mandatory,HelpMessage = 'A call destination, such as ''+15555555555@example.com or johnsmith@example.com''')][String]$Destination,
     [Int][ValidateRange(1,24)]$LineId = 1,
     [String][ValidateSet('SIP')]$CallType = 'SIP',
-  [Switch]$PassThru)
+    [Switch]$PassThru)
   
   Begin
   {
