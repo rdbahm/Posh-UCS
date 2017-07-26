@@ -1,11 +1,11 @@
 <#
-To enable phone state polling, these settings must be set:
-apps.statePolling.responseMode = 0
-apps.statePolling.username = user-selected
-apps.statePolling.password = user-selected
+    To enable phone state polling, these settings must be set:
+    apps.statePolling.responseMode = 0
+    apps.statePolling.username = user-selected
+    apps.statePolling.password = user-selected
 
-Also for some reason, the requirement for a secure tunnel is set with a push parameter:
-apps.push.secureTunnelRequired= 0
+    Also for some reason, the requirement for a secure tunnel is set with a push parameter:
+    apps.push.secureTunnelRequired= 0
 #>
 
 <#### FUNCTION DEFINITONS ####>
@@ -177,3 +177,5 @@ Function Get-UcsPollCall
     Return $AllResults
   }
 }
+
+Export-ModuleMember -Function Get-UcsPollCall, Get-UcsPollDeviceInfo, Get-UcsPollNetworkInfo

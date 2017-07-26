@@ -249,3 +249,5 @@ Function Get-UcsWebHostname
     Return $null
   }
 }
+
+Export-ModuleMember -Function Invoke-UcsWebRequest

@@ -199,3 +199,5 @@ Function Convert-UcsSipResponse
     Authorization: TLS-DSK qop="auth", realm="SIP Communications Service", opaque="1234", crand="12134", cnum="4", targetname="lyncserver.example.com", response="1234"
     Content-Length: 0
 #>
+
+Export-ModuleMember Invoke-UcsSipRequest

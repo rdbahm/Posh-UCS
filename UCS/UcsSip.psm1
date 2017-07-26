@@ -321,3 +321,5 @@ Function Restart-UcsSipPhone
     }
   }
 }
+
+Export-ModuleMember -Function Get-UcsSipPhoneInfo, Restart-UcsSipPhone

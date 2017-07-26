@@ -313,10 +313,10 @@ Function Get-UcsWebConfigurationOld
 
 Function Get-UcsWebFirmware 
 {
-<#
-  .PARAMETER Latest
-  Returns only the most recent firmware available for this phone model.
-#>
+  <#
+      .PARAMETER Latest
+      Returns only the most recent firmware available for this phone model.
+  #>
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(ParameterSetName = 'CustomServer')][String]$CustomServerUrl = '',
     [Switch]$Latest
@@ -1122,3 +1122,5 @@ Function Reset-UcsWebParameter {
   {
   }
 }
+
+Export-ModuleMember -Function Clear-UcsWebLog, Get-UcsWebAuditLog, Get-UcsWebConfiguration, Get-UcsWebDeviceInfo, Get-UcsWebFirmware, Get-UcsWebLastReboot, Get-UcsWebLog, Get-UcsWebLyncSignIn, Get-UcsWebLyncStatus, Get-UcsWebParameter, Get-UcsWebProvisioningInfo, Register-UcsWebLyncUser, Reset-UcsWebConfiguration, Reset-UcsWebParameter, Restart-UcsWebPhone, Stop-UcsWebLyncSignIn, Unregister-UcsWebLyncUser, Update-UcsWebFirmware

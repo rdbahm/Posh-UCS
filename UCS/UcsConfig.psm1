@@ -555,3 +555,5 @@ if( Test-Path $Script:CredentialPath )
   Write-Debug "Found credential file at $Script:CredentialPath."
   Import-UcsConfigCredentialStorage
 }
+
+Export-ModuleMember Get-UcsConfig, Set-UcsConfig, New-UcsConfigCredential, Get-UcsConfigCredential, Set-UcsConfigCredential, Remove-UcsConfigCredential, Enable-UcsConfigStorage, Disable-UcsConfigStorage, Enable-UcsConfigCredentialStorage, Disable-UcsConfigCredentialStorage

@@ -146,3 +146,5 @@ Function Invoke-UcsPushWebRequest
 
   Return $RestOutput
 }
+
+Export-ModuleMember -Function Invoke-UcsPushWebRequest

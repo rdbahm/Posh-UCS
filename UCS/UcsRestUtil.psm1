@@ -181,3 +181,5 @@ Function Invoke-UcsRestMethod
 
   Return $RestOutput
 }
+
+Export-ModuleMember -Function Invoke-UcsRestMethod

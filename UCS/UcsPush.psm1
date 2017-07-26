@@ -456,3 +456,5 @@ Function Get-UcsPushScreenCapture
     Return $ImageArray
   }
 }
+
+Export-ModuleMember -Function Get-UcsPushScreenCapture, Send-UcsPushCallAction, Send-UcsPushKeyPress, Send-UcsPushMessage, Start-UcsPushAudioFile, Start-UcsPushCall, Update-UcsPushConfiguration

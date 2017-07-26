@@ -63,3 +63,5 @@ Function Invoke-UcsPollRequest {
   
   Return $Content
 }
+
+Export-ModuleMember -Function Invoke-UcsPollRequest

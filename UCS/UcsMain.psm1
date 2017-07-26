@@ -878,7 +878,7 @@ Function Get-UcsCallLog
         {
           Switch($Protocol)
           {
-            'FTP'
+            'Provisioning'
             {
               $ThisCallLog = Get-UcsProvCallLog -MacAddress $PhoneInfo.MacAddress -ErrorAction Stop
               $GetSuccess = $true
@@ -950,7 +950,7 @@ Function Get-UcsLog
         {
           Switch($Protocol)
           {
-            'FTP'
+            'Provisioning'
             {
               $MacAddress = Get-UcsPhoneInfo -IPv4Address $IPv4Address -ErrorAction Stop | Select-Object -ExpandProperty MacAddress -ErrorAction Stop
               $Logs = Get-UcsProvLog -MacAddress $MacAddress -LogType $LogType -ErrorAction Stop
@@ -1130,3 +1130,5 @@ Function Test-UcsAPI
     Return $ResultArray
   }
 }
+
+Export-ModuleMember -Function Find-UcsPhoneByDHCP, Get-UcsCall, Get-UcsCallLog, Get-UcsLog, Get-UcsNetworkInfo, Get-UcsParameter, Get-UcsPhoneInfo, Get-UcsProvisioningInfo, Restart-UcsPhone, Start-UcsCall, Stop-UcsCall, Test-UcsApi

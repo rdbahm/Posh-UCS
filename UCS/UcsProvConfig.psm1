@@ -261,3 +261,5 @@ if( Test-Path $Script:ProvConfigPath )
   Write-Debug -Message "Found config file at $Script:ProvConfigPath."
   Import-UcsProvConfigStorage
 }
+
+Export-ModuleMember -Function Disable-UcsProvConfigStorage, Enable-UcsProvConfigStorage, Get-UcsProvConfig, New-UcsProvConfigServer, Remove-UcsProvConfigServer, Set-UcsProvConfigServer

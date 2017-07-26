@@ -1014,3 +1014,4 @@ Function Stop-UcsRestCall
   }
 }
 
+Export-ModuleMember -Function Get-UcsRestCall, Get-UcsRestDeviceInfo, Get-UcsRestLineInfo, Get-UcsRestNetworkInfo, Get-UcsRestNetworkStats, Get-UcsRestParameter, Get-UcsRestPresence, Get-UcsRestSipStatus, Get-UcsRestConfiguration, Restart-UcsRestPhone, Set-UcsRestParameter, Start-UcsRestCall, Stop-UcsRestCall

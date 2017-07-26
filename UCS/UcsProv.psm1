@@ -95,3 +95,5 @@ Function Get-UcsProvCallLog
     Return $AllCalls
   }
 }
+
+Export-ModuleMember -Function Get-UcsProvCallLog,Get-UcsProvLog
