@@ -1,7 +1,4 @@
 ﻿#requires -Version 3.0
-
-$Script:PolycomMACPrefixes = ('0004f2', '64167F')
-
 Function Start-UcsCall
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
@@ -768,7 +765,9 @@ Function Find-UcsPhoneByDHCP
       .OUTPUTS
       List of output types produced by this function.
   #>
-
+  Param(
+    [String[]]$MacAddressPrefix = ('0004f2', '64167F')
+  )
 
   <#
       SYNOPSIS
@@ -812,7 +811,7 @@ Function Find-UcsPhoneByDHCP
         $_.MacAddress.length -eq 12
       } |
       Where-Object -FilterScript {
-        $_.MacAddress.substring(0,6) -in $PolycomMACPrefixes
+        $_.MacAddress.substring(0,6) -in $MacAddressPrefix
       }
     }
   }
