@@ -81,7 +81,6 @@ NestedModules = @(
 'UcsPoll.psm1',
 'UcsPollUtil.psm1',
 'UcsConfig.psm1',
-'UcsProvFtp.psm1',
 'UcsProvFtpUtil.psm1',
 'UcsProvConfig.psm1'
 )
