@@ -575,15 +575,19 @@ Function Register-UcsWebLyncUser
         #Actual URL: http://10.92.10.48/form-submit/Settings/lyncSignIn
 
         $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Settings/lyncSignIn' -Method Post -ContentType 'application/x-www-form-urlencoded' -Body $Body -ErrorAction Stop
-         
-        $null = $StatusResult.Add($Result)
       } Catch 
       {
-        Write-Debug -Message "Skipped $ThisIPv4Address due to error $_."
+        Write-Error -Message "Skipped $ThisIPv4Address due to error $_."
+      }
+
+      if($Result -ne '' -and $Result -ne $null)
+      {
+        #The phone usually responds with nothing if a sign-in succeeds.
+        Write-Error ('Sign-in request failed for {0} with error ''{1}.''' -f $ThisIPv4Address,$Result)
       }
     }
   } END {
-    Return $StatusResult
+    #Nothing.
   }
 }
 
@@ -593,7 +597,7 @@ Function Unregister-UcsWebLyncUser
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
   
   BEGIN {
-    $StatusResult = New-Object -TypeName System.Collections.ArrayList
+    #$StatusResult = New-Object -TypeName System.Collections.ArrayList
   } PROCESS {
     Foreach ($ThisIPv4Address in $IPv4Address) 
     { 
@@ -604,22 +608,27 @@ Function Unregister-UcsWebLyncUser
         if($PSCmdlet.ShouldProcess($ThisIPv4Address,'Sign out user')) 
         {
           $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Settings/lyncSignOut' -Method Post -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
-        
-         
-          $null = $StatusResult.Add($Result)
         }
-      } Catch 
+      }
+      Catch 
       {
-        Write-Debug -Message "Skipped $ThisIPv4Address due to error $_."
+        Write-Error -Message "Skipped $ThisIPv4Address due to error $_."
+      }
+         
+      #$null = $StatusResult.Add($Result)
+      if($Result -ne "SIGNING_OUT")
+      {
+        Write-Error ('Sign-out request failed for {0} with error ''{1}.''' -f $ThisIPv4Address,$Result)
       }
     }
   } END {
-    Return $StatusResult
+    #Nothing.
   }
 }
 
 Function Stop-UcsWebLyncSignIn 
 {
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
   BEGIN {
     $StatusResult = New-Object -TypeName System.Collections.ArrayList
@@ -629,18 +638,21 @@ Function Stop-UcsWebLyncSignIn
       Try 
       {
         #Actual URL: http://10.92.10.48/form-submit/Settings/lyncCancelSignIn
-       
-        $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Settings/lyncCancelSignIn' -Method Post -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
-        
-         
-        $null = $StatusResult.Add($Result)
+        if($PSCmdlet.ShouldProcess($ThisIPv4Address,'Cancel phone sign-in. Will sign out already signed-in users')) 
+        {
+          $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Settings/lyncCancelSignIn' -Method Post -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
+        }
       } Catch 
       {
         Write-Debug -Message "Skipped $ThisIPv4Address due to error $_."
       }
+      
+      if($Result -ne '' -and $Result -ne $null)
+      {
+        Write-Error ('Sign-in cancel request failed for {0} with error ''{1}''' -f $ThisIPv4Address,$Result)
+      }
     }
   } END {
-    Return $StatusResult
   }
 }
 
