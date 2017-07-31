@@ -539,7 +539,8 @@ Function Register-UcsWebLyncUser
     [Parameter(Mandatory,ParameterSetName = 'Credential')][String][ValidatePattern('^\d+$')]$Address,
     [Parameter(Mandatory,ParameterSetName = 'Credential')][String][ValidatePattern('^\d+$')]$Domain,
     [Parameter(ParameterSetName = 'Credential')][String][ValidatePattern('^\d+$')]$Username = '',
-    [Parameter(Mandatory,ParameterSetName = 'Credential')][String][ValidatePattern('^\d+$')]$Password
+    [Parameter(Mandatory,ParameterSetName = 'Credential')][String][ValidatePattern('^\d+$')]$Password,
+    [Switch]$Wait
   )
   
   BEGIN {
@@ -575,6 +576,7 @@ Function Register-UcsWebLyncUser
         #Actual URL: http://10.92.10.48/form-submit/Settings/lyncSignIn
 
         $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Settings/lyncSignIn' -Method Post -ContentType 'application/x-www-form-urlencoded' -Body $Body -ErrorAction Stop
+        $null = $StatusResult.Add($ThisIPv4Address) #We only get to this line if the first line doesn't fail.
       } Catch 
       {
         Write-Error -Message "Skipped $ThisIPv4Address due to error $_."
@@ -587,7 +589,31 @@ Function Register-UcsWebLyncUser
       }
     }
   } END {
-    #Nothing.
+    if($Wait)
+    {
+      #The wait flag allows a user to instruct the script to wait to exit until all phones have signed in.
+      #As a nice side effect, this also allows us to throw an error if the sign-in fails for any reason.
+      #We batch together all the phones to minimize wait time - this way, if you have 100 phones, there may be almost no waiting.
+      Foreach ($ThisIPv4Address in $StatusResult)
+      {
+        $SigninStatus = $null
+        Do
+        {
+          if($SigninStatus -ne $null)
+          {
+            Start-Sleep -Seconds 1 #After the first check, back off the phone a little.
+          }
+          $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+          $SigninStatus = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Settings/lyncSignInStatus?_=$UnixTime" -ErrorAction Stop
+        }
+        While ($SigninStatus -eq 'SIGNING_IN')
+      
+        if($SigninStatus -eq 'UNREGISTERED')
+        {
+          Write-Error ('Sign-in request failed for {0}. Bad credentials?' -f $ThisIPv4Address) -Category AuthenticationError
+        }
+      }
+    }
   }
 }
 
@@ -628,7 +654,6 @@ Function Unregister-UcsWebLyncUser
 
 Function Stop-UcsWebLyncSignIn 
 {
-  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
   BEGIN {
     $StatusResult = New-Object -TypeName System.Collections.ArrayList
@@ -638,9 +663,17 @@ Function Stop-UcsWebLyncSignIn
       Try 
       {
         #Actual URL: http://10.92.10.48/form-submit/Settings/lyncCancelSignIn
-        if($PSCmdlet.ShouldProcess($ThisIPv4Address,'Cancel phone sign-in. Will sign out already signed-in users')) 
+
+        $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+        $SigninStatus = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Settings/lyncSignInStatus?_=$UnixTime" -ErrorAction Stop
+
+        if($SigninStatus -eq 'SIGNING_IN')
         {
           $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Settings/lyncCancelSignIn' -Method Post -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
+        }
+        else
+        {
+          Write-Error "No sign-in to cancel for $ThisIPv4Address."
         }
       } Catch 
       {
