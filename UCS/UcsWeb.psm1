@@ -313,10 +313,10 @@ Function Get-UcsWebConfigurationOld
 
 Function Get-UcsWebFirmware 
 {
-<#
-  .PARAMETER Latest
-  Returns only the most recent firmware available for this phone model.
-#>
+  <#
+      .PARAMETER Latest
+      Returns only the most recent firmware available for this phone model.
+  #>
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(ParameterSetName = 'CustomServer')][String]$CustomServerUrl = '',
     [Switch]$Latest
@@ -531,6 +531,82 @@ Function Reset-UcsWebConfiguration
   }
 }
 
+Function Get-UcsWebLyncSignInStatus
+{
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [String][ValidateSet('None','SignedOut','SignedIn','SigningOut','SigningIn')]$WaitFor = 'None',
+    [Int][ValidateRange(1,3600)]$TimeoutSeconds = 120
+  )
+  
+  BEGIN
+  {
+    $ResultOutput = New-Object System.Collections.ArrayList
+    $StartTime = Get-Date #Used for calculation of "WaitFor"
+    $EndTime = $StartTime.AddSeconds($TimeoutSeconds)
+  }
+  
+  PROCESS
+  {
+    Foreach($ThisIPv4Address in $IPv4Address)
+    {
+      $ContinueWaiting = $true
+      
+      While($ContinueWaiting -eq $true)
+      {
+        Try
+        {
+          $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+          $SigninStatus = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Settings/lyncSignInStatus?_=$UnixTime" -ErrorAction Stop
+        }
+        Catch
+        {
+          $SigninStatus = "UNAVAILABLE"
+          Write-Error "Could not get sign in status for $ThisIPv4Address."
+          $ContinueWaiting = $false #Regardless of our type, this is a dead-end, so stop checking.
+        }
+        
+        #Check if we've met what we're waiting for.
+        if($WaitFor -eq 'None')
+        {
+          $ContinueWaiting = $false
+        }
+        elseif($WaitFor -eq 'SignedOut' -and $SigninStatus -eq 'UNREGISTERED')
+        {
+          $ContinueWaiting = $false
+        }
+        elseif($WaitFor -eq 'SignedIn' -and $SigninStatus -eq 'SIGNED_IN')
+        {
+          $ContinueWaiting = $false
+        }
+        elseif($WaitFor -eq 'SigningIn' -and $SigninStatus -eq 'SIGNING_IN')
+        {
+          $ContinueWaiting = $false
+        }
+        elseif($WaitFor -eq 'SigningOut' -and $SigninStatus -eq 'SIGNING_OUT')
+        {
+          $ContinueWaiting = $false
+        }
+        elseif( (Get-Date) -gt $EndTime)
+        {
+          $ContinueWaiting = $false
+          Write-Warning "Timeout expired while waiting for $ThisIPv4Address."
+        }
+        else
+        {
+          Start-Sleep -Seconds 1 #Delay to prevent hammering the phone too much.
+        }
+      }
+      
+      $ThisOutput = $ThisIPv4Address | Select-Object @{Name="IPv4Address";Expression={$ThisIPv4Address}},@{Name="SignInStatus";Expression={$SigninStatus}}
+      $null = $ResultOutput.Add($ThisOutput)
+    }
+  }
+  
+  END
+  {
+    Return $ResultOutput
+  }
+}
 Function Register-UcsWebLyncUser 
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
@@ -540,6 +616,7 @@ Function Register-UcsWebLyncUser
     [Parameter(Mandatory,ParameterSetName = 'Credential')][String][ValidatePattern('^\d+$')]$Domain,
     [Parameter(ParameterSetName = 'Credential')][String][ValidatePattern('^\d+$')]$Username = '',
     [Parameter(Mandatory,ParameterSetName = 'Credential')][String][ValidatePattern('^\d+$')]$Password,
+    [Switch]$Force,
     [Switch]$Wait
   )
   
@@ -574,9 +651,42 @@ Function Register-UcsWebLyncUser
       Try 
       {
         #Actual URL: http://10.92.10.48/form-submit/Settings/lyncSignIn
+        $CurrentSignInStatus = Get-UcsWebLyncSignInStatus -IPv4Address $ThisIPv4Address -ErrorAction SilentlyContinue
+        $DoSignIn = $true
+        
+        if($CurrentSignInStatus.SignInStatus -eq "SIGNED_IN")
+        {
+          if($Force)
+          {
+            Write-Warning "$ThisIPv4Address was signed in. Sign-in has been unregistered."
+            Unregister-UcsWebLyncUser -IPv4Address $ThisIPv4Address -Wait -Confirm:$false
+          }
+          else
+          {
+            Write-Error "$ThisIPv4Address is currently signed in. Use the -Force flag to automatically unregister current sign-ins."
+            $DoSignIn = $false
+          }
+        }
+        elseif($CurrentSignInStatus.SignInStatus -eq "SIGNING_IN")
+        {
+          if($Force)
+          {
+            Write-Warning "$ThisIPv4Address was in the process of signing in. Sign-in has been cancelled and restarted."
+            Stop-UcsWebLyncSignIn -IPv4Address $ThisIPv4Address
+            Get-UcsWebLyncSignInStatus -IPv4Address $ThisIPv4Address -WaitFor SignedOut
+          }
+          else
+          {
+            Write-Error "$ThisIPv4Address is currently in the process of signing in. Use the -Force flag to automatically cancel current sign-ins."
+            $DoSignIn = $false
+          }
+        }
 
-        $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Settings/lyncSignIn' -Method Post -ContentType 'application/x-www-form-urlencoded' -Body $Body -ErrorAction Stop
-        $null = $StatusResult.Add($ThisIPv4Address) #We only get to this line if the first line doesn't fail.
+        if($DoSignIn)
+        {
+          $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Settings/lyncSignIn' -Method Post -ContentType 'application/x-www-form-urlencoded' -Body $Body -ErrorAction Stop
+          $null = $StatusResult.Add($ThisIPv4Address) #We only get to this line if the first line doesn't fail.
+        }
       } Catch 
       {
         Write-Error -Message "Skipped $ThisIPv4Address due to error $_."
@@ -620,10 +730,11 @@ Function Register-UcsWebLyncUser
 Function Unregister-UcsWebLyncUser 
 {
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
-  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+  [Switch]$Wait)
   
   BEGIN {
-    #$StatusResult = New-Object -TypeName System.Collections.ArrayList
+    $SuccessPhones = New-Object -TypeName System.Collections.ArrayList
   } PROCESS {
     Foreach ($ThisIPv4Address in $IPv4Address) 
     { 
@@ -641,14 +752,21 @@ Function Unregister-UcsWebLyncUser
         Write-Error -Message "Skipped $ThisIPv4Address due to error $_."
       }
          
-      #$null = $StatusResult.Add($Result)
+      
       if($Result -ne "SIGNING_OUT")
       {
         Write-Error ('Sign-out request failed for {0} with error ''{1}.''' -f $ThisIPv4Address,$Result)
       }
+      else
+      {
+        $null = $SuccessPhones.Add($ThisIPv4Address)
+      }
     }
   } END {
-    #Nothing.
+    if($Wait)
+    {
+      Get-UcsWebLyncSignInStatus -IPv4Address $SuccessPhones -WaitFor SignedOut
+    }
   }
 }
 
@@ -664,10 +782,9 @@ Function Stop-UcsWebLyncSignIn
       {
         #Actual URL: http://10.92.10.48/form-submit/Settings/lyncCancelSignIn
 
-        $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
-        $SigninStatus = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Settings/lyncSignInStatus?_=$UnixTime" -ErrorAction Stop
+        $SigninStatus = Get-UcsWebLyncSignInStatus -IPv4Address $ThisIPv4Address
 
-        if($SigninStatus -eq 'SIGNING_IN')
+        if($SigninStatus.SignInStatus -eq 'SIGNING_IN')
         {
           $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Settings/lyncCancelSignIn' -Method Post -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
         }
