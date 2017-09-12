@@ -673,7 +673,7 @@ Function Register-UcsWebLyncUser
           {
             Write-Warning "$ThisIPv4Address was in the process of signing in. Sign-in has been cancelled and restarted."
             Stop-UcsWebLyncSignIn -IPv4Address $ThisIPv4Address
-            Get-UcsWebLyncSignInStatus -IPv4Address $ThisIPv4Address -WaitFor SignedOut
+            $null = Get-UcsWebLyncSignInStatus -IPv4Address $ThisIPv4Address -WaitFor SignedOut
           }
           else
           {
@@ -765,7 +765,7 @@ Function Unregister-UcsWebLyncUser
   } END {
     if($Wait)
     {
-      Get-UcsWebLyncSignInStatus -IPv4Address $SuccessPhones -WaitFor SignedOut
+      $null = Get-UcsWebLyncSignInStatus -IPv4Address $SuccessPhones -WaitFor SignedOut
     }
   }
 }
