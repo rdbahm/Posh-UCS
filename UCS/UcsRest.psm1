@@ -30,7 +30,7 @@ Function Set-UcsRestParameter
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(Mandatory,HelpMessage = 'A valid UCS parameter, such as Up.Timeout',ValueFromPipelineByPropertyName)][String]$Parameter,
-    [Parameter(Mandatory,HelpMessage = 'A valid value for the specified parameter.')][String]$Value,
+    [Parameter(Mandatory,HelpMessage = 'A valid value for the specified parameter.')][AllowEmptyString()][String]$Value,
   [Switch]$PassThru)
 
   BEGIN {
@@ -43,8 +43,24 @@ Function Set-UcsRestParameter
       $Value = '0'
     }
 
-    $ThisParameter = Get-UcsCleanJSON -String $Parameter
-    $ThisValue = Get-UcsCleanJSON -String $Value
+    Try
+    {
+      $ThisParameter = Get-UcsCleanJSON -String $Parameter -ErrorAction Stop
+    }
+    Catch
+    {
+      Write-Error "Couldn't process provided parameter $Parameter." -ErrorAction Stop
+    }
+    
+    Try
+    {
+      $ThisValue = Get-UcsCleanJSON -String $Value -ErrorAction Stop
+    }
+    Catch
+    {
+      Write-Debug "Got an error when trying to clean value. Empty string?"
+      $ThisValue = ""
+    }
 
     $ParameterSet = ("{{`"data`":{{`"{0}`": `"{1}`"}}}}" -f $ThisParameter, $ThisValue)
   } PROCESS {
