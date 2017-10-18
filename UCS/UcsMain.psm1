@@ -740,7 +740,6 @@ Function Get-UcsCall
 
 Function Find-UcsPhoneByDHCP 
 {
-  #Requires -modules ActiveDirectory,DhcpServer
   <#
       .SYNOPSIS
       Uses DHCP to find all phones in the current environment. Requires DHCP and AD powershell modules.
@@ -769,10 +768,12 @@ Function Find-UcsPhoneByDHCP
     [String[]]$MacAddressPrefix = ('0004f2', '64167F')
   )
 
-  <#
-      SYNOPSIS
-      
-  #>
+  $AvailableModules = Get-Module -ListAvailable
+  if($AvailableModules.Name -notcontains 'ActiveDirectory' -or $AvailableModules.Name -notcontains 'DhcpServer')
+  {
+    Write-Error -Message "The cmdlet 'Find-UcsPhoneByDHCP' cannot be run because the 'ActiveDirectory' and 'DhcpServer' modules are required and were not found." -Category ResourceUnavailable -Exception "ScriptRequiresException" -ErrorAction Stop
+  }
+  
   $Domain = (Get-ADDomain).DistinguishedName
   $DHCPServers = Get-ADObject -SearchBase ('cn=configuration,{0}' -f $Domain) -Filter "objectclass -eq 'dhcpclass' -AND Name -ne 'dhcproot'"
 
