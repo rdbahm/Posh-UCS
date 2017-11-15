@@ -63,7 +63,7 @@ Function Start-UcsCall
       
       if($GetSuccess -eq $false) 
       {
-        Write-Error -Message ('Could not get call info for {0}.' -f $ThisIPv4Address)
+        Write-Error -Message ('Could not get call info for {0}.' -f $ThisIPv4Address) -Category ConnectionError
       }
     }
   }
@@ -144,7 +144,7 @@ Function Stop-UcsCall
       
         if($GetSuccess -eq $false) 
         {
-          Write-Error -Message ('Could not get call info for {0}.' -f $ThisIPv4Address)
+          Write-Error -Message ('Could not get call info for {0}.' -f $ThisIPv4Address) -Category ConnectionError
         }
       }
     }
@@ -287,7 +287,7 @@ Function Get-UcsPhoneInfo
       if($Success -eq $false) 
       {
         #All protocols have failed.
-        Write-Error -Message ('Could not connect to {0}.' -f $ThisIPv4Address)
+        Write-Error -Message ('Could not connect to {0}.' -f $ThisIPv4Address) -Category ConnectionError
         Continue
       }
 
@@ -421,7 +421,7 @@ Function Restart-UcsPhone
       
       if($RebootSuccess -eq $false) 
       {
-        Write-Error -Message ('Could not {0} {1}.' -f $Type, $ThisIPv4Address)
+        Write-Error -Message ('Could not {0} {1}.' -f $Type, $ThisIPv4Address) -Category ConnectionError
       }
     }
   }
@@ -512,7 +512,7 @@ Function Get-UcsParameter
       
       if($GetSuccess -eq $false) 
       {
-        Write-Error -Message ('Could not get parameter for {0}.' -f $ThisIPv4Address)
+        Write-Error -Message ('Could not get parameter for {0}.' -f $ThisIPv4Address) -Category ConnectionError
       }
     }
   }
@@ -584,7 +584,7 @@ Function Get-UcsProvisioningInfo
       
       if($GetSuccess -eq $false) 
       {
-        Write-Error -Message ('Could not get provisioning info for {0}.' -f $ThisIPv4Address)
+        Write-Error -Message ('Could not get provisioning info for {0}.' -f $ThisIPv4Address) -Category ConnectionError
       }
     }
   }
@@ -656,7 +656,7 @@ Function Get-UcsNetworkInfo
       
       if($GetSuccess -eq $false) 
       {
-        Write-Error -Message ('Could not get network info for {0}.' -f $ThisIPv4Address)
+        Write-Error -Message ('Could not get network info for {0}.' -f $ThisIPv4Address) -Category ConnectionError
       }
     }
   }
@@ -727,7 +727,7 @@ Function Get-UcsCall
       
       if($GetSuccess -eq $false) 
       {
-        Write-Error -Message ('Could not get call info for {0}.' -f $ThisIPv4Address)
+        Write-Error -Message ('Could not get call info for {0}.' -f $ThisIPv4Address) -Category ConnectionError
       }
     }
   }
@@ -910,7 +910,7 @@ Function Get-UcsCallLog
       
       if($GetSuccess -eq $false) 
       {
-        Write-Error -Message ('Could not get provisioning info for {0}.' -f $ThisIPv4Address)
+        Write-Error -Message ('Could not get provisioning info for {0}.' -f $ThisIPv4Address) -Category ConnectionError
         Continue
       }
     }
@@ -989,7 +989,7 @@ Function Get-UcsLog
       
       if($GetSuccess -eq $false) 
       {
-        Write-Error -Message ('Could not get log info for {0}.' -f $ThisIPv4Address)
+        Write-Error -Message ('Could not get log info for {0}.' -f $ThisIPv4Address) -Category ConnectionError
         Continue
       }
     }
