@@ -534,7 +534,7 @@ Function Reset-UcsWebConfiguration
 Function Get-UcsWebLyncSignInStatus
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
-    [String][ValidateSet('None','SignedOut','SignedIn','SigningOut','SigningIn')]$WaitFor = 'None',
+    [String][ValidateSet('None','SignedOut','SignedIn','SigningOut','SigningIn','PasswordChanged')]$WaitFor = 'None',
     [Int][ValidateRange(1,3600)]$TimeoutSeconds = 120
   )
   
@@ -583,6 +583,10 @@ Function Get-UcsWebLyncSignInStatus
           $ContinueWaiting = $false
         }
         elseif($WaitFor -eq 'SigningOut' -and $SigninStatus -eq 'SIGNING_OUT')
+        {
+          $ContinueWaiting = $false
+        }
+        elseif($WaitFor -eq 'PasswordChanged' -and $SigninStatus -eq 'PASS_CHANGED')
         {
           $ContinueWaiting = $false
         }
@@ -681,6 +685,8 @@ Function Register-UcsWebLyncUser
             $DoSignIn = $false
           }
         }
+        
+        #TODO: There are other states, like PASS_CHANGED, that would need sign out/sign in. Perhaps we can look for "Not SIGNED_OUT."
 
         if($DoSignIn)
         {
