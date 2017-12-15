@@ -26,8 +26,10 @@ Support Table
 -------------
 |Version|Profile|REST|Web|Polling|Push|Provisioning|SIP|
 |-------|-------|----|---|-------|----|------------|---|
-|4.1.4.7430|Lync|Unsupported|Unsupported|Supported|Supported||Partially Supported|
+|4.1.4.7430|Lync|Not Possible|Partial|Partial|Supported||Partial|
 |5.6.??|Lync|Supported|Supported|Supported|Supported|Supported|Supported|
+|5.7.0.11768|Lync|Partial|||||
+||||||||
 
 Limitations
 -----------
