@@ -450,10 +450,12 @@ Function Update-UcsWebFirmware
       Try 
       {
         #Actual URL: http://10.92.10.48/form-submit/Utilities/softwareUpgrade/upgrade
-        $Body = @{
-          URLPath    = "$UpdateUri"
-          serverType = 'plcmserver'
-        }
+        <#$Body = @{
+            URLPath    = "$UpdateUri"
+            serverType = 'plcmserver'
+        }#>
+        $EncodedURL = [System.Web.HttpUtility]::UrlEncode($UpdateUri) 
+        $Body = ('URLPath={0}&serverType={1}' -f $EncodedURL,'plcmserver')
         
         if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
         {
@@ -463,7 +465,7 @@ Function Update-UcsWebFirmware
         $null = $StatusResult.Add($Result)
       } Catch 
       {
-        Write-Debug -Message "Skipped $ThisIPv4Address due to error $_."
+        Write-Error -Message "Skipped $ThisIPv4Address due to error $_" -Category DeviceError
       }
     }
   } END {
