@@ -102,26 +102,6 @@ Function Get-UcsRestParameter
 
       .PARAMETER Parameter
       One or more parameter names.
-
-      .PARAMETER Quiet
-      Describe parameter -Quiet.
-
-      .EXAMPLE
-      Get-Parameter -IPv4Address Value -Parameter Value -Quiet
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-Parameter
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
   #>
 
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
