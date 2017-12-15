@@ -356,7 +356,19 @@ Function Get-UcsRestDeviceInfo
         $Modified = $Output.data
     
         Write-Debug -Message "Connecting to $ThisIPv4Address"
-        $Modified.UpTimeSinceLastReboot = Convert-UcsUptimeString -Uptime ($Modified.UpTimeSinceLastReboot)
+        
+        <#### Get the uptime ###>
+        if( ($Modified | Get-Member).Name -contains "UpTime")
+        {
+          #Version 5.7.0 and above.
+          $NewTimespan = New-Timespan -Days $Modified.Uptime.Days -Hours $Modified.Uptime.Hours -Minutes $Modified.Uptime.Minutes -Seconds $Modified.Uptime.Seconds
+          $Modified = $Modified | Select-Object -ExcludeProperty Uptime -Property *,@{Name="UpTimeSinceLastReboot";Expression={$NewTimespan}}
+        }
+        else
+        {
+          #Below version 5.7.0
+          $Modified.UpTimeSinceLastReboot = Convert-UcsUptimeString -Uptime ($Modified.UpTimeSinceLastReboot)
+        }
         $LastReboot = (Get-Date) - ($Modified.UpTimeSinceLastReboot)
 
         $Modified = $Modified | Select-Object -ExcludeProperty ModelNumber -Property *, @{
@@ -371,6 +383,28 @@ Function Get-UcsRestDeviceInfo
           }
         }
         #$Modified.AttachedHardware = $Modified.AttachedHardware.EM
+
+        <### Get firmware info ###>
+        if( ($Modified | Get-Member).Name -contains 'Firmware')
+        {
+          #If we're running on a 5.7.0+ firmware, there's no FirmwareRelease row, so we need to add it from the new Firmware row.      
+          $Updater = $Modified.Firmware.Updater
+          
+          $ApplicationFirmware = $Modified.Firmware.Application
+          $null = $ApplicationFirmware -match '(\d+\.){3}\d{4,}[A-Z]?'
+          $ApplicationFirmware = $Matches[0]
+          
+          $BootBlock = $Modified.Firmware.BootBlock
+          $null = $BootBlock -match '(\d+\.){3}\d{4,}[A-Z]?'
+          $BootBlock = $Matches[0]
+          
+          $Modified = $Modified | Select-Object -ExcludeProperty Firmware -Property *,@{Name='FirmwareRelease';Expression={$ApplicationFirmware}},@{Name='UpdaterFirmware';Expression={$Updater}},@{Name='BootBlockFirmware';Expression={$BootBlock}}
+        }
+        
+        if( ($Modified | Get-Member).Name -notcontains 'IPv4Address')
+        {
+          $Modified = $Modified | Select-Object *,@{Name='IPv4Address';Expression={$ThisIPv4Address}} #TODO: We might want to be smarter about this.
+        }
 
         $null = $OutputArray.Add($Modified)
       }
