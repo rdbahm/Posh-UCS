@@ -68,14 +68,23 @@ Function Get-UcsSipPhoneInfo
             #This line looks like this from a Polycom VVX 310: Polycom/5.5.2.8571 PolycomVVX-VVX_310-UA/5.5.2.8571
             #Or like this from a RealPresence Trio: Polycom/5.4.3.2007 PolycomRealPresenceTrio-Trio_8800-UA/5.4.3.2007
             #Older firmware (5.3) looks a little different: PolycomVVX-VVX_310-UA/5.3.0.12768
+            #Sample from 4.1.4: PolycomVVX-VVX_310-UA/4.1.4.7430_0004f2abcdef
             #This gives us version and model info.
             if($Value -like 'Polycom*') 
             {
               $Matches = $null
               $Version = $null
-              $null = $Value -match '(?<=/)\d+\.\d+\.\d+\.\d+(?=\s)' #Version is preceded with a forward slash and followed by a space.
+              $null = $Value -match '(?<=/)\d+\.\d+\.\d+\.\d+(?=[_\s])' #Version is preceded with a forward slash and followed by a space or an underscore.
               #If sec.tagSerialNo is set to 1, this will return the MAC address as well.
-              $Version = $Matches[0]
+              
+              Try
+              {
+                $Version = $Matches[0]
+              }
+              Catch
+              {
+                Write-Warning "Version string was in unexpected format: $Value"
+              }
               
               $Matches = $null
               $Model = $null
