@@ -438,6 +438,7 @@ Function Get-UcsWebFirmware
 
 Function Update-UcsWebFirmware 
 {
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [Parameter(Mandatory,ValueFromPipelineByPropertyName)][ValidatePattern('^https?://.+$')][String]$UpdateUri)
 
@@ -453,8 +454,12 @@ Function Update-UcsWebFirmware
           URLPath    = "$UpdateUri"
           serverType = 'plcmserver'
         }
-        $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Utilities/softwareUpgrade/upgrade' -Body $Body -Method Post -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
-
+        
+        if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+        {
+          $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Utilities/softwareUpgrade/upgrade' -Body $Body -Method Post -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
+        }
+        
         $null = $StatusResult.Add($Result)
       } Catch 
       {
