@@ -605,3 +605,20 @@ Function New-UcsLog
   }
 
 }
+
+Function Convert-UcsVersionNumber
+{
+  Param([Parameter(Mandatory,ValueFromPipeline)][ValidatePattern('(\d+\.){3}\d{4,}')][String]$FirmwareRelease)
+  
+  $Success = $FirmwareRelease -match "(?<major>\d+)\.(?<minor>\d+)\.(?<bugfix>\d+)\.(?<build>\d+)"
+  
+  if($Success)
+  {
+    $OutputResult = 1 | Select-Object @{Name="FirmwareRelease";Expression={$FirmwareRelease}},@{Name="Major";Expression={$Matches['major']}},@{Name="Minor";Expression={$Matches['minor']}},@{Name="Bugfix";Expression={$Matches['bugfix']}},@{Name="Build";Expression={$Matches['Build']}}
+    Return $OutputResult
+  }
+  else
+  {
+    Write-Error "Couldn't parse firmware version $FirmwareRelease" -Category InvalidData
+  }
+}
