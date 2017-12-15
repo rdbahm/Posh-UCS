@@ -608,9 +608,9 @@ Function New-UcsLog
 
 Function Convert-UcsVersionNumber
 {
-  Param([Parameter(Mandatory,ValueFromPipeline)][ValidatePattern('(\d+\.){3}\d{4,}')][String]$FirmwareRelease)
+  Param([Parameter(Mandatory,ValueFromPipeline)][ValidatePattern('(\d+\.){3}\d{4,}[A-Z]?')][String]$FirmwareRelease)
   
-  $Success = $FirmwareRelease -match "(?<major>\d+)\.(?<minor>\d+)\.(?<bugfix>\d+)\.(?<build>\d+)"
+  $Success = $FirmwareRelease -match "(?<major>\d+)\.(?<minor>\d+)\.(?<bugfix>\d+)\.(?<build>\d+[A-Z]?)"
   
   if($Success)
   {
