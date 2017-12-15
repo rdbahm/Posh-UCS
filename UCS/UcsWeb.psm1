@@ -319,7 +319,8 @@ Function Get-UcsWebFirmware
   #>
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(ParameterSetName = 'CustomServer')][String]$CustomServerUrl = '',
-    [Switch]$Latest
+    [Switch]$Latest,
+    [Timespan]$Timeout = (New-TimeSpan -Seconds 30)
   )
   
   BEGIN {
@@ -374,7 +375,7 @@ Function Get-UcsWebFirmware
           $null = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Utilities/softwareUpgrade/updateCustomServer' -Method Post -Body $Body -ErrorAction -ContentType Stop
         }
         
-        $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Utilities/softwareUpgrade/getAvailableVersions?type=$ServerType&_=$UnixTime" -ErrorAction Stop
+        $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Utilities/softwareUpgrade/getAvailableVersions?type=$ServerType&_=$UnixTime" -ErrorAction Stop -Timeout $Timeout
         
      
         #The response sometimes has garbage before the first tag, so we need to drop it.
