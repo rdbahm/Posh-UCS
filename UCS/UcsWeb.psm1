@@ -1087,7 +1087,7 @@ Function Get-UcsWebDeviceInfo
       $FirmwareRelease = $Matches[0]
       
       $Matches = $null
-      $null = $Content -match "(?<=phoneModelInformationTd`">\r*\n*\s*)[^<]+"
+      $null = $Content -match '(?<=\n\s*)(\w+\s)+\d+'
       $Model = $Matches[0].Trim("`r`n ")
       
       $Matches = $null
