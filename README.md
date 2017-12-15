@@ -22,6 +22,13 @@ Copy the UCS folder to your modules directory. Open a new PowerShell window. A f
 - Set the credentials for your phones by using one of the Set-Ucs[Name]APICredential cmdlets with one or more sets of credentials. Otherwise, it'll use Polycom factory defaults for REST and Web, UCSToolkit for Push and Poll, and PlcmSpIp for FTP.
 - Try Get-UcsPhoneInfo -IPv4Address 192.168.1.50 to get basic phone info and get the idea of the cmdlets.
 
+Support Table
+-------------
+|Version|Profile|REST|Web|Polling|Push|Provisioning|SIP|
+|-------|-------|----|---|-------|----|------------|---|
+|4.1.4.7430|Lync|Unsupported|Unsupported|Supported|Supported||Partially Supported|
+|5.6.??|Lync|Supported|Supported|Supported|Supported|Supported|Supported|
+
 Limitations
 -----------
 To a large extent, I am limited by the documentation I am easily able to find online about each of the "APIs" I'm writing against. Additionally, my experience is primarily with VVX phones running with the Lync base profile, which means I have not implemented some functionality which could be beneficial for Open SIP users. 
