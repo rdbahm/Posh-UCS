@@ -718,48 +718,49 @@ Function Get-UcsRestLineInfo
       }
       if($ThisOutput -ne $null) 
       {
-        $Modified = $ThisOutput.data
-        
-        if($Modified.RegistrationStatus -eq 'registered')
+        Foreach($Modified in $ThisOutput.data)
         {
-          $Registered = $true
-        }
-        elseif($Modified.RegistrationStatus -eq 'unregistered') 
-        {
-          $Registered = $false
-        }
-        else 
-        {
-          $Registered = $null
-        }
-        
-        if($Modified.SIPAddress -notmatch '^.+@.+\..+$')
-        {
-          #For consistency of output, we don't want this to give us a fake SIP address if the phone is unregistered.
-          $SIPAddress = $null
-        }
-        else
-        {
-          $SIPAddress = $Modified.SIPAddress
-        }
-        
-        $Modified = $Modified | Select-Object -ExcludeProperty SipAddress,RegistrationStatus -Property *, @{
-          Name       = 'Registered'
-          Expression = {
-            $Registered
+          if($Modified.RegistrationStatus -eq 'registered')
+          {
+            $Registered = $true
           }
-        }, @{
-          Name       = 'SIPAddress'
-          Expression = {
-            $SIPAddress
+          elseif($Modified.RegistrationStatus -eq 'unregistered') 
+          {
+            $Registered = $false
           }
-        }, @{
-          Name       = 'IPv4Address'
-          Expression = {
-            $ThisIPv4Address
+          else 
+          {
+            $Registered = $null
           }
+        
+          if($Modified.SIPAddress -notmatch '^.+@.+\..+$')
+          {
+            #For consistency of output, we don't want this to give us a fake SIP address if the phone is unregistered.
+            $SIPAddress = $null
+          }
+          else
+          {
+            $SIPAddress = $Modified.SIPAddress
+          }
+        
+          $Modified = $Modified | Select-Object -ExcludeProperty SipAddress,RegistrationStatus -Property *, @{
+            Name       = 'Registered'
+            Expression = {
+              $Registered
+            }
+          }, @{
+            Name       = 'SIPAddress'
+            Expression = {
+              $SIPAddress
+            }
+          }, @{
+            Name       = 'IPv4Address'
+            Expression = {
+              $ThisIPv4Address
+            }
+          }
+          $null = $OutputArray.Add($Modified)
         }
-        $null = $OutputArray.Add($Modified)
       }
     }
   } END {
