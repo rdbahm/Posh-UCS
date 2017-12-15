@@ -1004,7 +1004,7 @@ Function Start-UcsRestCall
         if($PassThru -eq $true) 
         {
           Start-Sleep -Seconds 1
-          $ThisCall = Get-UcsRestCallStatus -IPv4Address $IPv4Address
+          $ThisCall = Get-UcsRestCall -IPv4Address $IPv4Address
           $null = $OutputArray.Add($ThisCall)
         }
       }
