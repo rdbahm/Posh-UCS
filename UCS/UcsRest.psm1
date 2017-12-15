@@ -584,11 +584,73 @@ Function Get-UcsRestCall
         Continue
       }
       
-      if($ThisOutput.data.DurationInSeconds -ne $null) 
+      Try
+      {
+        #5.7 and above uses "DurationSeconds" instead of "DurationInSeconds"
+        if( ($ThisOutput.data | Get-Member -ErrorAction Stop).Name -contains 'DurationSeconds' )
+        {
+          $CallDurationSeconds = $ThisOutput.data.DurationSeconds
+        }
+        else
+        {
+          $CallDurationSeconds = $ThisOutput.data.DurationInSeconds
+        }
+      }
+      Catch
+      {
+        Write-Debug "No call in progress on $ThisIPv4Address."
+      }
+      
+      if($CallDurationSeconds -ne $null) 
       {
         $Modified = $ThisOutput.data
-        $Duration = New-TimeSpan -Seconds ($Modified.DurationInSeconds)
-        $Modified = $Modified | Select-Object -ExcludeProperty DurationInSeconds -Property *, 
+        $PropertiesList = ($Modified | Get-Member).Name
+        #An awful lot of copy/paste with UcsPoll is happening here - we might be able to make one call processor to rule them all.
+        
+        if($PropertiesList -contains 'Ringing')
+        {
+          $Ringing = [Bool]$Modified.Ringing
+          $Modified = $Modified | Select-Object -ExcludeProperty Ringing -Property *,@{Name='Ringing';Expression={$Ringing}}
+        }
+        
+        if($PropertiesList -contains 'Muted')
+        {
+          $Muted = [Bool]$Modified.Muted
+          $Modified = $Modified | Select-Object -ExcludeProperty Muted -Property *,@{Name='Muted';Expression={$Muted}}
+        }
+        
+        if($PropertiesList -contains 'StartTime')
+        {
+          $StartTime = Get-Date $Modified.StartTime
+          $Modified = $Modified | Select-Object -ExcludeProperty StartTime -Property *,@{Name='StartTime';Expression={$StartTime}}
+        }
+        
+        if($PropertiesList -contains 'UIAppearanceIndex')
+        {
+          if($Modified.UIAppearanceIndex -match '^\d+\*$')
+          {
+            $ActiveCall = $true
+          }
+          elseif ($Modified.UIAppearanceIndex -match '^\d+$')
+          {
+            $ActiveCall = $false
+          }
+          else
+          {
+            $ActiveCall = $null
+          }
+          $UIAppearanceIndex = $Modified.UiAppearanceIndex.Trim(' *')
+          $Modified = $Modified | Select-Object -ExcludeProperty UIAppearanceIndex -Property *,@{Name='UIAppearanceIndex';Expression={$UIAppearanceIndex}},@{Name='ActiveCall';Expression={$ActiveCall}}
+        }
+        
+        if($Modified.CallHandle -match '^[0-9a-fA-F]{8}$')
+        {
+          $CallHandle = ('0x{0}' -f $Modified.CallHandle)
+          $Modified = $Modified | Select-Object -ExcludeProperty CallHandle -Property *,@{Name='CallHandle';Expression={$CallHandle}}          
+        }
+        
+        $Duration = New-TimeSpan -Seconds ($CallDurationSeconds)
+        $Modified = $Modified | Select-Object -ExcludeProperty DurationInSeconds,DurationSeconds -Property *, 
               
         @{
           Name       = 'IPv4Address'
@@ -733,17 +795,25 @@ Function Get-UcsRestLineInfo
             $Registered = $null
           }
         
-          if($Modified.SIPAddress -notmatch '^.+@.+\..+$')
+          if( ($Modified | Get-Member).Name -contains 'Username')
           {
-            #For consistency of output, we don't want this to give us a fake SIP address if the phone is unregistered.
-            $SIPAddress = $null
+            #5.7.0+ format
+            $SipAddress = $Modified.Username
           }
           else
           {
-            $SIPAddress = $Modified.SIPAddress
+            if($Modified.SIPAddress -notmatch '^.+@.+\..+$')
+            {
+              #For consistency of output, we don't want this to give us a fake SIP address if the phone is unregistered.
+              $SIPAddress = $null
+            }
+            else
+            {
+              $SIPAddress = $Modified.SIPAddress
+            }
           }
         
-          $Modified = $Modified | Select-Object -ExcludeProperty SipAddress,RegistrationStatus -Property *, @{
+          $Modified = $Modified | Select-Object -ExcludeProperty Username,SipAddress,RegistrationStatus -Property *, @{
             Name       = 'Registered'
             Expression = {
               $Registered
