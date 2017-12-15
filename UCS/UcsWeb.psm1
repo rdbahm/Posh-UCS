@@ -1083,8 +1083,8 @@ Function Get-UcsWebDeviceInfo
       $Content = $ThisResult
       
       $Matches = $null
-      $null = $Content -match "(?<=UCS_software_version`">\r*\n*\s*)[^<]+"
-      $FirmwareRelease = $Matches[0].Trim("`r`n ")
+      $null = $Content -match "\d+\.\d+\.\d+\.\d{4}" #We're looking for the specific format of the software version string, which seems to always be 1.1.1.1234 or similar.
+      $FirmwareRelease = $Matches[0]
       
       $Matches = $null
       $null = $Content -match "(?<=phoneModelInformationTd`">\r*\n*\s*)[^<]+"
