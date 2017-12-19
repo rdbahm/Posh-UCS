@@ -616,13 +616,13 @@ Function New-UcsLog
 
 Function Convert-UcsVersionNumber
 {
-  Param([Parameter(Mandatory,ValueFromPipeline)][ValidatePattern('(\d+\.){3}\d{4,}[A-Z]?')][String]$FirmwareRelease)
+  Param([Parameter(Mandatory,ValueFromPipeline)][ValidatePattern('(\d+[A-Z]?\.){3}\d{4,}[A-Z]?.*')][String]$FirmwareRelease)
   
-  $Success = $FirmwareRelease -match "(?<major>\d+)\.(?<minor>\d+)\.(?<bugfix>\d+)\.(?<build>\d+[A-Z]?)"
+  $Success = $FirmwareRelease -match "(?<major>\d+)\.(?<minor>\d+)\.(?<build>\d+[A-Z]?)\.(?<revision>\d+[A-Z]*)"
   
   if($Success)
   {
-    $OutputResult = 1 | Select-Object @{Name="FirmwareRelease";Expression={$FirmwareRelease}},@{Name="Major";Expression={$Matches['major']}},@{Name="Minor";Expression={$Matches['minor']}},@{Name="Bugfix";Expression={$Matches['bugfix']}},@{Name="Build";Expression={$Matches['Build']}}
+    $OutputResult = 1 | Select-Object @{Name="FirmwareRelease";Expression={$FirmwareRelease}},@{Name="Major";Expression={$Matches['major']}},@{Name="Minor";Expression={$Matches['minor']}},@{Name="Build";Expression={$Matches['build']}},@{Name="Revision";Expression={$Matches['revision']}}
     Return $OutputResult
   }
   else
