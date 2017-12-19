@@ -522,7 +522,15 @@ Function New-UcsLog
             #This is actual time. 
             #MMDDHHMMSS
             $TimeSinceBoot = $null
-            $Datetime = Get-Date -Month $RawTime.Substring(0,2) -Day $RawTime.Substring(2,2) -Hour $RawTime.Substring(4,2)  -Minute $RawTime.Substring(6,2) -Second $RawTime.Substring(8,2) -Millisecond 0
+            Try
+            {
+              $Datetime = Get-Date -Month $RawTime.Substring(0,2) -Day $RawTime.Substring(2,2) -Hour $RawTime.Substring(4,2)  -Minute $RawTime.Substring(6,2) -Second $RawTime.Substring(8,2) -Millisecond 0 -ErrorAction Stop
+            }
+            Catch
+            {
+              Write-Debug "Invalid datetime detected: $RawTime"
+              $Datetime = $null
+            }
             if($Datetime -gt (Get-Date)) 
             {
               $Datetime = $Datetime.AddYears(-1) #because the string doesn't specify a year, we need to correct it if it's in the future.
