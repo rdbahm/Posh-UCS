@@ -163,6 +163,7 @@ Function Get-UcsPollCall
           {
             $ActiveCall = $null
           }
+          #Older firmware versions (4.1.4 was tested) don't return a protocol for a call.
           $UIAppearanceIndex = $Call.UiAppearanceIndex.Trim(' *')
           $ThisOutput = $Call | Select-Object Protocol,CallState,@{Name='Type';Expression={$_.CallType}},@{Name='CallHandle';Expression={('0x{0}' -f $_.CallReference)}},@{Name='RemotePartyName';Expression={$_.CalledPartyName}},@{Name='RemotePartyNumber';Expression={$_.CalledPartyDirNum}},@{Name='RemoteMuted';Expression={$Muted}},@{Name='Ringing';Expression={$Ringing}},@{Name='Duration';Expression={New-Timespan -Seconds $_.CallDuration}},@{Name='LineId';Expression={$Line.LineKeyNum}},@{Name='SipAddress';Expression={$Line.LineDirNum}},@{Name='ActiveCall';Expression={$ActiveCall}},@{Name='UIAppearanceIndex';Expression={$UIAppearanceIndex}},@{Name='IPv4Address';Expression={$ThisIPv4Address}}
           $null = $AllResults.Add($ThisOutput)
