@@ -8,7 +8,7 @@ What it is
 ----------
 A PowerShell module attempting to bring together all the ways to manage and administer Polycom VVX phones and other devices which run Polycom's UCS software. Currently, we support these ways of accessing/controlling UCS:
 - REST API (UCS 5.4 and above, REST API must be enabled)
-- Web (Web UI must be enabled, not tested on any firmware below 5.4.5)
+- Web (Web UI must be enabled)
 - Polling (Polling must be set to "requestor" mode and a username and password must be set. Additionally, HTTPS is not supported, so requiring secure connections must be turned off.)
 - Push (Poor HTTPS support is implemented. Username and Password must be set, and phone must be set to allow push messages.
 - Provisioning (Accesses file store where phone stores configuration, logs, etc - only supports FTP at this time)
