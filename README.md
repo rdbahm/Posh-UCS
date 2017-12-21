@@ -37,7 +37,7 @@ To a large extent, I am limited by the documentation I am easily able to find on
 
 The HTTPS programming is really poor and could use a lot of help. It's only implemented on a handful of the base-level functions. As a result, deployments which require HTTPS may not be able to use all functionality.
 
-My testing is primarily with UCS 5.4.5 and above, though I also did some testing down to UCS 5.3.0 for SIP.
+My testing is primarily with UCS 5.4.5 and above. Documentation on specific supported features is summarized in the Support Table above and more specifically in the Wiki.
 
 Licensing
 ---------
