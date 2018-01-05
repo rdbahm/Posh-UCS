@@ -697,8 +697,19 @@ Function Register-UcsWebLyncUser
             $DoSignIn = $false
           }
         }
-        
-        #TODO: There are other states, like PASS_CHANGED, that would need sign out/sign in. Perhaps we can look for "Not SIGNED_OUT."
+        elseif($CurrentSignInStatus.SignInStatus -ne "UNREGISTERED")
+        {
+          if($Force)
+          {
+            Write-Warning "$ThisIPv4Address was not ready to sign in. Sign-in has been cancelled and restarted."
+            Unregister-UcsWebLyncUser -IPv4Address $ThisIPv4Address -Wait -Confirm:$false
+          }
+          else
+          {
+            Write-Error "$ThisIPv4Address is not currently ready for sign-in. Use the -Force flag to automatically cancel current sign-ins."
+            $DoSignIn = $false
+          }
+        }
 
         if($DoSignIn)
         {
@@ -736,7 +747,7 @@ Function Register-UcsWebLyncUser
         }
         While ($SigninStatus -eq 'SIGNING_IN')
       
-        if($SigninStatus -eq 'UNREGISTERED')
+        if($SigninStatus -ne 'SIGNED_IN')
         {
           Write-Error ('Sign-in request failed for {0}. Bad credentials?' -f $ThisIPv4Address) -Category AuthenticationError
         }
