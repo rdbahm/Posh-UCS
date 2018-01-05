@@ -162,11 +162,13 @@ Function Get-UcsStatusCodeString
     {
       $ResponseOK = $false #Set to true if this code indicates the process completed successfully.
       $StatusString = 'Unknown status code.'
+      $Exception = $null
 
       if($ThisStatusCode -eq $null) 
       {
         $ResponseOK = $false
         $StatusString = 'No response returned from API.'
+        $Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 2000) 
       {
@@ -177,61 +179,73 @@ Function Get-UcsStatusCodeString
       {
         $ResponseOK = $false
         $StatusString = 'Invalid input parameters.'
+        $Exception = New-Object System.ArgumentException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4001) 
       {
         $ResponseOK = $false
         $StatusString = 'The device is busy.'
+        $Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4002) 
       {
         $ResponseOK = $false
         $StatusString = 'Line is not registered.'
+        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4003) 
       {
         $ResponseOK = $false
         $StatusString = 'Operation not allowed.'
+        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4004) 
       {
         $ResponseOK = $false
         $StatusString = 'Operation not supported.'
+        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4005) 
       {
         $ResponseOK = $false
         $StatusString = 'Invalid line selection.'
+        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4006) 
       {
         $ResponseOK = $false
         $StatusString = 'URLs not configured.'
+        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4007) 
       {
         $ResponseOK = $true
         $StatusString = 'Call does not exist.'
+        $Exception = New-Object System.NullReferenceException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4008) 
       {
         $ResponseOK = $false
         $StatusString = 'Configuration export failed.'
+        $Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4009) 
       {
         $ResponseOK = $false
         $StatusString = 'Input size limit exceeded.'
+        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4010) 
       {
         $ResponseOK = $false
         $StatusString = 'Default password not permitted.'
+        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 5000) 
       {
         $ResponseOK = $false
         $StatusString = 'Failed to process request due to an internal error.'
+        $Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $StatusString
       }
 
       $Result = $ThisStatusCode | Select-Object -Property @{
@@ -248,6 +262,11 @@ Function Get-UcsStatusCodeString
         Name       = 'StatusString'
         Expression = {
           $StatusString
+        }
+      }, @{
+        Name       = 'Exception'
+        Expression = {
+          $Exception
         }
       }
       if($ApiEndpoint) 
