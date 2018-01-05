@@ -1,5 +1,3 @@
-# UcsApi
-
 Disclaimers
 -----------
 Use at your own risk, etc. This project is not affiliated with Polycom.

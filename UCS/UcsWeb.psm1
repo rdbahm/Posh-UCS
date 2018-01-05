@@ -319,7 +319,8 @@ Function Get-UcsWebFirmware
   #>
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(ParameterSetName = 'CustomServer')][String]$CustomServerUrl = '',
-    [Switch]$Latest
+    [Switch]$Latest,
+    [Timespan]$Timeout = (New-TimeSpan -Seconds 30)
   )
   
   BEGIN {
@@ -338,7 +339,7 @@ Function Get-UcsWebFirmware
     Foreach ($ThisIPv4Address in $IPv4Address) 
     { 
       #Actual request from a phone: http://10.92.10.48/Utilities/softwareUpgrade/getAvailableVersions?type=plcmserver&_=1498851105686
-      $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+      $UnixTime = Get-UcsUnixTime
 
       Try 
       {
@@ -374,7 +375,7 @@ Function Get-UcsWebFirmware
           $null = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Utilities/softwareUpgrade/updateCustomServer' -Method Post -Body $Body -ErrorAction -ContentType Stop
         }
         
-        $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Utilities/softwareUpgrade/getAvailableVersions?type=$ServerType&_=$UnixTime" -ErrorAction Stop
+        $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Utilities/softwareUpgrade/getAvailableVersions?type=$ServerType&_=$UnixTime" -ErrorAction Stop -Timeout $Timeout
         
      
         #The response sometimes has garbage before the first tag, so we need to drop it.
@@ -438,6 +439,7 @@ Function Get-UcsWebFirmware
 
 Function Update-UcsWebFirmware 
 {
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [Parameter(Mandatory,ValueFromPipelineByPropertyName)][ValidatePattern('^https?://.+$')][String]$UpdateUri)
 
@@ -449,16 +451,22 @@ Function Update-UcsWebFirmware
       Try 
       {
         #Actual URL: http://10.92.10.48/form-submit/Utilities/softwareUpgrade/upgrade
-        $Body = @{
-          URLPath    = "$UpdateUri"
-          serverType = 'plcmserver'
+        <#$Body = @{
+            URLPath    = "$UpdateUri"
+            serverType = 'plcmserver'
+        }#>
+        $EncodedURL = [System.Web.HttpUtility]::UrlEncode($UpdateUri) 
+        $Body = ('URLPath={0}&serverType={1}' -f $EncodedURL,'plcmserver')
+        
+        if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+        {
+          $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Utilities/softwareUpgrade/upgrade' -Body $Body -Method Post -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
         }
-        $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Utilities/softwareUpgrade/upgrade' -Body $Body -Method Post -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
-
+        
         $null = $StatusResult.Add($Result)
       } Catch 
       {
-        Write-Debug -Message "Skipped $ThisIPv4Address due to error $_."
+        Write-Error -Message "Skipped $ThisIPv4Address due to error $_" -Category DeviceError
       }
     }
   } END {
@@ -533,8 +541,11 @@ Function Reset-UcsWebConfiguration
 
 Function Get-UcsWebLyncSignInStatus
 {
+  [CmdletBinding(DefaultParameterSetName="Normal")]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
-    [String][ValidateSet('None','SignedOut','SignedIn','SigningOut','SigningIn','PasswordChanged')]$WaitFor = 'None',
+    [Parameter(ParameterSetName="Normal")][String][ValidateSet('None','SignedOut','SignedIn','SigningOut','SigningIn','PasswordChanged')]$WaitFor = 'None',
+    [Parameter(ParameterSetName="Raw")][String][ValidateSet('None','UNREGISTERED','SIGNED_IN','SIGNING_OUT','SIGNING_IN','PASS_CHANGED')]$WaitForRaw = 'None',
+    [Switch]$InvertWaitFor,
     [Int][ValidateRange(1,3600)]$TimeoutSeconds = 120
   )
   
@@ -543,6 +554,24 @@ Function Get-UcsWebLyncSignInStatus
     $ResultOutput = New-Object System.Collections.ArrayList
     $StartTime = Get-Date #Used for calculation of "WaitFor"
     $EndTime = $StartTime.AddSeconds($TimeoutSeconds)
+    
+    if($PSCmdlet.ParameterSetName -eq 'Normal')
+    {
+      Switch($WaitFor)
+      {
+        'NONE' { $WaitForString = 'NONE'}
+        'SignedOut' { $WaitForString = 'UNREGISTERED' }
+        'SignedIn' { $WaitForString = 'SIGNED_IN' }
+        'SigningOut' { $WaitForString = 'SIGNING_OUT' }
+        'SigningIn' { $WaitForString = 'SIGNING_IN' }
+        'PasswordChanged' { $WaitForString = 'PASS_CHANGED' }
+        default { Write-Error "Invalid option provided: $WaitFor" -ErrorAction Stop} #This should never happen.
+      }
+    }
+    else
+    {
+      $WaitForString = $WaitForRaw
+    }
   }
   
   PROCESS
@@ -555,7 +584,7 @@ Function Get-UcsWebLyncSignInStatus
       {
         Try
         {
-          $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+          $UnixTime = Get-UcsUnixTime
           $SigninStatus = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Settings/lyncSignInStatus?_=$UnixTime" -ErrorAction Stop
         }
         Catch
@@ -566,27 +595,15 @@ Function Get-UcsWebLyncSignInStatus
         }
         
         #Check if we've met what we're waiting for.
-        if($WaitFor -eq 'None')
+        if($WaitForString -eq 'None')
         {
           $ContinueWaiting = $false
         }
-        elseif($WaitFor -eq 'SignedOut' -and $SigninStatus -eq 'UNREGISTERED')
+        elseif($WaitForString -eq $SigninStatus -and $InvertWaitFor -eq $false)
         {
           $ContinueWaiting = $false
         }
-        elseif($WaitFor -eq 'SignedIn' -and $SigninStatus -eq 'SIGNED_IN')
-        {
-          $ContinueWaiting = $false
-        }
-        elseif($WaitFor -eq 'SigningIn' -and $SigninStatus -eq 'SIGNING_IN')
-        {
-          $ContinueWaiting = $false
-        }
-        elseif($WaitFor -eq 'SigningOut' -and $SigninStatus -eq 'SIGNING_OUT')
-        {
-          $ContinueWaiting = $false
-        }
-        elseif($WaitFor -eq 'PasswordChanged' -and $SigninStatus -eq 'PASS_CHANGED')
+        elseif($WaitForString -ne $SigninStatus -and $InvertWaitFor -eq $true)
         {
           $ContinueWaiting = $false
         }
@@ -685,8 +702,19 @@ Function Register-UcsWebLyncUser
             $DoSignIn = $false
           }
         }
-        
-        #TODO: There are other states, like PASS_CHANGED, that would need sign out/sign in. Perhaps we can look for "Not SIGNED_OUT."
+        elseif($CurrentSignInStatus.SignInStatus -ne "UNREGISTERED")
+        {
+          if($Force)
+          {
+            Write-Warning "$ThisIPv4Address was not ready to sign in. Sign-in has been cancelled and restarted."
+            Unregister-UcsWebLyncUser -IPv4Address $ThisIPv4Address -Wait -Confirm:$false
+          }
+          else
+          {
+            Write-Error "$ThisIPv4Address is not currently ready for sign-in. Use the -Force flag to automatically cancel current sign-ins."
+            $DoSignIn = $false
+          }
+        }
 
         if($DoSignIn)
         {
@@ -712,19 +740,9 @@ Function Register-UcsWebLyncUser
       #We batch together all the phones to minimize wait time - this way, if you have 100 phones, there may be almost no waiting.
       Foreach ($ThisIPv4Address in $StatusResult)
       {
-        $SigninStatus = $null
-        Do
-        {
-          if($SigninStatus -ne $null)
-          {
-            Start-Sleep -Seconds 1 #After the first check, back off the phone a little.
-          }
-          $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
-          $SigninStatus = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Settings/lyncSignInStatus?_=$UnixTime" -ErrorAction Stop
-        }
-        While ($SigninStatus -eq 'SIGNING_IN')
+        $SigninStatus = Get-UcsWebLyncSignInStatus -IPv4Address $ThisIPv4Address -WaitFor SigningIn -InvertWaitFor
       
-        if($SigninStatus -eq 'UNREGISTERED')
+        if($SigninStatus.SignInStatus -ne 'SIGNED_IN')
         {
           Write-Error ('Sign-in request failed for {0}. Bad credentials?' -f $ThisIPv4Address) -Category AuthenticationError
         }
@@ -823,7 +841,7 @@ Function Get-UcsWebAuditLog
       Try 
       {
         #Actual URL: http://10.92.10.160/Diagnostics/log?value=app&dummyParam=1498860013020
-        $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+        $UnixTime = Get-UcsUnixTime
         $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Diagnostics/log?value=audit&dummyParam=$UnixTime" -ErrorAction Stop
         $SplitString = $Result.Split("`r`n") | Where-Object -FilterScript {
           $_.Length -gt 2 
@@ -896,7 +914,7 @@ Function Get-UcsWebLog
       Try 
       {
         #Actual URL: http://10.92.10.160/Diagnostics/log?value=app&dummyParam=1498860013020
-        $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+        $UnixTime = Get-UcsUnixTime
         $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Diagnostics/log?value=$LogType&dummyParam=$UnixTime" -ErrorAction Stop
         $SplitString = $Result.Split("`r`n") | Where-Object -FilterScript {
           $_.Length -gt 2 
@@ -930,7 +948,7 @@ Function Clear-UcsWebLog
       Try 
       {
         #Actual URL: http://10.92.10.160/Diagnostics/log?value=boot&clear=1&dummyParam=1499810229667
-        $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+        $UnixTime = Get-UcsUnixTime
         $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Diagnostics/log?value=$LogType&clear=1&dummyParam=$UnixTime" -ErrorAction Stop
 
         $null = $AllResult.Add($Result)
@@ -958,7 +976,7 @@ Function Get-UcsWebLyncSignIn
       #Signin status is from http://10.92.10.160/Settings/lyncSignInStatus?_=1499803468177
       #Cached credentials from http://10.92.10.160/Settings/lyncCachedCredentials?_=1499803468135
       
-      $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+      $UnixTime = Get-UcsUnixTime
       Try 
       {
         $SigninStatus = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Settings/lyncSignInStatus?_=$UnixTime" -ErrorAction Stop
@@ -1083,11 +1101,11 @@ Function Get-UcsWebDeviceInfo
       $Content = $ThisResult
       
       $Matches = $null
-      $null = $Content -match "(?<=UCS_software_version`">\r*\n*\s*)[^<]+"
-      $FirmwareRelease = $Matches[0].Trim("`r`n ")
+      $null = $Content -match "(\d+[A-Z]?\.){3}\d{4,}[A-Z]*" #We're looking for the specific format of the software version string, which seems to always be 1.1.1.1234 or similar.
+      $FirmwareRelease = $Matches[0]
       
       $Matches = $null
-      $null = $Content -match "(?<=phoneModelInformationTd`">\r*\n*\s*)[^<]+"
+      $null = $Content -match '(?<=\n\s*)(\w+\s)+\d+'
       $Model = $Matches[0].Trim("`r`n ")
       
       $Matches = $null

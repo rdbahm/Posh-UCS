@@ -102,26 +102,6 @@ Function Get-UcsRestParameter
 
       .PARAMETER Parameter
       One or more parameter names.
-
-      .PARAMETER Quiet
-      Describe parameter -Quiet.
-
-      .EXAMPLE
-      Get-Parameter -IPv4Address Value -Parameter Value -Quiet
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-Parameter
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
   #>
 
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
@@ -356,7 +336,19 @@ Function Get-UcsRestDeviceInfo
         $Modified = $Output.data
     
         Write-Debug -Message "Connecting to $ThisIPv4Address"
-        $Modified.UpTimeSinceLastReboot = Convert-UcsUptimeString -Uptime ($Modified.UpTimeSinceLastReboot)
+        
+        <#### Get the uptime ###>
+        if( ($Modified | Get-Member).Name -contains "UpTime")
+        {
+          #Version 5.7.0 and above.
+          $NewTimespan = New-Timespan -Days $Modified.Uptime.Days -Hours $Modified.Uptime.Hours -Minutes $Modified.Uptime.Minutes -Seconds $Modified.Uptime.Seconds
+          $Modified = $Modified | Select-Object -ExcludeProperty Uptime -Property *,@{Name="UpTimeSinceLastReboot";Expression={$NewTimespan}}
+        }
+        else
+        {
+          #Below version 5.7.0
+          $Modified.UpTimeSinceLastReboot = Convert-UcsUptimeString -Uptime ($Modified.UpTimeSinceLastReboot)
+        }
         $LastReboot = (Get-Date) - ($Modified.UpTimeSinceLastReboot)
 
         $Modified = $Modified | Select-Object -ExcludeProperty ModelNumber -Property *, @{
@@ -371,6 +363,28 @@ Function Get-UcsRestDeviceInfo
           }
         }
         #$Modified.AttachedHardware = $Modified.AttachedHardware.EM
+
+        <### Get firmware info ###>
+        if( ($Modified | Get-Member).Name -contains 'Firmware')
+        {
+          #If we're running on a 5.7.0+ firmware, there's no FirmwareRelease row, so we need to add it from the new Firmware row.      
+          $Updater = $Modified.Firmware.Updater
+          
+          $ApplicationFirmware = $Modified.Firmware.Application
+          $null = $ApplicationFirmware -match '(\d+\.){3}\d{4,}[A-Z]?'
+          $ApplicationFirmware = $Matches[0]
+          
+          $BootBlock = $Modified.Firmware.BootBlock
+          $null = $BootBlock -match '(\d+\.){3}\d{4,}[A-Z]?'
+          $BootBlock = $Matches[0]
+          
+          $Modified = $Modified | Select-Object -ExcludeProperty Firmware -Property *,@{Name='FirmwareRelease';Expression={$ApplicationFirmware}},@{Name='UpdaterFirmware';Expression={$Updater}},@{Name='BootBlockFirmware';Expression={$BootBlock}}
+        }
+        
+        if( ($Modified | Get-Member).Name -notcontains 'IPv4Address')
+        {
+          $Modified = $Modified | Select-Object *,@{Name='IPv4Address';Expression={$ThisIPv4Address}} #TODO: We might want to be smarter about this.
+        }
 
         $null = $OutputArray.Add($Modified)
       }
@@ -550,11 +564,73 @@ Function Get-UcsRestCall
         Continue
       }
       
-      if($ThisOutput.data.DurationInSeconds -ne $null) 
+      Try
+      {
+        #5.7 and above uses "DurationSeconds" instead of "DurationInSeconds"
+        if( ($ThisOutput.data | Get-Member -ErrorAction Stop).Name -contains 'DurationSeconds' )
+        {
+          $CallDurationSeconds = $ThisOutput.data.DurationSeconds
+        }
+        else
+        {
+          $CallDurationSeconds = $ThisOutput.data.DurationInSeconds
+        }
+      }
+      Catch
+      {
+        Write-Debug "No call in progress on $ThisIPv4Address."
+      }
+      
+      if($CallDurationSeconds -ne $null) 
       {
         $Modified = $ThisOutput.data
-        $Duration = New-TimeSpan -Seconds ($Modified.DurationInSeconds)
-        $Modified = $Modified | Select-Object -ExcludeProperty DurationInSeconds -Property *, 
+        $PropertiesList = ($Modified | Get-Member).Name
+        #An awful lot of copy/paste with UcsPoll is happening here - we might be able to make one call processor to rule them all.
+        
+        if($PropertiesList -contains 'Ringing')
+        {
+          $Ringing = [Bool]$Modified.Ringing
+          $Modified = $Modified | Select-Object -ExcludeProperty Ringing -Property *,@{Name='Ringing';Expression={$Ringing}}
+        }
+        
+        if($PropertiesList -contains 'Muted')
+        {
+          $Muted = [Bool]$Modified.Muted
+          $Modified = $Modified | Select-Object -ExcludeProperty Muted -Property *,@{Name='Muted';Expression={$Muted}}
+        }
+        
+        if($PropertiesList -contains 'StartTime')
+        {
+          $StartTime = Get-Date $Modified.StartTime
+          $Modified = $Modified | Select-Object -ExcludeProperty StartTime -Property *,@{Name='StartTime';Expression={$StartTime}}
+        }
+        
+        if($PropertiesList -contains 'UIAppearanceIndex')
+        {
+          if($Modified.UIAppearanceIndex -match '^\d+\*$')
+          {
+            $ActiveCall = $true
+          }
+          elseif ($Modified.UIAppearanceIndex -match '^\d+$')
+          {
+            $ActiveCall = $false
+          }
+          else
+          {
+            $ActiveCall = $null
+          }
+          $UIAppearanceIndex = $Modified.UiAppearanceIndex.Trim(' *')
+          $Modified = $Modified | Select-Object -ExcludeProperty UIAppearanceIndex -Property *,@{Name='UIAppearanceIndex';Expression={$UIAppearanceIndex}},@{Name='ActiveCall';Expression={$ActiveCall}}
+        }
+        
+        if($Modified.CallHandle -match '^[0-9a-fA-F]{8}$')
+        {
+          $CallHandle = ('0x{0}' -f $Modified.CallHandle)
+          $Modified = $Modified | Select-Object -ExcludeProperty CallHandle -Property *,@{Name='CallHandle';Expression={$CallHandle}}          
+        }
+        
+        $Duration = New-TimeSpan -Seconds ($CallDurationSeconds)
+        $Modified = $Modified | Select-Object -ExcludeProperty DurationInSeconds,DurationSeconds -Property *, 
               
         @{
           Name       = 'IPv4Address'
@@ -684,48 +760,57 @@ Function Get-UcsRestLineInfo
       }
       if($ThisOutput -ne $null) 
       {
-        $Modified = $ThisOutput.data
-        
-        if($Modified.RegistrationStatus -eq 'registered')
+        Foreach($Modified in $ThisOutput.data)
         {
-          $Registered = $true
-        }
-        elseif($Modified.RegistrationStatus -eq 'unregistered') 
-        {
-          $Registered = $false
-        }
-        else 
-        {
-          $Registered = $null
-        }
-        
-        if($Modified.SIPAddress -notmatch '^.+@.+\..+$')
-        {
-          #For consistency of output, we don't want this to give us a fake SIP address if the phone is unregistered.
-          $SIPAddress = $null
-        }
-        else
-        {
-          $SIPAddress = $Modified.SIPAddress
-        }
-        
-        $Modified = $Modified | Select-Object -ExcludeProperty SipAddress,RegistrationStatus -Property *, @{
-          Name       = 'Registered'
-          Expression = {
-            $Registered
+          if($Modified.RegistrationStatus -eq 'registered')
+          {
+            $Registered = $true
           }
-        }, @{
-          Name       = 'SIPAddress'
-          Expression = {
-            $SIPAddress
+          elseif($Modified.RegistrationStatus -eq 'unregistered') 
+          {
+            $Registered = $false
           }
-        }, @{
-          Name       = 'IPv4Address'
-          Expression = {
-            $ThisIPv4Address
+          else 
+          {
+            $Registered = $null
           }
+        
+          if( ($Modified | Get-Member).Name -contains 'Username')
+          {
+            #5.7.0+ format
+            $SipAddress = $Modified.Username
+          }
+          else
+          {
+            if($Modified.SIPAddress -notmatch '^.+@.+\..+$')
+            {
+              #For consistency of output, we don't want this to give us a fake SIP address if the phone is unregistered.
+              $SIPAddress = $null
+            }
+            else
+            {
+              $SIPAddress = $Modified.SIPAddress
+            }
+          }
+        
+          $Modified = $Modified | Select-Object -ExcludeProperty Username,SipAddress,RegistrationStatus -Property *, @{
+            Name       = 'Registered'
+            Expression = {
+              $Registered
+            }
+          }, @{
+            Name       = 'SIPAddress'
+            Expression = {
+              $SIPAddress
+            }
+          }, @{
+            Name       = 'IPv4Address'
+            Expression = {
+              $ThisIPv4Address
+            }
+          }
+          $null = $OutputArray.Add($Modified)
         }
-        $null = $OutputArray.Add($Modified)
       }
     }
   } END {
@@ -919,7 +1004,7 @@ Function Start-UcsRestCall
         if($PassThru -eq $true) 
         {
           Start-Sleep -Seconds 1
-          $ThisCall = Get-UcsRestCallStatus -IPv4Address $IPv4Address
+          $ThisCall = Get-UcsRestCall -IPv4Address $IPv4Address
           $null = $OutputArray.Add($ThisCall)
         }
       }

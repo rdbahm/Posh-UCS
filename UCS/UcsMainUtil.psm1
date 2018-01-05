@@ -522,7 +522,15 @@ Function New-UcsLog
             #This is actual time. 
             #MMDDHHMMSS
             $TimeSinceBoot = $null
-            $Datetime = Get-Date -Month $RawTime.Substring(0,2) -Day $RawTime.Substring(2,2) -Hour $RawTime.Substring(4,2)  -Minute $RawTime.Substring(6,2) -Second $RawTime.Substring(8,2) -Millisecond 0
+            Try
+            {
+              $Datetime = Get-Date -Month $RawTime.Substring(0,2) -Day $RawTime.Substring(2,2) -Hour $RawTime.Substring(4,2)  -Minute $RawTime.Substring(6,2) -Second $RawTime.Substring(8,2) -Millisecond 0 -ErrorAction Stop
+            }
+            Catch
+            {
+              Write-Debug "Invalid datetime detected: $RawTime"
+              $Datetime = $null
+            }
             if($Datetime -gt (Get-Date)) 
             {
               $Datetime = $Datetime.AddYears(-1) #because the string doesn't specify a year, we need to correct it if it's in the future.
@@ -604,4 +612,27 @@ Function New-UcsLog
     Return $LogOutput
   }
 
+}
+
+Function Convert-UcsVersionNumber
+{
+  Param([Parameter(Mandatory,ValueFromPipeline)][ValidatePattern('(\d+[A-Z]?\.){3}\d{4,}[A-Z]*(\s.+)?')][String]$FirmwareRelease)
+  
+  $Success = $FirmwareRelease -match "(?<major>\d+)\.(?<minor>\d+)\.(?<build>\d+[A-Z]?)\.(?<revision>\d+[A-Z]*)(?<notes>\s.+)?"
+  
+  if($Success)
+  {
+    $OutputResult = 1 | Select-Object @{Name="FirmwareRelease";Expression={$FirmwareRelease}},@{Name="Major";Expression={$Matches['major']}},@{Name="Minor";Expression={$Matches['minor']}},@{Name="Build";Expression={$Matches['build']}},@{Name="Revision";Expression={$Matches['revision']}},@{Name="Note";Expression={($Matches['notes']).Trim()}}
+    Return $OutputResult
+  }
+  else
+  {
+    Write-Error "Couldn't parse firmware version $FirmwareRelease" -Category InvalidData
+  }
+}
+
+Function Get-UcsUnixTime
+{
+  $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+  Return $UnixTime
 }

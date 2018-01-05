@@ -35,7 +35,7 @@ Function Get-UcsSipPhoneInfo
       }
       Catch 
       {
-        Write-Error -Message "Unable to get results from $ThisIPv4Address."
+        Write-Error -Message "Unable to get results from $ThisIPv4Address." -ErrorAction Stop -Category ConnectionError
       }
       
       
@@ -68,14 +68,23 @@ Function Get-UcsSipPhoneInfo
             #This line looks like this from a Polycom VVX 310: Polycom/5.5.2.8571 PolycomVVX-VVX_310-UA/5.5.2.8571
             #Or like this from a RealPresence Trio: Polycom/5.4.3.2007 PolycomRealPresenceTrio-Trio_8800-UA/5.4.3.2007
             #Older firmware (5.3) looks a little different: PolycomVVX-VVX_310-UA/5.3.0.12768
+            #Sample from 4.1.4: PolycomVVX-VVX_310-UA/4.1.4.7430_0004f2abcdef
             #This gives us version and model info.
             if($Value -like 'Polycom*') 
             {
               $Matches = $null
               $Version = $null
-              $null = $Value -match '(?<=/)\d+\.\d+\.\d+\.\d+(?=\s)' #Version is preceded with a forward slash and followed by a space.
+              $null = $Value -match '(?<=/)\d+\.\d+\.\d+\.\d+(?=[_\s])' #Version is preceded with a forward slash and followed by a space or an underscore.
               #If sec.tagSerialNo is set to 1, this will return the MAC address as well.
-              $Version = $Matches[0]
+              
+              Try
+              {
+                $Version = $Matches[0]
+              }
+              Catch
+              {
+                Write-Warning "Version string was in unexpected format: $Value"
+              }
               
               $Matches = $null
               $Model = $null
@@ -311,7 +320,7 @@ Function Restart-UcsSipPhone
     {
       if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
       {
-        $null = $ResultObject.Add((Invoke-UcsSipRequest -IPv4Address $ThisIPv4Address -Method NOTIFY -Event 'check-sync'))
+        $null = $ResultObject.Add((Invoke-UcsSipRequest -IPv4Address $ThisIPv4Address -Method NOTIFY -Event 'check-sync' -ErrorAction Stop))
       }
     }
   } END {
@@ -319,5 +328,70 @@ Function Restart-UcsSipPhone
     {
       Return $ResultObject
     }
+  }
+}
+
+Function Test-UcsSipModule {
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
+  <#
+      .SYNOPSIS
+      Tests the SIP functions of a VVX phone. Functions which cause impact (specifically, phone restart) are executed last.
+  #>
+  
+  BEGIN {
+  } PROCESS {
+    Foreach ($ThisIPv4Address in $IPv4Address) 
+    {
+      
+      Try
+      {
+        $PhoneInfoValues = Get-UcsSipPhoneInfo -IPv4Address $ThisIPv4Address -ErrorAction Stop
+        #SIP should return server, SIP address, label, lineUri, Model, FirmwareRelease, MacAddress, Registered, and IPv4Address.
+        #Of the return values, we can't depend on any value for server, SIPAddress, Label, LineUri, MacAddress, or Registered.
+        #But, we can depend on Model, FirmwareRelease, and IPv4Address.
+        #We'll also check if any returned results for the others are valid.
+        
+        if($PhoneInfoValues.Model.Length -lt 3)
+        {
+          Write-Error "Get-UcsSipPhoneInfo: $ThisIPv4Address provided no valid information for model." -ErrorAction Continue
+        }
+        if($PhoneInfoValues.FirmwareRelease -notmatch '(\d+[A-Z]?\.){3}\d{4,}[A-Z]*(\s.+)?')
+        {
+          Write-Error "Get-UcsSipPhoneInfo: $ThisIPv4Address provided an invalid firmware release." -ErrorAction Continue
+        }
+        if($PhoneInfoValues.IPv4Address -notmatch '^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')
+        {
+          Write-Error "Get-UcsSipPhoneInfo: $ThisIPv4Address provided an invalid IPv4 Address." -ErrorAction Continue
+        }
+        
+        if($PhoneInfoValues.MacAddress.Length -gt 0)
+        {
+          if($PhoneInfoValues.MacAddress -notmatch '[A-Fa-f0-9]{12}')
+          {
+            Write-Error "Get-UcsSipPhoneInfo: $ThisIPv4Address provided an invalid MacAddress." -ErrorAction Continue
+          }
+        }
+      }
+      Catch
+      {
+        Write-Warning "Get-UcsSipPhoneInfo: $ThisIPv4Address failed to get all data."
+      }
+      
+      if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+      {
+        #Testing Restart-UcsSipPhone. It's difficult to be sure using only SIP that a phone has restarted - so we just look to see that no errors were returned.
+        #In addition, the phone only restarts if it's set to restart on a check-sync so reporting a failure here would be unwise.
+        Try
+        {
+          $null = Restart-UcsSipPhone -IPv4Address $ThisIPv4Address -ErrorAction Stop -Confirm:$false
+        }
+        Catch
+        {
+          Write-Warning "Restart-UcsSipPhone: $ThisIPv4Address threw an error when restart was requested: $_"
+        }
+      }
+    }
+  } END {
   }
 }
