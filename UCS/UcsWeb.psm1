@@ -541,8 +541,10 @@ Function Reset-UcsWebConfiguration
 
 Function Get-UcsWebLyncSignInStatus
 {
+  [CmdletBinding(DefaultParameterSetName="Normal")]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
-    [String][ValidateSet('None','SignedOut','SignedIn','SigningOut','SigningIn','PasswordChanged')]$WaitFor = 'None',
+    [Parameter(ParameterSetName="Normal")][String][ValidateSet('None','SignedOut','SignedIn','SigningOut','SigningIn','PasswordChanged')]$WaitFor = 'None',
+    [Parameter(ParameterSetName="Raw")][String][ValidateSet('None','UNREGISTERED','SIGNED_IN','SIGNING_OUT','SIGNING_IN','PASS_CHANGED')]$WaitForRaw = 'None',
     [Int][ValidateRange(1,3600)]$TimeoutSeconds = 120
   )
   
@@ -551,6 +553,24 @@ Function Get-UcsWebLyncSignInStatus
     $ResultOutput = New-Object System.Collections.ArrayList
     $StartTime = Get-Date #Used for calculation of "WaitFor"
     $EndTime = $StartTime.AddSeconds($TimeoutSeconds)
+    
+    if($PSCmdlet.ParameterSetName -eq 'Normal')
+    {
+      Switch($WaitFor)
+      {
+        'NONE' { $WaitForString = 'NONE'}
+        'SignedOut' { $WaitForString = 'UNREGISTERED' }
+        'SignedIn' { $WaitForString = 'SIGNED_IN' }
+        'SigningOut' { $WaitForString = 'SIGNING_OUT' }
+        'SigningIn' { $WaitForString = 'SIGNING_IN' }
+        'PasswordChanged' { $WaitForString = 'PASS_CHANGED' }
+        default { Write-Error "Invalid option provided: $WaitFor" -ErrorAction Stop} #This should never happen.
+      }
+    }
+    else
+    {
+      $WaitForString = $WaitForRaw
+    }
   }
   
   PROCESS
@@ -574,27 +594,11 @@ Function Get-UcsWebLyncSignInStatus
         }
         
         #Check if we've met what we're waiting for.
-        if($WaitFor -eq 'None')
+        if($WaitForString -eq 'None')
         {
           $ContinueWaiting = $false
         }
-        elseif($WaitFor -eq 'SignedOut' -and $SigninStatus -eq 'UNREGISTERED')
-        {
-          $ContinueWaiting = $false
-        }
-        elseif($WaitFor -eq 'SignedIn' -and $SigninStatus -eq 'SIGNED_IN')
-        {
-          $ContinueWaiting = $false
-        }
-        elseif($WaitFor -eq 'SigningIn' -and $SigninStatus -eq 'SIGNING_IN')
-        {
-          $ContinueWaiting = $false
-        }
-        elseif($WaitFor -eq 'SigningOut' -and $SigninStatus -eq 'SIGNING_OUT')
-        {
-          $ContinueWaiting = $false
-        }
-        elseif($WaitFor -eq 'PasswordChanged' -and $SigninStatus -eq 'PASS_CHANGED')
+        elseif($WaitForString -eq $SigninStatus)
         {
           $ContinueWaiting = $false
         }
