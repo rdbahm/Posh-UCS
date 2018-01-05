@@ -110,15 +110,12 @@ Function Invoke-UcsRestMethod
     {
       $RetriesRemaining-- #Deincrement the counter so we remember our state.
       $ErrorStatusCode = $_.Exception.Response.StatusCode.Value__ #Returns null if it timed out.
-      $Category = "ConnectionError"
 
             if($ErrorStatusCode -eq '403' -or $ErrorStatusCode -eq '401')
             {
               #No number of retries will fix an authentication error.
-              $AdditionalInfo =  "403 error returned - unauthorized or wrong credentials."
-              Write-Debug $AdditionalInfo
-              
-              $Category = "AuthenticationError"
+             
+              $Exception = New-Object System.UnauthorizedAccessException ("Couldn't connect. REST API may be disabled on $IPv4Address.",$_.Exception)
               $ThisCredentialIndex++
               
               if($ThisCredentialIndex -lt $Credential.Count)
@@ -133,9 +130,12 @@ Function Invoke-UcsRestMethod
             }
             elseif($ErrorStatusCode -eq '404')
             {
-              $AdditionalInfo = "404 error returned - API is disabled on phone. Skipping retries."
-              Write-Debug $AdditionalInfo
+              $Exception = New-Object System.Runtime.InteropServices.ExternalException ("Couldn't connect. REST API may be disabled on $IPv4Address.",$_.Exception)
               $RetriesRemaining = 0
+            }
+            else
+            {
+              $Exception = New-Object System.Runtime.InteropServices.ExternalException ("An error occurred while connecting to $IPv4Address.",$_.Exception)
             }
             
       if($RetriesRemaining -le 0) 
@@ -149,8 +149,7 @@ Function Invoke-UcsRestMethod
           }
         }
         
-        Write-Error -Message ("Couldn't connect to IP {0}. {1}" -f $IPv4Address,$AdditionalInfo) -Category $Category
-        Write-Debug -Message ('Returned error was "{0}".' -f $_)
+        Throw $Exception
       }
       else 
       {
@@ -175,7 +174,7 @@ Function Invoke-UcsRestMethod
     $RestOutput.Status = $ThisStatus
     if($ThisStatus.IsSuccess -eq $false) 
     {
-      Write-Error -Message ('An error occurred for API endpoint {0} with status code {1}: {2}' -f $ApiEndpoint, $ThisStatus.StatusCode, $ThisStatus.StatusString) -Category InvalidResult
+      Throw $ThisStatus.Exception
     }
   }
 
