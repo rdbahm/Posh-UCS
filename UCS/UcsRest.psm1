@@ -74,8 +74,8 @@ Function Set-UcsRestParameter
         }
         Catch
         {
-          $Exception = New-Object $_.Exception.GetType().BaseType #Grab the exception object type from the inner exception.
-          Throw $Exception ("Couldn't set parameter $Parameter with value $Value on $ThisIPv4Address.",$_) #Attach the inner exception.
+          $Exception = New-Object $_.Exception.GetType().BaseType ("Couldn't set parameter $Parameter with value $Value on $ThisIPv4Address.",$_) #Grab the exception object type from the inner exception and attach the inner exception.
+          Throw $Exception
         }
         
         if($ThisOutput.Status.IsSuccess -eq $false) {
