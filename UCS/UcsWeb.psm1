@@ -339,7 +339,7 @@ Function Get-UcsWebFirmware
     Foreach ($ThisIPv4Address in $IPv4Address) 
     { 
       #Actual request from a phone: http://10.92.10.48/Utilities/softwareUpgrade/getAvailableVersions?type=plcmserver&_=1498851105686
-      $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+      $UnixTime = Get-UcsUnixTime
 
       Try 
       {
@@ -584,7 +584,7 @@ Function Get-UcsWebLyncSignInStatus
       {
         Try
         {
-          $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+          $UnixTime = Get-UcsUnixTime
           $SigninStatus = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Settings/lyncSignInStatus?_=$UnixTime" -ErrorAction Stop
         }
         Catch
@@ -747,7 +747,7 @@ Function Register-UcsWebLyncUser
           {
             Start-Sleep -Seconds 1 #After the first check, back off the phone a little.
           }
-          $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+          $UnixTime = Get-UcsUnixTime
           $SigninStatus = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Settings/lyncSignInStatus?_=$UnixTime" -ErrorAction Stop
         }
         While ($SigninStatus -eq 'SIGNING_IN')
@@ -851,7 +851,7 @@ Function Get-UcsWebAuditLog
       Try 
       {
         #Actual URL: http://10.92.10.160/Diagnostics/log?value=app&dummyParam=1498860013020
-        $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+        $UnixTime = Get-UcsUnixTime
         $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Diagnostics/log?value=audit&dummyParam=$UnixTime" -ErrorAction Stop
         $SplitString = $Result.Split("`r`n") | Where-Object -FilterScript {
           $_.Length -gt 2 
@@ -924,7 +924,7 @@ Function Get-UcsWebLog
       Try 
       {
         #Actual URL: http://10.92.10.160/Diagnostics/log?value=app&dummyParam=1498860013020
-        $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+        $UnixTime = Get-UcsUnixTime
         $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Diagnostics/log?value=$LogType&dummyParam=$UnixTime" -ErrorAction Stop
         $SplitString = $Result.Split("`r`n") | Where-Object -FilterScript {
           $_.Length -gt 2 
@@ -958,7 +958,7 @@ Function Clear-UcsWebLog
       Try 
       {
         #Actual URL: http://10.92.10.160/Diagnostics/log?value=boot&clear=1&dummyParam=1499810229667
-        $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+        $UnixTime = Get-UcsUnixTime
         $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Diagnostics/log?value=$LogType&clear=1&dummyParam=$UnixTime" -ErrorAction Stop
 
         $null = $AllResult.Add($Result)
@@ -986,7 +986,7 @@ Function Get-UcsWebLyncSignIn
       #Signin status is from http://10.92.10.160/Settings/lyncSignInStatus?_=1499803468177
       #Cached credentials from http://10.92.10.160/Settings/lyncCachedCredentials?_=1499803468135
       
-      $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+      $UnixTime = Get-UcsUnixTime
       Try 
       {
         $SigninStatus = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Settings/lyncSignInStatus?_=$UnixTime" -ErrorAction Stop

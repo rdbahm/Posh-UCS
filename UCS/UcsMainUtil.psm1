@@ -630,3 +630,9 @@ Function Convert-UcsVersionNumber
     Write-Error "Couldn't parse firmware version $FirmwareRelease" -Category InvalidData
   }
 }
+
+Function Get-UcsUnixTime
+{
+  $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
+  Return $UnixTime
+}
