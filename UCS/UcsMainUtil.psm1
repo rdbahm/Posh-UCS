@@ -3,29 +3,6 @@ Function Get-UcsCleanJSON
   <#
       .SYNOPSIS
       Takes a string intended for a JSON string, sanitizes it, and returns the result.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER String
-      Describe parameter -String.
-
-      .EXAMPLE
-      Get-UcsCleanJSON -String Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-UcsCleanJSON
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
   #>
 
   Param (
@@ -43,9 +20,8 @@ Function Get-UcsCleanJSON
 
 Function Test-UcsIsAdministrator 
 {
-  
   <#
-      SYNOPSIS
+      .SYNOPSIS
       Returns if the current powershell session has administrator rights.
   #>
   $user = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -58,32 +34,6 @@ Function Test-UcsPolycomRootCertificate
 {
   <#
       .SYNOPSIS
-      Describe purpose of "Test-UcsPolycomRootCertificate" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .EXAMPLE
-      Test-UcsPolycomRootCertificate
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Test-UcsPolycomRootCertificate
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
-  <#
-      SYNOPSIS
       Tests for the presence of the Polycom Root certificate in the certificates store.
   #>
   $MachineCertificates = Get-ChildItem -Path Cert:\LocalMachine\Root
@@ -104,38 +54,6 @@ Function Add-UcsHost
 {
   <#
       .SYNOPSIS
-      Describe purpose of "Add-UcsHost" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER Hostname
-      Describe parameter -Hostname.
-
-      .EXAMPLE
-      Add-UcsHost -IPv4Address Value -Hostname Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Add-UcsHost
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
-  <#
-      SYNOPSIS
       Adds an entry to the system's hosts file.
   #>
   Param (
@@ -151,35 +69,6 @@ Function Remove-UcsHost
 {
   <#
       .SYNOPSIS
-      Describe purpose of "Remove-UcsHost" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER Hostname
-      Describe parameter -Hostname.
-
-      .EXAMPLE
-      Remove-UcsHost -Hostname Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Remove-UcsHost
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
-  <#
-      SYNOPSIS
       Removes an entry from the system's hosts file.
   #>
   Param(
@@ -226,20 +115,6 @@ Function Convert-UcsUptimeString
       .PARAMETER Uptime
       A timespan in string format, formatted in Polycom Unified Communications Software format - such as "2 days 12:44:11." Allows input of "day" or "days" and additionally for the hours to be reprsented as a single number without a leading 0.
 
-      .EXAMPLE
-      Convert-UcsUptimeString -Uptime Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Convert-UcsUptimeString
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
       .OUTPUTS
       A timespan object.
   #>
@@ -272,43 +147,8 @@ Function Get-UcsStatusCodeString
 {
   <#
       .SYNOPSIS
-      Describe purpose of "Get-UcsStatusCodeString" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER StatusCode
-      Describe parameter -StatusCode.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER ApiEndpoint
-      Describe parameter -ApiEndpoint.
-
-      .EXAMPLE
-      Get-UcsStatusCodeString -StatusCode Value -IPv4Address Value -ApiEndpoint Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-UcsStatusCodeString
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
-  <#
-      SYNOPSIS
       Turns a Polycom status code into a stringified description of what it represents. Optionally allows the user to include IPv4 address and Endpoint to allow return of additional information.
-      PARAMETER IPv4Address
+      .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67.
   #>
   Param([Parameter(Mandatory,HelpMessage = 'Add help message for user',ValueFromPipelineByPropertyName,ValueFromPipeline)][int]$StatusCode,
@@ -437,32 +277,6 @@ Function Get-UcsStatusCodeString
 
 Function Test-UcsSkypeModuleIsAvailable 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Test-UcsSkypeModuleIsAvailable" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .EXAMPLE
-      Test-UcsSkypeModuleIsAvailable
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Test-UcsSkypeModuleIsAvailable
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   $Modules = ('Lync', 'SkypeForBusiness')
   $ReturnValue = $false
 
@@ -494,7 +308,7 @@ Function New-UcsLog
 {
   Param([Parameter(Mandatory,ValueFromPipeline)][String[]]$LogString,
     [Parameter(Mandatory)][String][ValidateSet('app','boot')]$LogType,
-    [Parameter(HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String]$IPv4Address = "",
+    [Parameter(ValueFromPipelineByPropertyName)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String]$IPv4Address = "",
   [Parameter(ValueFromPipelineByPropertyName)][ValidatePattern('^[a-f0-9]{12}$')][String]$MacAddress = "")
   BEGIN
   {
