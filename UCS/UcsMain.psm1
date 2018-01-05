@@ -1040,42 +1040,14 @@ Function Test-UcsAPI
         $SIPStatus = $false
       }
       
-      $ThisStatusResult = 1 | Select-Object -Property @{
-        Name       = 'REST'
-        Expression = {
-          $RESTStatus
-        }
-      }, @{
-        Name       = 'Poll'
-        Expression = {
-          $PollStatus
-        }
-      }, @{
-        Name       = 'Provisioning'
-        Expression = {
-          $ProvisioningStatus
-        }
-      }, @{
-        Name       = 'Push'
-        Expression = {
-          $PushStatus
-        }
-      }, @{
-        Name       = 'SIP'
-        Expression = {
-          $SIPStatus
-        }
-      }, @{
-        Name       = 'Web'
-        Expression = {
-          $WebStatus
-        }
-      }, @{
-        Name       = 'IPv4Address'
-        Expression = {
-          $ThisIPv4Address
-        }
-      }
+      $ThisStatusResult = New-Object -TypeName PSObject
+      $ThisStatusResult | Add-Member -MemberType NoteProperty -Name REST -Value $RESTStatus
+      $ThisStatusResult | Add-Member -MemberType NoteProperty -Name Poll -Value $PollStatus
+      $ThisStatusResult | Add-Member -MemberType NoteProperty -Name Provisioning -Value $ProvisioningStatus
+      $ThisStatusResult | Add-Member -MemberType NoteProperty -Name Push -Value $PushStatus
+      $ThisStatusResult | Add-Member -MemberType NoteProperty -Name SIP -Value $SIPStatus
+      $ThisStatusResult | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $ThisIPv4Address
+      
       $null = $ResultArray.Add($ThisStatusResult)
     }
   }
