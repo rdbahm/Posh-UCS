@@ -740,19 +740,9 @@ Function Register-UcsWebLyncUser
       #We batch together all the phones to minimize wait time - this way, if you have 100 phones, there may be almost no waiting.
       Foreach ($ThisIPv4Address in $StatusResult)
       {
-        $SigninStatus = $null
-        Do
-        {
-          if($SigninStatus -ne $null)
-          {
-            Start-Sleep -Seconds 1 #After the first check, back off the phone a little.
-          }
-          $UnixTime = Get-UcsUnixTime
-          $SigninStatus = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Settings/lyncSignInStatus?_=$UnixTime" -ErrorAction Stop
-        }
-        While ($SigninStatus -eq 'SIGNING_IN')
+        $SigninStatus = Get-UcsWebLyncSignInStatus -IPv4Address $ThisIPv4Address -WaitFor SigningIn -InvertWaitFor
       
-        if($SigninStatus -ne 'SIGNED_IN')
+        if($SigninStatus.SignInStatus -ne 'SIGNED_IN')
         {
           Write-Error ('Sign-in request failed for {0}. Bad credentials?' -f $ThisIPv4Address) -Category AuthenticationError
         }
