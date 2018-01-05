@@ -249,3 +249,70 @@ Function Get-UcsWebHostname
     Return $null
   }
 }
+
+Function Get-UcsWebCleanXml
+{
+  Param (
+    [Parameter(Mandatory,HelpMessage = 'Full XML file from phone')][String[]]$Content
+  )
+  
+  #This is intended to work around an issue in some versions of UCS that causes duplicate output rows.
+  #We mostly ignore te specifics of XML and just get it in good enough shape to be taken by the XML parser.
+  
+  $ParamArray = New-Object System.Collections.ArrayList
+  $Counter = -1 #Avoid off-by-one
+  $DuplicateCounter = 0
+  
+  Foreach($Line in $Content)
+  {
+    $Counter++
+    #All attribute names in outputted XML files start with two tabs.
+    Try
+    {
+      if($Line -match "\t\t([a-zA-Z0-9]+\.)+[a-zA-Z0-9]+")
+      {
+        Try
+        {
+          $ParameterName = $Matches[0]
+          $Matches = $null
+        
+          $null = $Line -match "(?<==`").*(?=`")" #TODO: This is close but not quite right - due to structure, can't deal with multi-line values.
+
+          $ParameterValue = $Matches[0]
+        }
+        Catch
+        {
+          Write-Debug "Error in parsing $Line"
+        }
+        
+        if($Matches -ne $null)
+        {
+          $ThisLineInfo = 1 | Select-Object @{Name="Name";Expression={$ParameterName}},@{Name="Value";Expression={$ParameterValue}},@{Name="Line";Expression={$Counter}}
+          
+          if($ParamArray.Name -notcontains $ThisLineInfo.Name)
+          {
+            $null = $ParamArray.Add($ThisLineInfo)
+          }
+          else
+          {
+            #$FirstDuplicate = $ParamArray | Where-Object { $_.Name -eq $ThisLineInfo.Name }
+            $Line = $Line.Insert($ParameterName.Length,"$DuplicateCounter")
+            $DuplicateCounter++
+            $Content[$Counter] = $Line
+          }
+        }
+      }
+      elseif($Line -like "*/>")
+      {
+        #Reset the duplicate array for each group.
+        $ParamArray = New-Object System.Collections.ArrayList
+      }
+    }
+    Catch
+    {
+      Write-Warning "Couldn't read line $Line."
+    }
+  }
+  
+  Return $Content
+}

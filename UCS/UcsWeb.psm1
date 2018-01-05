@@ -28,6 +28,7 @@ Function Get-UcsWebConfiguration
       Try 
       {
         $Results = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'Utilities/configuration/phoneBackup' -ErrorAction Stop
+        $Results = Get-UcsWebCleanXml -Content $Results
         $Results = [Xml]$Results
         $Results = $Results.PHONE_BACKUP
         $Sources = ($Results |
@@ -37,7 +38,7 @@ Function Get-UcsWebConfiguration
       }
       Catch 
       {
-        Write-Debug -Message "Skipping $ThisIPv4Address. $_"
+        Write-Warning -Message "Skipping $ThisIPv4Address."
         Continue
       }
 
