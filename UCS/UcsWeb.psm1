@@ -545,6 +545,7 @@ Function Get-UcsWebLyncSignInStatus
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(ParameterSetName="Normal")][String][ValidateSet('None','SignedOut','SignedIn','SigningOut','SigningIn','PasswordChanged')]$WaitFor = 'None',
     [Parameter(ParameterSetName="Raw")][String][ValidateSet('None','UNREGISTERED','SIGNED_IN','SIGNING_OUT','SIGNING_IN','PASS_CHANGED')]$WaitForRaw = 'None',
+    [Switch]$InvertWaitFor,
     [Int][ValidateRange(1,3600)]$TimeoutSeconds = 120
   )
   
@@ -598,7 +599,11 @@ Function Get-UcsWebLyncSignInStatus
         {
           $ContinueWaiting = $false
         }
-        elseif($WaitForString -eq $SigninStatus)
+        elseif($WaitForString -eq $SigninStatus -and $InvertWaitFor -eq $false)
+        {
+          $ContinueWaiting = $false
+        }
+        elseif($WaitForString -ne $SigninStatus -and $InvertWaitFor -eq $true)
         {
           $ContinueWaiting = $false
         }
