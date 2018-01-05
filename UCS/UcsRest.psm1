@@ -49,7 +49,8 @@ Function Set-UcsRestParameter
     }
     Catch
     {
-      Write-Error "Couldn't process provided parameter $Parameter." -ErrorAction Stop
+      $Exception = New-Object $_.Exception.GetType().BaseType ("Couldn't process provided parameter $Parameter on $ThisIPv4Address.",$_) #Grab the exception object type from the inner exception and attach the inner exception.
+      Throw $Exception
     }
     
     Try
