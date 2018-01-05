@@ -6,7 +6,7 @@ What it is
 ----------
 A PowerShell module attempting to bring together all the ways to manage and administer Polycom VVX phones and other devices which run Polycom's UCS software. Currently, we support these ways of accessing/controlling UCS:
 - REST API (UCS 5.4 and above, REST API must be enabled)
-- Web (Web UI must be enabled, not tested on any firmware below 5.4.5)
+- Web (Web UI must be enabled)
 - Polling (Polling must be set to "requestor" mode and a username and password must be set. Additionally, HTTPS is not supported, so requiring secure connections must be turned off.)
 - Push (Poor HTTPS support is implemented. Username and Password must be set, and phone must be set to allow push messages.
 - Provisioning (Accesses file store where phone stores configuration, logs, etc - only supports FTP at this time)
@@ -24,9 +24,10 @@ Support Table
 -------------
 |Version|Profile|REST|Web|Polling|Push|Provisioning|SIP|
 |-------|-------|----|---|-------|----|------------|---|
-|4.1.4.7430|Lync|Unsupported|Unsupported|Supported|Supported||Partially Supported|
-|5.6.??|Lync|Supported|Supported|Supported|Supported|Supported|Supported|
-|5.7.0.11768|Lync|Supported|Supported|Supported|Supported|Supported|Supported|
+|[4.1.4.7430](https://github.com/rdbahm/Powershell-UcsApi/wiki/4.1.4.7430)|Lync|Not Possible|Partial|Partial|Supported||Partial|
+|5.6.0.17325|Lync|Supported|Supported|Supported|Supported|Supported|Supported|
+|[5.7.0.11768](https://github.com/rdbahm/Powershell-UcsApi/wiki/5.7.0.11768)|Lync|Partial|||||
+||||||||
 
 Limitations
 -----------
@@ -34,7 +35,7 @@ To a large extent, I am limited by the documentation I am easily able to find on
 
 The HTTPS programming is really poor and could use a lot of help. It's only implemented on a handful of the base-level functions. As a result, deployments which require HTTPS may not be able to use all functionality.
 
-My testing is primarily with UCS 5.4.5 and above, though I also did some testing down to UCS 5.3.0 for SIP.
+My testing is primarily with UCS 5.4.5 and above. Documentation on specific supported features is summarized in the Support Table above and more specifically in the Wiki.
 
 Licensing
 ---------
