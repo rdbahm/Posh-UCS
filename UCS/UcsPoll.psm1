@@ -51,9 +51,33 @@ Function Get-UcsPollDeviceInfo
       {
         $Matches = $null
         $PhoneDNs = $ThisResult.PhoneDN.Split(',')
-        $PhoneDN = $PhoneDNs[0] #We're dropping all results but the first one because I'm in a Skype for Business environment and can't be bothered.
-        $null = $ThisResult.PhoneDN -match '(?<=:).+@.+$'
-        $SipAddress = $Matches[0]
+        
+        $SipAddress = $null
+        Foreach($DN in $PhoneDNs)
+        {
+          $null = $DN -match '[^@&=+$,:;\?/]+@[^@&=+$:,;\?/]+'
+          $ThisSipAddress = $Matches[0]
+          
+          #If we have only one, we return it as a bare string. Otherwise, we make an ArrayList.
+          if($SipAddress -eq $null)
+          {
+            $SipAddress = $ThisSipAddress
+          }
+          elseif($SipAddress.Count -gt 1)
+          {
+            $null = $SipAddress.Add($ThisSipAddress)
+          }
+          else
+          {
+            $NewSipAddress = New-Object System.Collections.ArrayList
+            $null = $NewSipAddress.Add($ThisSipAddress)
+            $null = $NewSipAddress.Add($SipAddress)
+            $SipAddress = $NewSipAddress
+          }
+        }
+        
+        $SipAddress = $SipAddress | Sort-Object -Unique #Remove duplicates.
+        
       }
       Catch
       {
