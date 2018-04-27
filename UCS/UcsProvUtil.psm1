@@ -1,4 +1,89 @@
 
+Function Get-UcsProvDirectory
+{
+  Param([Alias('Path','Filename')][String]$FilePath='',
+[ValidateSet('None','Misc','Log','Override','Contact','License','Profile','Call','Corefile')][String]$Type = 'None',
+    [Nullable[Int]]$ProvServerIndex = $null)
+  
+  Begin
+  {
+    $ProvisioningConfig = Get-UcsProvConfig
+    
+    if($ProvServerIndex -ne $null)
+    {
+      #If manually specified, we want to force which provisioning server to use. Mostly used for recursion.
+      $ProvisioningConfig = $ProvisioningConfig | Where-Object -Property ProvServerIndex -EQ -Value $ProvServerIndex
+    }
+    
+    $TypeMapping = @{
+      None     = ''
+      Misc     = 'MISC_FILES'
+      Log      = 'LOG_FILE_DIRECTORY'
+      Override = 'OVERRIDES_DIRECTORY'
+      Contact  = 'CONTACTS_DIRECTORY'
+      License  = 'LICENSE_DIRECTORY'
+      Profile  = 'USER_PROFILES_DIRECTORY'
+      Call     = 'CALL_LISTS_DIRECTORY'
+      Corefile = 'COREFILE_DIRECTORY'
+    }
+    $ThisType = $TypeMapping[$Type]
+    
+    $OutputDir = ''
+  }
+  
+  Process
+  {
+    Foreach ($ThisServer in $ProvisioningConfig)
+    {
+      if($Type -ne 'None')
+      {
+        #We must start by getting the location of the file in question if mode hasn't been set to "none."
+        #We mostly need 'none' available for recursion.
+        Try 
+        {
+          $MasterConfigContent = Import-UcsProvFile -FilePath '000000000000.cfg' -Type None -ProvServerIndex $ThisServer.ProvServerIndex -ErrorAction Stop
+          $MasterConfig = Convert-UcsProvMasterConfig -Content $MasterConfigContent.Content -ErrorAction Stop
+          $OutputDir = ($MasterConfig.$ThisType).Trim('/\ ')
+          Break #We found something, so stop checking prov servers.
+        }
+        Catch 
+        {
+          Write-Error -Message ('Couldn''t get master config file for {0}.' -f $ThisServer.DisplayName) -ErrorAction Stop
+        }
+      }
+      else
+      {
+        $OutputDir = ''
+      }
+    }
+  }
+  
+  End
+  {
+    if($FilePath.Length -gt 0)
+    {
+        $Working = $FilePath
+        $Parent = $Working | Split-Path -Parent
+        $Leaf = $Working | Split-Path -Leaf
+        if($OutputDir.Length -gt 0)
+        {
+          $Working = Join-Path -Path $OutputDir -ChildPath $Leaf
+        }
+        if($Parent.Length -gt 0)
+        {
+          $Working = Join-Path -Path $Parent -ChildPath $Working
+        }
+        $FilePath = $Working
+    }
+    else
+    {
+      $FilePath = $OutputDir
+    }
+
+    return $FilePath
+  }
+}
+
 Function Import-UcsProvFile
 {
   Param(
@@ -25,18 +110,6 @@ Function Import-UcsProvFile
     }
     
     $OutputContent = ''
-    $TypeMapping = @{
-      None     = ''
-      Misc     = 'MISC_FILES'
-      Log      = 'LOG_FILE_DIRECTORY'
-      Override = 'OVERRIDES_DIRECTORY'
-      Contact  = 'CONTACTS_DIRECTORY'
-      License  = 'LICENSE_DIRECTORY'
-      Profile  = 'USER_PROFILES_DIRECTORY'
-      Call     = 'CALL_LISTS_DIRECTORY'
-      Corefile = 'COREFILE_DIRECTORY'
-    }
-    $ThisType = $TypeMapping[$Type]
 
   }
   Process
@@ -50,31 +123,7 @@ Function Import-UcsProvFile
       
       if($Type -ne 'None')
       {
-        #We must start by getting the location of the file in question if mode hasn't been set to "none."
-        #We mostly need 'none' available for recursion.
-        Try 
-        {
-          $MasterConfigContent = Import-UcsProvFile -FilePath '000000000000.cfg' -Type None -ProvServerIndex $ThisServer.ProvServerIndex -ErrorAction Stop
-          $MasterConfig = Convert-UcsProvMasterConfig -Content $MasterConfigContent.Content -ErrorAction Stop
-          $ThisDirectory = ($MasterConfig.$ThisType).Trim('/\ ')
-        
-          if($ThisDirectory.length -gt 0)
-          {
-            $Working = $FilePath
-            $Parent = $Working | Split-Path -Parent
-            $Leaf = $Working | Split-Path -Leaf
-            $Working = Join-Path -Path $ThisDirectory -ChildPath $Leaf
-            if($Parent.Length -gt 0)
-            {
-              $Working = Join-Path -Path $Parent -ChildPath $Working
-            }
-            $FilePath = $Working
-          }
-        }
-        Catch 
-        {
-          Write-Error -Message ('Couldn''t get master config file for {0}.' -f $ThisServer.DisplayName) -ErrorAction Stop
-        }
+        $FilePath = Get-UcsProvDirectory -Type $Type -FilePath $FilePath
       }
       
       Try
@@ -138,6 +187,141 @@ Function Import-UcsProvFile
     if($ThisSuccess -ne $true)
     {
       Write-Error -Message "Couldn't get file $FilePath." -ErrorAction Stop
+    }
+  }
+  End
+  {
+    Return $OutputContent
+  }
+}
+
+Function New-UcsProvFile
+{
+  Param(
+    [Parameter(Mandatory)][Alias('Path','Filename')][String]$FilePath,
+    [ValidateSet('None','Misc','Log','Override','Contact','License','Profile','Call','Corefile')][String]$Type = 'None',
+    [Nullable[Int]]$ProvServerIndex = $null,
+    [String]$Content
+  )
+  
+  <#Example file to download:
+      192.168.1.50/example/file.txt
+      COMPUTERNAME/FILEPATH
+
+      We disallow slashes in a computer name to prevent ftp:// etc from being included.
+  #>
+  
+  Begin
+  {
+    $ProvisioningConfig = Get-UcsProvConfig
+    
+    if($ProvServerIndex -ne $null)
+    {
+      #If manually specified, we want to force which provisioning server to use. Mostly used for recursion.
+      $ProvisioningConfig = $ProvisioningConfig | Where-Object -Property ProvServerIndex -EQ -Value $ProvServerIndex
+    }
+    
+    $OutputContent = ''
+    $TypeMapping = @{
+      None     = ''
+      Misc     = 'MISC_FILES'
+      Log      = 'LOG_FILE_DIRECTORY'
+      Override = 'OVERRIDES_DIRECTORY'
+      Contact  = 'CONTACTS_DIRECTORY'
+      License  = 'LICENSE_DIRECTORY'
+      Profile  = 'USER_PROFILES_DIRECTORY'
+      Call     = 'CALL_LISTS_DIRECTORY'
+      Corefile = 'COREFILE_DIRECTORY'
+    }
+    $ThisType = $TypeMapping[$Type]
+
+  }
+  Process
+  {
+    $SaveLocation = ''
+    $ThisSuccess = $false
+
+    Foreach ($ThisServer in $ProvisioningConfig)
+    {
+      Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress, $PSCmdlet.MyInvocation.MyCommand.Name)
+      
+      if($Type -ne 'None')
+      {
+        #We must start by getting the location of the file in question if mode hasn't been set to "none."
+        #We mostly need 'none' available for recursion.
+        Try 
+        {
+          $MasterConfigContent = Import-UcsProvFile -FilePath '000000000000.cfg' -Type None -ProvServerIndex $ThisServer.ProvServerIndex -ErrorAction Stop
+          $MasterConfig = Convert-UcsProvMasterConfig -Content $MasterConfigContent.Content -ErrorAction Stop
+          $ThisDirectory = ($MasterConfig.$ThisType).Trim('/\ ')
+        
+          if($ThisDirectory.length -gt 0)
+          {
+            $Working = $FilePath
+            $Parent = $Working | Split-Path -Parent
+            $Leaf = $Working | Split-Path -Leaf
+            $Working = Join-Path -Path $ThisDirectory -ChildPath $Leaf
+            if($Parent.Length -gt 0)
+            {
+              $Working = Join-Path -Path $Parent -ChildPath $Working
+            }
+            $FilePath = $Working #Filepath now contains the desired save location.
+          }
+        }
+        Catch 
+        {
+          Write-Error -Message ('Couldn''t get master config file for {0}.' -f $ThisServer.DisplayName) -ErrorAction Stop
+        }
+      }
+      
+      Try
+      {
+        Switch($ThisServer.ProvServerType)
+        {
+          'FileSystem'
+          {
+            $FullPath = Join-Path -Path $ThisServer.ProvServerAddress -ChildPath $FilePath
+            
+            if($ThisServer.Credential -ne $null)
+            {
+              $Item = $Content | Out-File -FilePath $FullPath -Credential $ThisServer.Credential -ErrorAction Stop
+            }
+            else
+            {
+              $Item = $Content | Out-File -FilePath $FullPath -ErrorAction Stop
+            }
+            
+            $SaveLocation = $FullPath
+            $ThisSuccess = $true
+          }
+          'FTP'
+          {
+            Write-Warning "FTP isn't yet supported for output files."
+            $ThisSuccess = $false
+          }
+          Default
+          {
+            Write-Debug -Message ('{2}: {0} is not supported for this operation.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress, $PSCmdlet.MyInvocation.MyCommand.Name)
+          }
+        }
+      }
+      Catch
+      {
+        Write-Debug -Message ('{2}: Encountered an error using {0} provisioning protocol with {1}.' -f $ThisServer.DisplayName, $ThisServer.ProvServerAddress, $PSCmdlet.MyInvocation.MyCommand.Name)
+        Write-Debug -Message ('{0}: {1}' -f $ThisServer.DisplayName, $_)
+      }
+      
+      if($ThisSuccess -eq $true)
+      {
+        #We succeeded, so we don't have to retry.
+        $OutputObject = $SaveLocation
+        Break
+      }
+    }
+    
+    if($ThisSuccess -ne $true)
+    {
+      Write-Error -Message "Couldn't create file $FilePath." -ErrorAction Stop
     }
   }
   End
@@ -513,4 +697,190 @@ Function Convert-UcsProvDuration
   }
 
   return New-TimeSpan -Days $Days -Hours $Hours -Minutes $Minutes -Seconds $Seconds
+}
+
+Function Convert-UcsProvContactXml
+{
+  Param([Parameter(Mandatory)][Xml]$FileContent,[ValidatePattern('^[a-f0-9]{12}$')][String]$MacAddress=$null)
+  
+  Begin
+  {
+    $OutputContacts = New-Object System.Collections.ArrayList
+  }
+  Process
+  {
+    Try
+    {
+      $AllContacts = $FileContent.directory.item_list.item
+      
+      Foreach($Contact in $AllContacts)
+      {
+        <#Properties in XML file:
+            fn: First Name
+            ct: Contact
+            sd: Favorite Index
+            pt: Unknown. Integer?
+            tl: Job Title
+            lb: Label
+            em: Email Address
+            dc: Divert Contact
+            rt: Ringtone
+            ad: Auto Divert (0 or 1)
+            ar: Auto Reject (0 or 1)
+        #>
+        
+        $ThisContact =New-UcsProvContact -FirstName $Contact.fn -LastName $Contact.ln `
+          -Contact $Contact.ct -Ringtone $Contact.rt -FavoriteIndex $Contact.sd -Email $Contact.em `
+          -JobTitle $Contact.tl -Label $Contact.lb -DivertContact $Contact.dc -AutoDivert ([Int32]($Contact.ad)) `
+          -AutoReject ([Int32]($Contact.ar)) -MacAddress $MacAddress
+          
+        $null = $OutputContacts.Add($ThisContact)
+      }
+    }
+    Catch
+    {
+      Write-Error "Couldn't process contacts for $MacAddress."
+    }
+  }
+  End
+  {
+    Return $OutputContacts
+  }
+}
+
+Function New-UcsProvContact
+{
+  Param([String]$FirstName='',[String]$LastName='',[Parameter(Mandatory)][String]$Contact='',[String]$Ringtone='ringerdefault',`
+    [Int32]$FavoriteIndex=$null,[String]$Email='',[String]$JobTitle='',[String]$Label='',`
+    [String]$DivertContact='',[Boolean]$AutoDivert=$false,[Boolean]$AutoReject=$false,`
+    [ValidatePattern('(^[a-f0-9]{12}$)|(^$)')][String]$MacAddress=$null)
+  
+  $ThisContact = New-Object -TypeName PSObject
+  $ThisContact | Add-Member -MemberType NoteProperty -Name FirstName -Value $FirstName
+  $ThisContact | Add-Member -MemberType NoteProperty -Name LastName -Value $LastName
+  $ThisContact | Add-Member -MemberType NoteProperty -Name Contact -Value $Contact
+  $ThisContact | Add-Member -MemberType NoteProperty -Name Label -Value $Label
+  $ThisContact | Add-Member -MemberType NoteProperty -Name JobTitle -Value $JobTitle
+  $ThisContact | Add-Member -MemberType NoteProperty -Name Email -Value $Email
+  $ThisContact | Add-Member -MemberType NoteProperty -Name FavoriteIndex -Value $FavoriteIndex
+  $ThisContact | Add-Member -MemberType NoteProperty -Name Ringtone -Value $Ringtone
+  $ThisContact | Add-Member -MemberType NoteProperty -Name DivertContact -Value $DivertContact
+  $ThisContact | Add-Member -MemberType NoteProperty -Name AutoDivert -Value $AutoDivert
+  $ThisContact | Add-Member -MemberType NoteProperty -Name AutoReject -Value $AutoReject
+  
+  if($MacAddress -ne $null)
+  {
+    $ThisContact | Add-Member -MemberType NoteProperty -Name MacAddress -Value $MacAddress
+  }
+  
+  Return $ThisContact
+}
+
+Function Add-UcsProvContact
+{
+  Param([Parameter(Mandatory)][ValidatePattern('^[a-f0-9]{12}$')][String[]]$MacAddress,[Parameter(Mandatory)][Object]$UcsProvContact)
+  <#To add to a contacts list, we need to do a few things:
+      1. Check if an XML file already exists. If not, create it.
+      2. Convert input object to XML format.
+      3. Write to file.
+  #>
+  
+  Begin
+  {
+    $AllPropertyList = @{'fn'='FirstName';'ln'='LastName';'ct'='Contact';'sd'='FavoriteIndex';`
+      'tl'='Title';'lb'='label';'em'='email';'dc'='DivertContact';'rt'='Ringtone';`
+      'ad'='AutoDivert';'ar'='AutoReject'}
+  }
+  
+  Process
+  {
+    Foreach($ThisMacAddress in $MacAddress)
+    {
+      Try 
+      {
+        $LogfileName = ('{0}-directory.xml' -f $ThisMacAddress)
+        $ContactFile = Import-UcsProvFile -FilePath $LogfileName -Type Contact
+      }
+      Catch 
+      {
+        Write-Debug "No contacts file exists for $ThisMacAddress. Requesting Creation..."
+      }
+      
+      Try
+      {
+        $XmlFile = [xml]$ContactFile
+        
+        $ItemNode = $XmlFile.CreateNode("element","item",$null)
+        foreach($Property in $AllPropertyList.Keys)
+        {
+          $ThisElement = $XmlFile.CreateElement($Property)
+          
+          $ThisValue = $UcsProvContact.($AllPropertyList[$Property])
+          if($Property -eq 'ad' -or $Property -eq 'ar')
+          {
+            #Coerce boolean into the phone's 0 and 1.
+            $ThisValue = [Int]$ThisValue
+          }
+          elseif($Property -eq 'sd' -and ([Int]$ThisValue) -eq 0)
+          {
+            #Don't write a 0'd favorite to the contacts!
+            $ThisValue = $null
+          }
+          
+          if($ThisValue -ne $null -and $ThisValue.Length -ne 0)
+          {
+            $ThisElement.InnerText = $ThisValue
+            $null = $ItemNode.AppendChild($ThisElement)
+          }
+        }
+        
+        $null = $XmlFile.DocumentElement.FirstChild.AppendChild($ItemNode)
+      }
+      Catch
+      {
+        Write-Warning "Couldn't process contacts file for $ThisMacAddress."
+        Continue
+      }
+    }
+  }
+}
+
+Function New-UcsProvContactFile
+{
+  Param([String]$Path)
+  
+  #Structure of file is directory/item_list/item(s)
+  
+  [xml]$XmlDocument = New-Object System.Xml.XmlDocument
+  
+  $XmlDeclaration = $XmlDocument.CreateXmlDeclaration("1.0",$null,"yes")
+  $null = $XmlDocument.AppendChild($XmlDeclaration)
+  
+  $Comment = $XmlDocument.CreateComment("Created by UcsApi")
+  $null = $XmlDocument.AppendChild($Comment)
+  
+  $SaveString = (Get-Date).ToString("@ --yyyy-MM-ddTHH:mm:ss--")
+  $Saved = $XmlDocument.CreateProcessingInstruction("Saved",$SaveString)
+  $null = $XmlDocument.AppendChild($Saved)
+  
+  $RootNode = $XmlDocument.CreateNode("element","directory",$null)
+  $ItemList = $XmlDocument.CreateNode("element","item_list",$null)
+  $null = $RootNode.AppendChild($ItemList)
+  $null = $XmlDocument.AppendChild($RootNode)
+  
+  $XmlOutput = Write-XmlToStandardOut -xml $XmlDocument
+  #Something
+}
+
+Function Write-XmlToStandardOut
+{
+  Param([xml]$XML)
+  #https://stackoverflow.com/a/22639013
+  $StringWriter = New-Object System.IO.StringWriter
+  $XmlWriter = New-Object System.Xml.XmlTextWriter $StringWriter
+  $XmlWriter.Formatting = "indented"
+  $xml.WriteTo($XmlWriter)
+  $XmlWriter.Flush()
+  $StringWriter.Flush()
+  Write-Output $StringWriter.ToString()
 }

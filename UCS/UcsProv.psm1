@@ -95,3 +95,47 @@ Function Get-UcsProvCallLog
     Return $AllCalls
   }
 }
+
+Function Get-UcsProvContacts
+{
+  Param([Parameter(Mandatory,ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^[a-f0-9]{12}$')][String[]]$MacAddress)
+
+  BEGIN
+  {
+    $Contacts = New-Object -TypeName System.Collections.ArrayList
+    $OutputContacts =  New-Object -TypeName System.Collections.ArrayList
+  }
+  PROCESS
+  {
+    Foreach($ThisMacAddress in $MacAddress) 
+    {
+      #Download the call list.
+      Try 
+      {
+        $LogfileName = ('{0}-directory.xml' -f $ThisMacAddress)
+        $ContactFile = Import-UcsProvFile -FilePath $LogfileName -Type Contact
+      }
+      Catch 
+      {
+        Write-Error -Message ('Couldn''t get contacts file for {0}, filename was {1}.' -f $MacAddress, $LogfileName)
+        Continue
+      }
+
+      $null = $Contacts.Add($ContactFile)
+    }
+    
+  } END {
+    $AllLogs = New-Object -TypeName System.Collections.ArrayList
+    Foreach ($File in $Contacts) 
+    {
+      #Run the log list through the parser.
+      $ThisContactList = Convert-UcsProvContactXml -FileContent $File.Content
+      Foreach($Contact in $ThisContactList)
+      {
+        $null = $OutputContacts.Add($Contact)
+      }
+    }
+
+    Return $OutputContacts
+  }
+}
