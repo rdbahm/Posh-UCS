@@ -129,7 +129,8 @@ Function Get-UcsProvContacts
     Foreach ($File in $Contacts) 
     {
       #Run the log list through the parser.
-      $ThisContactList = Convert-UcsProvContactXml -FileContent $File.Content
+      $ThisMacAddress = ($File.BaseName).Substring(0,12)
+      $ThisContactList = Convert-UcsProvContactXml -FileContent $File.Content -MacAddress $ThisMacAddress
       Foreach($Contact in $ThisContactList)
       {
         $null = $OutputContacts.Add($Contact)

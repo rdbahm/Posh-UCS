@@ -2,7 +2,7 @@
 Function Get-UcsProvDirectory
 {
   Param([Alias('Path','Filename')][String]$FilePath='',
-[ValidateSet('None','Misc','Log','Override','Contact','License','Profile','Call','Corefile')][String]$Type = 'None',
+    [ValidateSet('None','Misc','Log','Override','Contact','License','Profile','Call','Corefile')][String]$Type = 'None',
     [Nullable[Int]]$ProvServerIndex = $null)
   
   Begin
@@ -751,7 +751,7 @@ Function Convert-UcsProvContactXml
 Function New-UcsProvContact
 {
   Param([String]$FirstName='',[String]$LastName='',[Parameter(Mandatory)][String]$Contact='',[String]$Ringtone='ringerdefault',`
-    [Int32]$FavoriteIndex=$null,[String]$Email='',[String]$JobTitle='',[String]$Label='',`
+    [Int32][ValidateRange(1,9999)]$FavoriteIndex=$null,[String]$Email='',[String]$JobTitle='',[String]$Label='',`
     [String]$DivertContact='',[Boolean]$AutoDivert=$false,[Boolean]$AutoReject=$false,`
     [ValidatePattern('(^[a-f0-9]{12}$)|(^$)')][String]$MacAddress=$null)
   
@@ -859,7 +859,7 @@ Function New-UcsProvContactFile
   $Comment = $XmlDocument.CreateComment("Created by UcsApi")
   $null = $XmlDocument.AppendChild($Comment)
   
-  $SaveString = (Get-Date).ToString("@ --yyyy-MM-ddTHH:mm:ss--")
+  $SaveString = (Get-Date).ToString("@ --yyyy-MM-ddTHH:mm:ss-- ")
   $Saved = $XmlDocument.CreateProcessingInstruction("Saved",$SaveString)
   $null = $XmlDocument.AppendChild($Saved)
   
@@ -869,6 +869,8 @@ Function New-UcsProvContactFile
   $null = $XmlDocument.AppendChild($RootNode)
   
   $XmlOutput = Write-XmlToStandardOut -xml $XmlDocument
+  
+  Return $XmlOutput  
   #Something
 }
 
