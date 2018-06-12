@@ -173,7 +173,7 @@ Function Get-UcsStatusCodeString
       elseif($ThisStatusCode -eq 2000) 
       {
         $ResponseOK = $true
-        $StatusString = 'The operation completed successfully.'
+        $StatusString = 'API executed successfully.'
       }
       elseif($ThisStatusCode -eq 4000) 
       {
@@ -184,13 +184,13 @@ Function Get-UcsStatusCodeString
       elseif($ThisStatusCode -eq 4001) 
       {
         $ResponseOK = $false
-        $StatusString = 'The device is busy.'
+        $StatusString = 'Device busy.'
         $Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4002) 
       {
         $ResponseOK = $false
-        $StatusString = 'Line is not registered.'
+        $StatusString = 'Line not registered.'
         $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4003) 
@@ -208,7 +208,7 @@ Function Get-UcsStatusCodeString
       elseif($ThisStatusCode -eq 4005) 
       {
         $ResponseOK = $false
-        $StatusString = 'Invalid line selection.'
+        $StatusString = 'Line does not exist.'
         $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4006) 
@@ -244,7 +244,7 @@ Function Get-UcsStatusCodeString
       elseif($ThisStatusCode -eq 5000) 
       {
         $ResponseOK = $false
-        $StatusString = 'Failed to process request due to an internal error.'
+        $StatusString = 'Failed to process request.'
         $Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $StatusString
       }
 
