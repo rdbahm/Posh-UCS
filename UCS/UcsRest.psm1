@@ -486,6 +486,7 @@ Function Reset-UcsRestConfiguration
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Switch]$ToFactoryDefaults,
+    [String][ValidateSet('Local','Web','Device')]$ResetConfiguration = "All",
   [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
 
   BEGIN {
@@ -503,7 +504,16 @@ Function Reset-UcsRestConfiguration
           }
           else 
           {
-            $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/configReset' -Method Post -Retries $Retries -ErrorAction Stop
+            if($ResetConfiguration -eq "All")
+            {
+              $ApiEndpoint = 'api/v1/mgmt/configReset'
+            }
+            else
+            {
+              $ApiEndpoint = ('api/v1/mgmt/configReset/{0}' -f $ResetConfiguration.ToLower())
+            }
+            
+            $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint $ApiEndpoint -Method Post -Retries $Retries -ErrorAction Stop
           }
         }
         Catch
