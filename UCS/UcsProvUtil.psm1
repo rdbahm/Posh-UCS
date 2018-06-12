@@ -753,6 +753,7 @@ Function New-UcsProvContact
   Param([String]$FirstName='',[String]$LastName='',[Parameter(Mandatory)][String]$Contact='',[String]$Ringtone='ringerdefault',`
     [Int32][ValidateRange(1,9999)]$FavoriteIndex=$null,[String]$Email='',[String]$JobTitle='',[String]$Label='',`
     [String]$DivertContact='',[Boolean]$AutoDivert=$false,[Boolean]$AutoReject=$false,`
+    [Boolean]$BuddyWatch=$false,[Boolean]$BuddyBlock=$false,`
     [ValidatePattern('(^[a-f0-9]{12}$)|(^$)')][String]$MacAddress=$null)
   
   $ThisContact = New-Object -TypeName PSObject
@@ -767,6 +768,8 @@ Function New-UcsProvContact
   $ThisContact | Add-Member -MemberType NoteProperty -Name DivertContact -Value $DivertContact
   $ThisContact | Add-Member -MemberType NoteProperty -Name AutoDivert -Value $AutoDivert
   $ThisContact | Add-Member -MemberType NoteProperty -Name AutoReject -Value $AutoReject
+  $ThisContact | Add-Member -MemberType NoteProperty -Name BuddyWatch -Value $BuddyWatch
+  $ThisContact | Add-Member -MemberType NoteProperty -Name BuddyBlock -Value $BuddyBlock
   
   if($MacAddress -ne $null)
   {
@@ -789,7 +792,7 @@ Function Add-UcsProvContact
   {
     $AllPropertyList = @{'fn'='FirstName';'ln'='LastName';'ct'='Contact';'sd'='FavoriteIndex';`
       'tl'='Title';'lb'='label';'em'='email';'dc'='DivertContact';'rt'='Ringtone';`
-      'ad'='AutoDivert';'ar'='AutoReject'}
+      'ad'='AutoDivert';'ar'='AutoReject';'bw'='BuddyWatch';'bb'='BuddyBlock'}
   }
   
   Process
