@@ -666,6 +666,143 @@ Function Get-UcsRestCall
   }
 }
 
+Function Get-UcsRestCallv2 
+{
+  <#
+      .SYNOPSIS
+      Returns call status.
+
+      .DESCRIPTION
+      Returns the current status of a call, including detailed information such as the directionality of the call, the call's handle, which can be used to take certain actions on the call, and other call-related details. If no calls is currently in progress, the cmdlet returns a warning and no output. Returns only one call regardless of the number of ongoing calls.
+
+      .PARAMETER IPv4Address
+      The network address in IPv4 notation, such as 192.123.45.67.
+
+      .PARAMETER Quiet
+      Prevents the API request from writing to the console.
+
+      .EXAMPLE
+      Get-CallStatus -IPv4Address 192.168.1.20 -Quiet
+      Returns the call status of 192.168.1.20 but does not return warnings to the console in case of errors during API calls.
+
+      .NOTES
+      Tested only in Skype for Business environment.
+  #>
+  [CmdletBinding(DefaultParameterSetName='DefaultParameterSet')]
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [Switch]$Quiet,
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName,ParameterSetName='CallHandleFilter')][String][ValidatePattern('^0x[a-f0-9]{7,8}$')]$CallHandle,
+    [Parameter(Mandatory,ParameterSetName='SequenceFilter')][Parameter(Mandatory,ParameterSetName='LineFilter')][Int]$LineID,
+    [Parameter(ParameterSetName='SequenceFilter',Mandatory)][Int]$CallSequence,
+    [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
+
+  BEGIN {
+    $OutputArray = New-Object -TypeName System.Collections.ArrayList
+  } PROCESS {
+    foreach ($ThisIPv4Address in $IPv4Address) 
+    {
+      Try
+      {
+        $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v2/webCallControl/callStatus' -Retries $Retries -ErrorAction Stop
+      }
+      Catch 
+      {
+        Write-Debug -Message "Error caught: $_."
+        Write-Error -Message "Couldn't get call data from $ThisIPv4Address"
+        Continue
+      }
+      
+      foreach($Call in $ThisOutput.Data)
+      {
+      $CallDurationSeconds = [Int]$Call.DurationSeconds
+      
+      if($CallDurationSeconds -ne $null) 
+      {
+        $Modified = $Call
+        $PropertiesList = ($Modified | Get-Member).Name
+        #An awful lot of copy/paste with UcsPoll is happening here - we might be able to make one call processor to rule them all.
+        #Goes double now that there's a V2 api. Do that.
+        
+        if($PropertiesList -contains 'Ringing')
+        {
+          $Ringing = [Bool]([Int]$Modified.Ringing)
+          $Modified = $Modified | Select-Object -ExcludeProperty Ringing -Property *,@{Name='Ringing';Expression={$Ringing}}
+        }
+        
+        if($PropertiesList -contains 'Muted')
+        {
+          $Muted = [Bool]([Int]$Modified.Muted)
+          $Modified = $Modified | Select-Object -ExcludeProperty Muted -Property *,@{Name='Muted';Expression={$Muted}}
+        }
+        
+        if($PropertiesList -contains 'StartTime')
+        {
+          $StartTime = Get-Date $Modified.StartTime
+          $Modified = $Modified | Select-Object -ExcludeProperty StartTime -Property *,@{Name='StartTime';Expression={$StartTime}}
+        }
+        
+        if($PropertiesList -contains 'RTPPort')
+        {
+          $RTPPort = [Int]$Modified.RTPPort
+          $Modified = $Modified | Select-Object -ExcludeProperty RTPPort -Property *,@{Name='RTPPort';Expression={$RTPPort}}
+        }
+                
+        if($PropertiesList -contains 'RTCPPort')
+        {
+          $RTCPPort = [Int]$Modified.RTCPPort
+          $Modified = $Modified | Select-Object -ExcludeProperty RTCPPort -Property *,@{Name='RTCPPort';Expression={$RTCPPort}}
+        }
+        
+        if($PropertiesList -contains 'UIAppearanceIndex')
+        {
+          if($Modified.UIAppearanceIndex -match '^\d+\*$')
+          {
+            $ActiveCall = $true
+          }
+          elseif ($Modified.UIAppearanceIndex -match '^\d+$')
+          {
+            $ActiveCall = $false
+          }
+          else
+          {
+            $ActiveCall = $null
+          }
+          $UIAppearanceIndex = $Modified.UiAppearanceIndex.Trim(' *')
+          $Modified = $Modified | Select-Object -ExcludeProperty UIAppearanceIndex -Property *,@{Name='UIAppearanceIndex';Expression={$UIAppearanceIndex}},@{Name='ActiveCall';Expression={$ActiveCall}}
+        }
+        
+        if($Modified.CallHandle -match '^[0-9a-fA-F]{8}$')
+        {
+          $CallHandle = ('0x{0}' -f $Modified.CallHandle)
+          $Modified = $Modified | Select-Object -ExcludeProperty CallHandle -Property *,@{Name='CallHandle';Expression={$CallHandle}}          
+        }
+        
+        $Duration = New-TimeSpan -Seconds ($CallDurationSeconds)
+        $Modified = $Modified | Select-Object -ExcludeProperty DurationInSeconds,DurationSeconds -Property *, 
+              
+        @{
+          Name       = 'IPv4Address'
+          Expression = {
+            $ThisIPv4Address
+          }
+        }, 
+              
+        @{
+          Name       = 'Duration'
+          Expression = {
+            $Duration
+          }
+        }
+              
+        $null = $OutputArray.Add($Modified)
+        }
+      }
+    }
+  } END {
+    Return $OutputArray
+  }
+}
+
 Function Get-UcsRestPresence 
 {
   <#
