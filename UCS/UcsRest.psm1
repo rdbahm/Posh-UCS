@@ -1136,3 +1136,460 @@ Function Stop-UcsRestCall
   }
 }
 
+Function Set-UcsRestCallMute
+{
+  <#
+      .SYNOPSIS
+      Mute or unmute a call.
+
+      .PARAMETER IPv4Address
+      The network address in IPv4 notation, such as 192.123.45.67.
+
+      .PARAMETER Mute
+      Switch. If specified, mutes the call.
+  #>
+
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'Medium')]
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [Switch]$Mute,
+    [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
+    
+  BEGIN {
+    $OutputArray = New-Object -TypeName System.Collections.ArrayList
+  } PROCESS {
+    foreach ($ThisIPv4Address in $IPv4Address) 
+    {
+      $CallMuteString = ('{{"data":{{"state": "{0}"}}}}' -f [Int]$Mute)
+      Try
+      {
+        $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/callctrl/mute' -Body $CallMuteString -Method Post -Retries $Retries -ErrorAction Stop
+      }
+      Catch
+      {
+        Write-Debug -Message "Caught error $_."
+        Write-Error -Message "Couldn't mute for $ThisIPv4Address."
+        Continue
+      }
+      $null = $OutputArray.Add($ThisOutput.Status)
+      
+    }
+  } END {
+    Return $OutputArray
+  }
+}
+
+Function Start-UcsRestCallTransfer
+{
+  <#
+      .SYNOPSIS
+      Transfer a phone call.
+
+      .PARAMETER IPv4Address
+      The network address in IPv4 notation, such as 192.123.45.67.
+
+      .PARAMETER CallHandle
+      Manually specify the callhandle to end.
+
+      .PARAMETER Destination
+      The transfer destination. Mandatory.
+  #>
+
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'Medium')]
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [Parameter(ValueFromPipelineByPropertyName)][String][ValidatePattern('^0x[a-f0-9]{7,8}$')]$CallHandle,
+    [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries,
+    [Parameter(Mandatory)]$Destination)
+    
+  BEGIN {
+    $OutputArray = New-Object -TypeName System.Collections.ArrayList
+  } PROCESS {
+    foreach ($ThisIPv4Address in $IPv4Address) 
+    {
+      if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+      {
+        if($CallHandle -notmatch '^0x[a-f0-9]{7,8}$') 
+        {
+          #This section attempts to get a call handle if one was not provided.
+          if($CallHandle.Length -gt 0)
+          {
+            Write-Error -Message "Invalid call handle $CallHandle provided for $ThisIPv4Address."
+          }
+          else
+          {
+            Try
+            {
+              $CallStatus = Get-UcsRestCall -IPv4Address $ThisIPv4Address -ErrorAction Stop
+              $CallHandle = $CallStatus.CallHandle
+            }
+            Catch
+            {
+              Write-Error -Message "Couldn't get call handle for $ThisIPv4Address."
+              Continue
+            }
+          }
+        }
+
+        if($CallHandle.Length -gt 0) 
+        {
+          $CallHandle = Get-UcsCleanJSON -String $CallHandle
+
+          $TransferString = ('{{"data":{{"Ref": "{0}","TransferDest":"{1}"}}}}' -f $CallHandle,$Destination)
+          Try
+          {
+            $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/callctrl/transferCall' -Body $TransferString -Method Post -Retries $Retries -ErrorAction Stop
+          }
+          Catch
+          {
+            Write-Debug -Message "Caught error $_."
+            Write-Error -Message "Couldn't end call $CallHandle for $ThisIPv4Address."
+            Continue
+          }
+          $null = $OutputArray.Add($ThisOutput.Status)
+        }
+        else 
+        {
+          Write-Warning -Message ('No call to end for {0}.' -f $ThisIPv4Address)
+        }
+      }
+    }
+  } END {
+    Return $OutputArray
+  }
+}
+
+Function Send-UcsRestCallDTMF
+{
+  <#
+      .SYNOPSIS
+      Send keypad commands.
+
+      .PARAMETER IPv4Address
+      The network address in IPv4 notation, such as 192.123.45.67.
+
+      .PARAMETER Mute
+      Switch. If specified, mutes the call.
+  #>
+
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'Medium')]
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [Parameter(Mandatory)][ValidatePattern('^[0-9\#\*]+$')][String]$Digits,
+    [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
+    
+  BEGIN {
+    $OutputArray = New-Object -TypeName System.Collections.ArrayList
+  } PROCESS {
+    foreach ($ThisIPv4Address in $IPv4Address) 
+    {
+      $DTMFstring = ('{{"data":{{"Digits": "{0}"}}}}' -f $Digits)
+      Try
+      {
+        $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/callctrl/sendDTMF' -Body $DTMFstring -Method Post -Retries $Retries -ErrorAction Stop
+      }
+      Catch
+      {
+        Write-Debug -Message "Caught error $_."
+        Write-Error -Message "Couldn't send DTMF for $ThisIPv4Address."
+        Continue
+      }
+      $null = $OutputArray.Add($ThisOutput.Status)
+      
+    }
+  } END {
+    Return $OutputArray
+  }
+}
+
+Function Get-UcsRestCallLog
+{
+  <#
+      .SYNOPSIS
+      Get call logs from phone.
+
+      .PARAMETER IPv4Address
+      The network address in IPv4 notation, such as 192.123.45.67.
+
+      .PARAMETER Filter
+      Filter to missed, received, or placed.
+  #>
+
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'Medium')]
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [ValidateSet('All','Missed','Received','Placed')][String]$Filter = 'All',
+    [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
+    
+  BEGIN {
+    $OutputArray = New-Object -TypeName System.Collections.ArrayList
+  } PROCESS {
+    foreach ($ThisIPv4Address in $IPv4Address) 
+    {
+      if($Filter -eq 'All')
+      {
+        $FilterString = 'api/v1/mgmt/callLogs'
+      }
+      else
+      {
+        $FilterString = ('api/v1/mgmt/callLogs/{0}' -f $Filter.ToLower())
+      }
+      
+      Try
+      {
+        $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint $FilterString -Method Get -Retries $Retries -ErrorAction Stop
+      }
+      Catch
+      {
+        Write-Debug -Message "Caught error $_."
+        Write-Error -Message "Couldn't get calls for $ThisIPv4Address."
+        Continue
+      }
+      
+      $AllCallList = New-Object System.Collections.ArrayList
+
+      if($Filter -eq 'All')
+      {
+        $CallCategories = $ThisOutput.Data | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name
+        
+        Foreach($Category in $CallCategories)
+        {
+          Foreach($Call in $ThisOutput.Data.$Category)
+          {
+            $ThisCall = $Call | Select-Object -Property *,@{Name='Category';Expression={$Category}}
+            $null = $AllCallList.Add($ThisCall)
+          }
+        }
+      }
+      else
+      {
+        Foreach($Call in $ThisOutput.Data)
+        {
+          $ThisCall = $Call | Select-Object -Property *,@{Name='Category';Expression={$Filter}}
+          $null = $AllCallList.Add($ThisCall)
+        }
+      }
+
+      Foreach($Call in $AllCallList)
+      {
+        $Modified = $Call
+
+        $Modified.LineNumber = [Int]$Modified.LineNumber
+        
+        Try
+        {
+          $Modified.Duration = Convert-UcsRestDuration $Modified.Duration -ErrorAction Stop
+        }
+        Catch
+        {
+          $Modified.Duration = $null
+        }
+
+        $Modified.StartTime = Get-Date ($Modified.StartTime)
+        $Modified.RemotePartyNumber = $Modified.RemotePartyNumber.Replace("sip:","")
+
+        $Modified = $Modified | Select-Object *,@{Name="IPv4Address";Expression={$ThisIPv4Address}}
+
+        $null = $OutputArray.Add($Modified)
+      }
+    }
+  } END {
+    Return $OutputArray
+  }
+}
+
+Function Set-UcsRestCallHold
+{
+  <#
+      .SYNOPSIS
+      Hold or resume a call.
+
+      .PARAMETER IPv4Address
+      The network address in IPv4 notation, such as 192.123.45.67.
+
+      .PARAMETER Hold
+      Boolean. If true, places the call on hold. If false, resumes a held call.
+
+  #>
+
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'Medium')]
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [Boolean]$Hold = $true,
+    [Parameter(ValueFromPipelineByPropertyName)][String][ValidatePattern('^0x[a-f0-9]{7,8}$')]$CallHandle,
+    [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
+    
+  BEGIN {
+    $OutputArray = New-Object -TypeName System.Collections.ArrayList
+  } PROCESS {
+    foreach ($ThisIPv4Address in $IPv4Address) 
+    {
+      if($CallHandle.Length -gt 4)
+      {
+        $CallRefString = ('{{"data":{{"Ref": "{0}"}}}}' -f [Int]$CallHandle)
+      }
+      else
+      {
+        $CallRefString = ''
+      }
+
+      Try
+      {
+        if($Hold)
+        {
+          $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/callctrl/holdCall' -Body $CallRefString -Method Post -Retries $Retries -ErrorAction Stop
+        }
+        else
+        {
+          $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/callctrl/resumeCall' -Body $CallRefString -Method Post -Retries $Retries -ErrorAction Stop
+        }
+      }
+      Catch
+      {
+        Write-Debug -Message "Caught error $_."
+        Write-Error -Message "Couldn't hold/resume for $ThisIPv4Address."
+        Continue
+      }
+      $null = $OutputArray.Add($ThisOutput.Status)
+      
+    }
+  } END {
+    Return $OutputArray
+  }
+}
+
+Function Start-UcsRestCallAnswer
+{
+  <#
+      .SYNOPSIS
+      Answer
+
+      .PARAMETER IPv4Address
+      The network address in IPv4 notation, such as 192.123.45.67.
+
+      .PARAMETER CallHandle
+      Optional. If specified, answers the specified call.
+
+      .PARAMETER Ignore
+      Switch. If specified, call is ignored instead of answered.
+
+      .PARAMETER Reject
+      Switch. If specified, call is rejected instead of answered. Takes precedence over Ignore.
+  #>
+
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'Medium')]
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [Parameter(ValueFromPipelineByPropertyName)][String][ValidatePattern('^0x[a-f0-9]{7,8}$')]$CallHandle,
+    [Switch]$Ignore,
+    [Switch]$Reject,
+    [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
+    
+  BEGIN {
+    $OutputArray = New-Object -TypeName System.Collections.ArrayList
+  } PROCESS {
+    foreach ($ThisIPv4Address in $IPv4Address) 
+    {
+      if($CallHandle.Length -gt 4)
+      {
+        $CallRefString = ('{{"data":{{"Ref": "{0}"}}}}' -f [Int]$CallHandle)
+      }
+      else
+      {
+        $CallRefString = ''
+      }
+
+      Try
+      {
+        if($Reject)
+        {
+          $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/callctrl/rejectCall' -Body $CallRefString -Method Post -Retries $Retries -ErrorAction Stop
+        }
+        elseif($Ignore)
+        {
+          $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/callctrl/ignoreCall' -Body $CallRefString -Method Post -Retries $Retries -ErrorAction Stop
+        }
+        else
+        {
+          $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/callctrl/answerCall' -Body $CallRefString -Method Post -Retries $Retries -ErrorAction Stop
+        }
+      }
+      Catch
+      {
+        Write-Debug -Message "Caught error $_."
+        Write-Error -Message "Couldn't answer for $ThisIPv4Address."
+        Continue
+      }
+      $null = $OutputArray.Add($ThisOutput.Status)
+      
+    }
+  } END {
+    Return $OutputArray
+  }
+}
+
+Function Get-UcsRestStatus 
+{
+  <#
+      .SYNOPSIS
+      Polls for idle/active/error state
+
+      .PARAMETER IPv4Address
+      The phone's IP address in standard format: 192.168.1.20
+
+      .EXAMPLE
+      Get-Presence -IPv4Address 192.168.1.20
+      Returns the presence of the phone at the specified IP address.
+  #>
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
+
+  BEGIN {
+    $OutputArray = New-Object -TypeName System.Collections.ArrayList
+  } PROCESS {
+    foreach ($ThisIPv4Address in $IPv4Address) 
+    {
+      Try 
+      {
+        $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/pollForStatus' -Retries $Retries -ErrorAction Stop
+      }
+      Catch 
+      {
+        Write-Debug -Message "Caught error $_."
+        Write-Error -Message "Couldn't get status data from $ThisIPv4Address."
+        Continue
+      }
+      
+      if($ThisOutput -ne $null) 
+      {
+        $Modified = $ThisOutput.data
+
+        $Duration = $null
+        $TimeofLastCall = $null
+        $ErrorString = $null
+
+        if($Modified.State -eq "Active")
+        {
+          #We're in a call. Provision a "duration" property.
+          $DurationString = $Modified.StateData.Replace('Active call duration','').Trim()
+          $Duration = Convert-UcsRestDuration -Duration $DurationString
+        }
+        elseif($Modified.State -eq "Idle")
+        {
+          #No call in progress. Provision a "Time since last call" property.
+          $LastCallString = $Modified.StateData.Replace('Time of last call','').Trim()
+          $TimeofLastCall = Get-Date $LastCallString
+        }
+        else
+        {
+          #Probably an error.
+          $ErrorString = $Modified.StateData
+        }
+
+        $Modified = $Modified | Select-Object -Property State,@{Name='Duration';Expression={$Duration}},@{Name='TimeOfLastCall';Expression={$TimeOfLastCall}},@{Name='ErrorString';Expression={$ErrorString}},@{
+          Name       = 'IPv4Address'
+          Expression = {
+            $ThisIPv4Address
+          }
+        }
+        $null = $OutputArray.Add($Modified)
+      }
+    }
+  } END {
+    Return $OutputArray
+  }
+}

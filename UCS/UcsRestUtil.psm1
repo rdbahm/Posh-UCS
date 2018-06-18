@@ -180,3 +180,52 @@ Function Invoke-UcsRestMethod
 
   Return $RestOutput
 }
+
+Function Convert-UcsRestDuration 
+{
+  <#
+      .SYNOPSIS
+      Gets a call duration from output, then converts to a timespan.
+
+      .DESCRIPTION
+      Takes a pattern such as "5 mins 25 secs" and converts to a standard timespan.
+
+      .PARAMETER Duration
+      Duration string from UCS.
+
+      .EXAMPLE
+      Convert-UcsDuration -Duration Value
+      Returns a timespan object.
+
+      .OUTPUTS
+      Timespan
+  #>
+  Param ([Parameter(Mandatory,HelpMessage = '1 day 2 hours 3 mins 1 sec')][String]$Duration)
+  
+  $AvailableStrings = ('day','hour','min','sec')
+
+  #This is about the least programmer-friendly return for a REST API that I can imagine.
+  #Format is "1 day 2 hours 3 mins 12 secs".
+  #I've not found documentation on the generation of the string, so I've only confirmed...
+  #that minutes and seconds work this way - unsure if hours or days are abbreviated.
+  #I'm also not sure that they even give you hours and days.
+  #But I can confirm that they unhelpfully pluralize the words when appropriate.
+  
+  Foreach($Interval in $AvailableStrings)
+  {
+    if ($Duration -match ('\d+ (?={0}s?)' -f $Interval))
+    {
+      $IntervalValue = [Int]$Matches[0]
+      Write-Debug "Found a duration for $Interval. $ThisDuration"
+      
+    }
+    else
+    {
+      $IntervalValue = 0
+    }
+    
+    Set-Variable -Name $Interval -Value $IntervalValue
+  }
+
+  return New-TimeSpan -Days $day -Hours $hour -Minutes $min -Seconds $sec
+}
