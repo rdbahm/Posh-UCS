@@ -924,18 +924,27 @@ Function Get-UcsRestNetworkStats
   } PROCESS {
     foreach ($ThisIPv4Address in $IPv4Address) 
     {
-      $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/network/stats' -Retries $Retries
-      if($ThisOutput -ne $null) 
+      Try
       {
-        $Modified = $ThisOutput.data
-        $Modified = $Modified | Select-Object -Property *, @{
-          Name       = 'IPv4Address'
-          Expression = {
-            $ThisIPv4Address
+        $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/network/stats' -Retries $Retries -ErrorAction Stop
+        if($ThisOutput -ne $null) 
+        {
+          $Modified = $ThisOutput.data
+          $Modified = $Modified | Select-Object -Property *, @{
+            Name       = 'IPv4Address'
+            Expression = {
+              $ThisIPv4Address
+            }
           }
+          $Modified.RxPackets = [Int32]$Modified.RxPackets
+          $Modified.TxPackets = [Int32]$Modified.TxPackets
+          $Modified.UpTime = Convert-UcsUptimeString -Uptime $Modified.Uptime
+          $null = $OutputArray.Add($Modified)
         }
-        $Modified.UpTime = Convert-UcsUptimeString -Uptime $Modified.Uptime
-        $null = $OutputArray.Add($Modified)
+      }
+      Catch
+      {
+        Write-Error "Couldn't connect to $ThisIPv4Address for network stats."
       }
     }
   } END {
