@@ -578,7 +578,8 @@ Function Get-UcsRestCall
       
       Try
       {
-        #5.7 and above uses "DurationSeconds" instead of "DurationInSeconds"
+        #5.7 uses "DurationSeconds" instead of "DurationInSeconds"
+        #In 5.8, it returns to "DurationInSeconds" for the V1 API and the changes in V1 are implemented in the V2 API.
         if( ($ThisOutput.data | Get-Member -ErrorAction Stop).Name -contains 'DurationSeconds' )
         {
           $CallDurationSeconds = $ThisOutput.data.DurationSeconds
