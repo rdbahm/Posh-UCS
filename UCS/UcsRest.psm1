@@ -1433,11 +1433,12 @@ Function Get-UcsRestCallLog
 
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'Medium')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
-    [ValidateSet('All','Missed','Received','Placed')][String]$Filter = 'All',
+    [ValidateSet('All','Missed','Incoming','Outgoing')][String]$Filter = 'All',
     [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
     
   BEGIN {
     $OutputArray = New-Object -TypeName System.Collections.ArrayList
+    $FilterMapping = @{'All'='all';'Missed'='missed';'Incoming'='received';'Outgoing'='placed'}
   } PROCESS {
     foreach ($ThisIPv4Address in $IPv4Address) 
     {
@@ -1447,7 +1448,7 @@ Function Get-UcsRestCallLog
       }
       else
       {
-        $FilterString = ('api/v1/mgmt/callLogs/{0}' -f $Filter.ToLower())
+        $FilterString = ('api/v1/mgmt/callLogs/{0}' -f $FilterMapping[$Filter])
       }
       
       Try
@@ -1471,8 +1472,8 @@ Function Get-UcsRestCallLog
         {
           Foreach($Call in $ThisOutput.Data.$Category)
           {
-            $ThisCall = $Call | Select-Object -Property *,@{Name='Category';Expression={$Category}}
-            $null = $AllCallList.Add($ThisCall)
+            $ThisCallType = $Category
+            $null = $AllCallList.Add($Call)
           }
         }
       }
@@ -1480,32 +1481,23 @@ Function Get-UcsRestCallLog
       {
         Foreach($Call in $ThisOutput.Data)
         {
-          $ThisCall = $Call | Select-Object -Property *,@{Name='Category';Expression={$Filter}}
-          $null = $AllCallList.Add($ThisCall)
+          $ThisCallType = $Filter
+          $null = $AllCallList.Add($Call)
         }
       }
 
       Foreach($Call in $AllCallList)
       {
-        $Modified = $Call
+        $ThisCallObject = New-UcsCallObject `
+          -Type $ThisCallType `
+          -StartTime $Call.StartTime `
+          -RemotePartyName $Call.RemotePartyName `
+          -RemotePartyNumber $Call.RemotePartyNumber `
+          -LineId $Call.LineNumber `
+          -IPv4Address $ThisIPv4Address `
+          -ExcludeNullProperties
 
-        $Modified.LineNumber = [Int]$Modified.LineNumber
-        
-        Try
-        {
-          $Modified.Duration = Convert-UcsRestDuration $Modified.Duration -ErrorAction Stop
-        }
-        Catch
-        {
-          $Modified.Duration = $null
-        }
-
-        $Modified.StartTime = Get-Date ($Modified.StartTime)
-        $Modified.RemotePartyNumber = $Modified.RemotePartyNumber.Replace("sip:","")
-
-        $Modified = $Modified | Select-Object *,@{Name="IPv4Address";Expression={$ThisIPv4Address}}
-
-        $null = $OutputArray.Add($Modified)
+        $null = $OutputArray.Add($ThisCallObject)
       }
     }
   } END {

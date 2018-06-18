@@ -474,7 +474,7 @@ Function New-UcsCallObject
 {
   Param(`
     [String][ValidatePattern('^(0x)?[a-f0-9]{7,8}$')]$CallHandle = $null,
-    [ValidateSet('','Incoming','Outgoing')][String]$Type = $null,
+    [ValidateSet('','Incoming','Outgoing','Missed','Placed','Received')][String]$Type = $null,
     [String]$RemotePartyName = $null,
     [String]$RemotePartyNumber = $null,
     [String]$LocalPartyName = $null,
@@ -558,10 +558,18 @@ Function New-UcsCallObject
     }
   }
 
+  #Compute a start time based on duration and current time.
   if($ThisOutputCall.StartTime -eq $null -and $ThisOutputCall.Duration -ne $null)
   {
-    #Compute a start time based on duration and current time.
     $ThisOutputCall.StartTime = (Get-Date) - $ThisOutputCall.Duration
+    $NullProperties = $NullProperties | Where-Object { $_ -ne "StartTime" }
+  }
+  elseif($ThisOutputCall.Duration -eq $null -and $ThisOutputCall.StartTime -ne $null)
+  {
+    #Calculate the duration. Drop milliseconds.
+    $ThisDuration = (Get-Date) - (Get-Date $ThisOutputCall.StartTime)
+    $ThisOutputCall.Duration = New-TimeSpan -Seconds ([Int]$ThisDuration.TotalSeconds)
+    $NullProperties = $NullProperties | Where-Object { $_ -ne "Duration" }
   }
 
   if($ThisOutputCall.CallHandle -ne $null -and $ThisOutputCall.CallHandle -notmatch '^0x?[a-f0-9]{7,8}$' )
@@ -589,6 +597,16 @@ Function New-UcsCallObject
   {
     #V1 REST API returns "CallHold" instead of "Hold," so we coerce it into the right format.
     $ThisOutputCall.CallState = 'Hold'
+  }
+
+  #We standardize calls and call logs with the same names.
+  if($ThisOutputCall.Type -eq 'Placed')
+  {
+    $ThisOutputCall.Type = 'Outgoing'
+  }
+  elseif($ThisOutputCall.Type -eq 'Received')
+  {
+    $ThisOutputCall.Type = 'Incoming'
   }
 
   if($ExcludeNullProperties)
