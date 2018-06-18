@@ -596,35 +596,24 @@ Function Get-UcsRestCall
       
       if($CallDurationSeconds -ne $null) 
       {
-        $Modified = $ThisOutput.data
-        $PropertiesList = ($Modified | Get-Member).Name
-        #An awful lot of copy/paste with UcsPoll is happening here - we might be able to make one call processor to rule them all.
-        
-        if($PropertiesList -contains 'Ringing')
+        $ThisCall = $ThisOutput.data
+        Try
         {
-          $Ringing = [Bool]$Modified.Ringing
-          $Modified = $Modified | Select-Object -ExcludeProperty Ringing -Property *,@{Name='Ringing';Expression={$Ringing}}
+          $PropertiesList = ($ThisCall | Get-Member -ErrorAction Stop).Name
         }
-        
-        if($PropertiesList -contains 'Muted')
+        Catch
         {
-          $Muted = [Bool]$Modified.Muted
-          $Modified = $Modified | Select-Object -ExcludeProperty Muted -Property *,@{Name='Muted';Expression={$Muted}}
-        }
-        
-        if($PropertiesList -contains 'StartTime')
-        {
-          $StartTime = Get-Date $Modified.StartTime
-          $Modified = $Modified | Select-Object -ExcludeProperty StartTime -Property *,@{Name='StartTime';Expression={$StartTime}}
+          Write-Debug "$ThisIPv4Address couldn't get a call."
+          Continue
         }
         
         if($PropertiesList -contains 'UIAppearanceIndex')
         {
-          if($Modified.UIAppearanceIndex -match '^\d+\*$')
+          if($ThisCall.UIAppearanceIndex -match '^\d+\*$')
           {
             $ActiveCall = $true
           }
-          elseif ($Modified.UIAppearanceIndex -match '^\d+$')
+          elseif ($ThisCall.UIAppearanceIndex -match '^\d+$')
           {
             $ActiveCall = $false
           }
@@ -632,34 +621,48 @@ Function Get-UcsRestCall
           {
             $ActiveCall = $null
           }
-          $UIAppearanceIndex = $Modified.UiAppearanceIndex.Trim(' *')
-          $Modified = $Modified | Select-Object -ExcludeProperty UIAppearanceIndex -Property *,@{Name='UIAppearanceIndex';Expression={$UIAppearanceIndex}},@{Name='ActiveCall';Expression={$ActiveCall}}
+          $UIAppearanceIndex = $ThisCall.UiAppearanceIndex.Trim(' *')
         }
-        
-        if($Modified.CallHandle -match '^[0-9a-fA-F]{8}$')
+
+        if($ThisCall.StartTime.Length -gt 2)
         {
-          $CallHandle = ('0x{0}' -f $Modified.CallHandle)
-          $Modified = $Modified | Select-Object -ExcludeProperty CallHandle -Property *,@{Name='CallHandle';Expression={$CallHandle}}          
+          $ThisStartTime = Get-Date $ThisCall.StartTime
+        }
+        else
+        {
+          $ThisStartTime = $null
+        }
+
+        if($ThisCall.Muted -ne $null)
+        {
+          $ThisCall.Muted = [Int]$ThisCall.Muted
+        }
+        if($ThisCall.Ringing -ne $null)
+        {
+          $ThisCall.Ringing = [Int]$ThisCall.Ringing
         }
         
-        $Duration = New-TimeSpan -Seconds ($CallDurationSeconds)
-        $Modified = $Modified | Select-Object -ExcludeProperty DurationInSeconds,DurationSeconds -Property *, 
-              
-        @{
-          Name       = 'IPv4Address'
-          Expression = {
-            $ThisIPv4Address
-          }
-        }, 
-              
-        @{
-          Name       = 'Duration'
-          Expression = {
-            $Duration
-          }
-        }
-              
-        $null = $OutputArray.Add($Modified)
+        $ThisCallObject = New-UcsCallObject `
+          -Type $ThisCall.Type `
+          -CallHandle $ThisCall.CallHandle `
+          -Duration (New-TimeSpan -Seconds $CallDurationSeconds) `
+          -Protocol $ThisCall.Protocol.ToUpper() `
+          -CallState $ThisCall.CallState `
+          -RemotePartyName $ThisCall.RemotePartyName `
+          -LineId $ThisCall.LineId `
+          -RemotePartyNumber $ThisCall.RemotePartyNumber `
+          -Muted $ThisCall.Muted `
+          -Ringing $ThisCall.Muted `
+          -CallSequence $ThisCall.CallSequence `
+          -UIAppearanceIndex $UIAppearanceIndex `
+          -ActiveCall $ActiveCall `
+          -RTPPort $ThisCall.RTPPort `
+          -RTCPPort $ThisCall.RTCPPort `
+          -StartTime $ThisStartTime `
+          -IPv4Address $ThisIPv4Address `
+          -ExcludeNullProperties
+         
+        $null = $OutputArray.Add($ThisCallObject)
       }
     }
   } END {
@@ -702,9 +705,25 @@ Function Get-UcsRestCallv2
   } PROCESS {
     foreach ($ThisIPv4Address in $IPv4Address) 
     {
+      $ApiEndpointString = 'api/v2/webCallControl/callStatus'
+      if($PSCmdlet.ParameterSetName -eq 'CallHandleFilter')
+      {
+        $ThisCallHandle = $CallHandle.Substring(2) #API wants the part after "Ox," so we remove it.
+        $ApiEndpointString += "?handle=$ThisCallHandle"
+      }
+      elseif($PSCmdlet.ParameterSetName -eq 'LineFilter')
+      {
+        $ApiEndpointString += "?line=$LineID"
+      }
+      elseif($PSCmdlet.ParameterSetName -eq 'SequenceFilter')
+      {
+        $ApiEndpointString += "?line=$LineID&sequence=$CallSequence"
+      }
+      
+      
       Try
       {
-        $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v2/webCallControl/callStatus' -Retries $Retries -ErrorAction Stop
+        $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint $ApiEndpointString -Retries $Retries -ErrorAction Stop
       }
       Catch 
       {
@@ -713,89 +732,51 @@ Function Get-UcsRestCallv2
         Continue
       }
       
-      foreach($Call in $ThisOutput.Data)
+      foreach($ThisCall in $ThisOutput.Data)
       {
-      $CallDurationSeconds = [Int]$Call.DurationSeconds
+        $CallDurationSeconds = [Int]$ThisCall.DurationSeconds
       
-      if($CallDurationSeconds -ne $null) 
-      {
-        $Modified = $Call
-        $PropertiesList = ($Modified | Get-Member).Name
-        #An awful lot of copy/paste with UcsPoll is happening here - we might be able to make one call processor to rule them all.
-        #Goes double now that there's a V2 api. Do that.
-        
-        if($PropertiesList -contains 'Ringing')
+        if($CallDurationSeconds -ne $null) 
         {
-          $Ringing = [Bool]([Int]$Modified.Ringing)
-          $Modified = $Modified | Select-Object -ExcludeProperty Ringing -Property *,@{Name='Ringing';Expression={$Ringing}}
+        $PropertiesList = ($ThisCall | Get-Member).Name
+
+        if($ThisCall.StartTime.Length -gt 2)
+        {
+          $ThisStartTime = Get-Date $ThisCall.StartTime
         }
-        
-        if($PropertiesList -contains 'Muted')
+        else
         {
-          $Muted = [Bool]([Int]$Modified.Muted)
-          $Modified = $Modified | Select-Object -ExcludeProperty Muted -Property *,@{Name='Muted';Expression={$Muted}}
+          $ThisStartTime = $null
         }
-        
-        if($PropertiesList -contains 'StartTime')
+
+        if($ThisCall.Muted -ne $null)
         {
-          $StartTime = Get-Date $Modified.StartTime
-          $Modified = $Modified | Select-Object -ExcludeProperty StartTime -Property *,@{Name='StartTime';Expression={$StartTime}}
+          $ThisCall.Muted = [Int]$ThisCall.Muted
+        }
+        if($ThisCall.Ringing -ne $null)
+        {
+          $ThisCall.Ringing = [Int]$ThisCall.Ringing
         }
         
-        if($PropertiesList -contains 'RTPPort')
-        {
-          $RTPPort = [Int]$Modified.RTPPort
-          $Modified = $Modified | Select-Object -ExcludeProperty RTPPort -Property *,@{Name='RTPPort';Expression={$RTPPort}}
-        }
-                
-        if($PropertiesList -contains 'RTCPPort')
-        {
-          $RTCPPort = [Int]$Modified.RTCPPort
-          $Modified = $Modified | Select-Object -ExcludeProperty RTCPPort -Property *,@{Name='RTCPPort';Expression={$RTCPPort}}
-        }
-        
-        if($PropertiesList -contains 'UIAppearanceIndex')
-        {
-          if($Modified.UIAppearanceIndex -match '^\d+\*$')
-          {
-            $ActiveCall = $true
-          }
-          elseif ($Modified.UIAppearanceIndex -match '^\d+$')
-          {
-            $ActiveCall = $false
-          }
-          else
-          {
-            $ActiveCall = $null
-          }
-          $UIAppearanceIndex = $Modified.UiAppearanceIndex.Trim(' *')
-          $Modified = $Modified | Select-Object -ExcludeProperty UIAppearanceIndex -Property *,@{Name='UIAppearanceIndex';Expression={$UIAppearanceIndex}},@{Name='ActiveCall';Expression={$ActiveCall}}
-        }
-        
-        if($Modified.CallHandle -match '^[0-9a-fA-F]{8}$')
-        {
-          $CallHandle = ('0x{0}' -f $Modified.CallHandle)
-          $Modified = $Modified | Select-Object -ExcludeProperty CallHandle -Property *,@{Name='CallHandle';Expression={$CallHandle}}          
-        }
-        
-        $Duration = New-TimeSpan -Seconds ($CallDurationSeconds)
-        $Modified = $Modified | Select-Object -ExcludeProperty DurationInSeconds,DurationSeconds -Property *, 
-              
-        @{
-          Name       = 'IPv4Address'
-          Expression = {
-            $ThisIPv4Address
-          }
-        }, 
-              
-        @{
-          Name       = 'Duration'
-          Expression = {
-            $Duration
-          }
-        }
-              
-        $null = $OutputArray.Add($Modified)
+        $ThisCallObject = New-UcsCallObject `
+          -Type $ThisCall.Type `
+          -CallHandle $ThisCall.CallHandle `
+          -Duration (New-TimeSpan -Seconds $CallDurationSeconds) `
+          -Protocol $ThisCall.Protocol.ToUpper() `
+          -CallState $ThisCall.CallState `
+          -RemotePartyName $ThisCall.RemotePartyName `
+          -LineId $ThisCall.LineId `
+          -RemotePartyNumber $ThisCall.RemotePartyNumber `
+          -Muted $ThisCall.Muted `
+          -Ringing $ThisCall.Ringing `
+          -CallSequence $ThisCall.CallSequence `
+          -UIAppearanceIndex $ThisCall.UiAppearanceIndex `
+          -RTPPort $ThisCall.RTPPort `
+          -RTCPPort $ThisCall.RTCPPort `
+          -StartTime $ThisStartTime `
+          -IPv4Address $ThisIPv4Address
+         
+        $null = $OutputArray.Add($ThisCallObject)
         }
       }
     }

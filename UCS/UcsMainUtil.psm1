@@ -469,3 +469,132 @@ Function Get-UcsUnixTime
   $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
   Return $UnixTime
 }
+
+Function New-UcsCallObject
+{
+  Param(`
+    [String][ValidatePattern('^(0x)?[a-f0-9]{7,8}$')]$CallHandle = $null,
+    [ValidateSet('','Incoming','Outgoing')][String]$Type = $null,
+    [String]$RemotePartyName = $null,
+    [String]$RemotePartyNumber = $null,
+    [String]$LocalPartyName = $null,
+    [String]$LocalPartyNumber = $null,
+    [ValidateSet('Dialtone','Connected','CallHold','Hold','Setup','RingBack','Offering','')][String]$CallState = $null,
+    [ValidateSet('SIP','')][String]$Protocol = $null,
+    [Nullable[DateTime]]$StartTime = $null,
+    [Nullable[TimeSpan]]$Duration = $null,
+    [ValidateRange(0,100)][Int]$LineID = -1,
+    [ValidateRange(0,100)][Int]$CallSequence = -1,
+    [ValidatePattern('^(\d{1,2}\*?)?$')][String]$UIAppearanceIndex = $null,
+    [Nullable[Bool]]$ActiveCall = $null,
+    [Nullable[Bool]]$Ringing = $null,
+    [Nullable[Bool]]$Muted = $null,
+    [ValidateRange(0,65535)][Int]$RTPPort = -1,
+    [ValidateRange(0,65535)][Int]$RTCPPort = -1,
+    [ValidatePattern('^[a-f0-9]{12}$')][String]$MacAddress = $null,
+    [Parameter(HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String]$IPv4Address = $null,
+    [Switch]$ExcludeNullProperties`
+  )
+
+  $ThisOutputCall = New-Object -TypeName PSObject
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name CallHandle -Value $CallHandle
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name Type -Value $Type
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name RemotePartyName -Value $RemotePartyName
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name RemotePartyNumber -Value $RemotePartyNumber
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name LocalPartyName -Value $LocalPartyName
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name LocalPartyNumber -Value $LocalPartyNumber
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name CallState -Value $CallState
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name Protocol -Value $Protocol
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name StartTime -Value $StartTime
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name Duration -Value $Duration
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name LineID -Value $LineID
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name CallSequence -Value $CallSequence
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name UIAppearanceIndex -Value $UIAppearanceIndex
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name ActiveCall -Value $UIAppearanceIndex #Temporary value
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name Ringing -Value $Ringing
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name Muted -Value $Muted
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name RTPPort -Value $RTPPort
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name RTCPPort -Value $RTCPPort
+
+  if($MacAddress.Length -eq 12)
+  {
+    $ThisOutputCall | Add-Member -MemberType NoteProperty -Name MacAddress -Value $MacAddress
+  }
+  if($IPv4Address.Length -gt 0)
+  {
+    $ThisOutputCall | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address
+  }
+
+  #Null any properties that weren't included.
+  $NullProperties = New-Object System.Collections.ArrayList
+  Foreach($Property in ($ThisOutputCall | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name))
+  {
+    $ThisValue = $ThisOutputCall.$Property
+    $IsNull = $false
+
+    if($ThisValue -eq $null)
+    {
+      $IsNull = $true
+    }
+    elseif($ThisValue.GetType().Name -eq "Int32")
+    {
+      if($ThisValue -le 0)
+      {
+        $IsNull = $true
+      }
+    }
+    elseif($ThisValue.GetType().Name -eq "String")
+    {
+      if($ThisValue -eq "")
+      {
+        $IsNull = $true
+      }
+    }
+
+    if($IsNull)
+    {
+      $ThisOutputCall.$Property = $null
+      $null = $NullProperties.Add($Property)
+    }
+  }
+
+  if($ThisOutputCall.StartTime -eq $null -and $ThisOutputCall.Duration -ne $null)
+  {
+    #Compute a start time based on duration and current time.
+    $ThisOutputCall.StartTime = (Get-Date) - $ThisOutputCall.Duration
+  }
+
+  if($ThisOutputCall.CallHandle -ne $null -and $ThisOutputCall.CallHandle -notmatch '^0x?[a-f0-9]{7,8}$' )
+  {
+    #If there's a callhandle that needs modification.
+    $ThisOutputCall.CallHandle = ('0x{0}' -f $ThisOutputCall.CallHandle)
+  }
+
+  if($ThisOutputCall.UIAppearanceIndex -ne $null)
+  {
+    #If a UI Appearance Index is provided, compute if this is the active call.
+    if($ThisOutputCall.UIAppearanceIndex -match '^\d+\*$')
+    {
+      $ActiveCall = $true
+    }
+    else
+    {
+      $ActiveCall = $false
+    }
+    $ThisOutputCall.UIAppearanceIndex = [Int]($ThisOutputCall.UIAppearanceIndex.Trim(' *'))
+    $ThisOutputCall.ActiveCall = $ActiveCall
+  }
+
+  if($ThisOutputCall.CallState -eq 'CallHold')
+  {
+    #V1 REST API returns "CallHold" instead of "Hold," so we coerce it into the right format.
+    $ThisOutputCall.CallState = 'Hold'
+  }
+
+  if($ExcludeNullProperties)
+  {
+    $ThisOutputCall = $ThisOutputCall | Select-Object -Property * -ExcludeProperty $NullProperties
+  }
+
+  Return $ThisOutputCall
+}

@@ -171,30 +171,44 @@ Function Get-UcsPollCall
       
       Foreach($Line in $ThisResult)
       {
-        Foreach($Call in $Line.CallInfo)
+        Foreach($ThisCall in $Line.CallInfo)
         {
-          $Ringing = [Bool]$Line.Ringing
-          $Muted = [Bool]$Line.Muted
-          if($Call.UIAppearanceIndex -match '^\d+\*$')
+          #Most cmdlets return "remote" and "local" party info. Poll returns "called" and "calling."
+          if($ThisCall.CallType -eq "Outgoing")
           {
-            $ActiveCall = $true
-          }
-          elseif ($Call.UIAppearanceIndex -match '^\d+$')
-          {
-            $ActiveCall = $false
+            $LocalPartyName = $ThisCall.CallingPartyName
+            $LocalPartyNumber = $ThisCall.CallingPartyDirNum
+            $RemotePartyName = $ThisCall.CalledPartyName
+            $RemotePartyNumber = $ThisCall.CalledPartyDirNum
           }
           else
           {
-            $ActiveCall = $null
+            $LocalPartyName = $ThisCall.CalledPartyName
+            $LocalPartyNumber = $ThisCall.CalledPartyDirNum
+            $RemotePartyName = $ThisCall.CallingPartyName
+            $RemotePartyNumber = $ThisCall.CallingPartyDirNum
           }
+
           #Older firmware versions (4.1.4 was tested) don't return a protocol for a call.
-          $UIAppearanceIndex = $Call.UiAppearanceIndex.Trim(' *')
-          $ThisOutput = $Call | Select-Object Protocol,CallState,@{Name='Type';Expression={$_.CallType}},@{Name='CallHandle';Expression={('0x{0}' -f $_.CallReference)}},@{Name='RemotePartyName';Expression={$_.CalledPartyName}},@{Name='RemotePartyNumber';Expression={$_.CalledPartyDirNum}},@{Name='RemoteMuted';Expression={$Muted}},@{Name='Ringing';Expression={$Ringing}},@{Name='Duration';Expression={New-Timespan -Seconds $_.CallDuration}},@{Name='LineId';Expression={$Line.LineKeyNum}},@{Name='SipAddress';Expression={$Line.LineDirNum}},@{Name='ActiveCall';Expression={$ActiveCall}},@{Name='UIAppearanceIndex';Expression={$UIAppearanceIndex}},@{Name='IPv4Address';Expression={$ThisIPv4Address}}
-          $null = $AllResults.Add($ThisOutput)
+          $ThisCallObject = New-UcsCallObject `
+            -Type $ThisCall.CallType `
+            -CallHandle $ThisCall.CallReference `
+            -Duration (New-TimeSpan -Seconds $ThisCall.CallDuration) `
+            -Protocol $ThisCall.Protocol.ToUpper() `
+            -CallState $ThisCall.CallState `
+            -RemotePartyName $RemotePartyName `
+            -RemotePartyNumber $RemotePartyNumber `
+            -LocalPartyName $LocalPartyName `
+            -LocalPartyNumber $LocalPartyNumber `
+            -LineId $ThisCall.LineId `
+            -Muted ([Int]$ThisCall.Muted) `
+            -Ringing ([Int]$ThisCall.Ringing) `
+            -UIAppearanceIndex $ThisCall.UiAppearanceIndex `
+            -IPv4Address $ThisIPv4Address `
+            -ExcludeNullProperties
+          $null = $AllResults.Add($ThisCallObject)
         }
-      }
-      
-      
+      }      
     }
   }
   End
