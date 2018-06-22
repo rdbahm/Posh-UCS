@@ -475,6 +475,7 @@ Function New-UcsCallObject
   Param(`
     [String][ValidatePattern('^(0x)?[a-f0-9]{7,8}$')]$CallHandle = $null,
     [ValidateSet('','Incoming','Outgoing','Missed','Placed','Received')][String]$Type = $null,
+    [ValidateSet('','Conference','Normal','Rejected','RemotelyHandled','Transferred','Busy','UserForwarded')][String]$Disposition = $null,
     [String]$RemotePartyName = $null,
     [String]$RemotePartyNumber = $null,
     [String]$LocalPartyName = $null,
@@ -493,12 +494,14 @@ Function New-UcsCallObject
     [ValidateRange(0,65535)][Int]$RTCPPort = -1,
     [ValidatePattern('^[a-f0-9]{12}$')][String]$MacAddress = $null,
     [Parameter(HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String]$IPv4Address = $null,
-    [Switch]$ExcludeNullProperties`
+    [Switch]$ExcludeNullProperties,
+    [Switch]$IsLog ` #For logs, we don't want to compute based on current time.
   )
 
   $ThisOutputCall = New-Object -TypeName PSObject
   $ThisOutputCall | Add-Member -MemberType NoteProperty -Name CallHandle -Value $CallHandle
   $ThisOutputCall | Add-Member -MemberType NoteProperty -Name Type -Value $Type
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name Disposition -Value $Disposition
   $ThisOutputCall | Add-Member -MemberType NoteProperty -Name RemotePartyName -Value $RemotePartyName
   $ThisOutputCall | Add-Member -MemberType NoteProperty -Name RemotePartyNumber -Value $RemotePartyNumber
   $ThisOutputCall | Add-Member -MemberType NoteProperty -Name LocalPartyName -Value $LocalPartyName
@@ -559,12 +562,12 @@ Function New-UcsCallObject
   }
 
   #Compute a start time based on duration and current time.
-  if($ThisOutputCall.StartTime -eq $null -and $ThisOutputCall.Duration -ne $null)
+  if($ThisOutputCall.StartTime -eq $null -and $ThisOutputCall.Duration -ne $null -and $IsLog -ne $true)
   {
     $ThisOutputCall.StartTime = (Get-Date) - $ThisOutputCall.Duration
     $NullProperties = $NullProperties | Where-Object { $_ -ne "StartTime" }
   }
-  elseif($ThisOutputCall.Duration -eq $null -and $ThisOutputCall.StartTime -ne $null)
+  elseif($ThisOutputCall.Duration -eq $null -and $ThisOutputCall.StartTime -ne $null -and $IsLog -ne $true)
   {
     #Calculate the duration. Drop milliseconds.
     $ThisDuration = (Get-Date) - (Get-Date $ThisOutputCall.StartTime)
@@ -600,11 +603,11 @@ Function New-UcsCallObject
   }
 
   #We standardize calls and call logs with the same names.
-  if($ThisOutputCall.Type -eq 'Placed')
+  if($ThisOutputCall.Type -eq 'Placed' -or $ThisOutputCall.Type -eq 'Out')
   {
     $ThisOutputCall.Type = 'Outgoing'
   }
-  elseif($ThisOutputCall.Type -eq 'Received')
+  elseif($ThisOutputCall.Type -eq 'Received' -or $ThisOutputCall.Type -eq 'In')
   {
     $ThisOutputCall.Type = 'Incoming'
   }
