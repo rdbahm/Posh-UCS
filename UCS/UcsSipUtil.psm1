@@ -124,13 +124,18 @@ Function Convert-UcsSipResponse
     
     if($Line.Length -lt 3) 
     {
-      Write-Debug -Message "Skipped Line $Line"
+      Write-Debug -Message "Skipped Line `"$Line`""
       Continue
     }
     
     $ColonIndex = $Line.IndexOf(':')
     $ParameterName = $Line.Substring(0,$ColonIndex)
     $ParameterValue = ($Line.Substring($ColonIndex + 1)).Trim(' ')
+
+    if($ParameterName -in $ParameterList)
+    {
+      Write-Debug ('{0} is already in the parameter set. Overriding original value "{1}" with new value "{2}".' -f $ParameterName,$ObjectBuilder.$ParameterName,$ParameterValue)
+    }
 
     $null = $ParameterList.Add($ParameterName)
     
