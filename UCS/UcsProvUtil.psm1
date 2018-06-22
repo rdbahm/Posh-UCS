@@ -227,94 +227,39 @@ Function Import-UcsProvCallLogXml
         $ThisDestinationName = Format-UcsProvCallData -CallData $Call.Destination -Type Name
         $ThisConnectionName = Format-UcsProvCallData -CallData $Call.Connection -Type Name
 
-        $ThisPhoneUser = $null
         if($Call.direction -eq 'In') 
         {
-          $ThisPhoneUser = $ThisDestination
+          $RemotePartyName = $ThisSourceName
+          $RemotePartyNumber = $ThisSource
+          $LocalPartyName = $ThisDestinationName
+          $LocalPartyNumber = $ThisDestination
         }
         else 
         {
-          $ThisPhoneUser = $ThisSource
-        }
-
-        $ThisCall = $Duration | Select-Object -Property @{
-          Name       = 'MacAddress'
-          Expression = {
-            $File.BaseName.Substring(0, 12)
-          }
-        }, @{
-          Name       = 'PhoneUser'
-          Expression = {
-            $ThisPhoneUser
-          }
-        }, @{
-          Name       = 'Direction'
-          Expression = {
-            $Call.Direction
-          }
-        }, @{
-          Name       = 'Disposition'
-          Expression = {
-            $Call.Disposition
-          }
-        }, @{
-          Name       = 'Line'
-          Expression = {
-            $Call.Line
-          }
-        }, @{
-          Name       = 'Protocol'
-          Expression = {
-            $Call.Protocol
-          }
-        }, @{
-          Name       = 'StartTime'
-          Expression = {
-            Get-Date -Date $Call.StartTime
-          }
-        }, @{
-          Name       = 'Count'
-          Expression = {
-            $Call.Count
-          }
-        }, @{
-          Name       = 'Duration'
-          Expression = {
-            $_
-          }
-        }, @{
-          Name       = 'Source'
-          Expression = {
-            $ThisSource
-          }
-        }, @{
-          Name       = 'SourceName'
-          Expression = {
-            $ThisSourceName
-          }
-        }, @{
-          Name       = 'Destination'
-          Expression = {
-            $ThisDestination
-          }
-        }, @{
-          Name       = 'DestinationName'
-          Expression = {
-            $ThisDestinationName
-          }
-        }, @{
-          Name       = 'Connection'
-          Expression = {
-            $ThisConnection
-          }
-        }, @{
-          Name       = 'ConnectionName'
-          Expression = {
-            $ThisConnectionName
-          }
+          $RemotePartyName = $ThisDestinationName
+          $RemotePartyNumber = $ThisDestination
+          $LocalPartyName = $ThisSource
+          $LocalPartyNumber =  $ThisSourceName
         }
         
+        $ThisCall = New-UcsCallObject -Type $Call.direction `
+          -RemotePartyName $RemotePartyName `
+          -RemotePartyNumber $RemotePartyNumber `
+          -LocalPartyName $LocalPartyName `
+          -LocalPartyNumber $LocalPartyNumber `
+          -ConnectionName $ThisConnectionName `
+          -ConnectionNumber $ThisConnection `
+          -CallState Log `
+          -Protocol $Call.Protocol `
+          -LineID $Call.Line `
+          -StartTime (Get-Date -Date $Call.StartTime) `
+          -Duration $Duration `
+          -MacAddress $File.BaseName.Substring(0, 12) `
+          -Disposition $Call.Disposition `
+          -IsLog `
+          -ExcludeNullProperties
 
+        #Missing: Connection
 
         $null = $AllCalls.Add($ThisCall)
       }

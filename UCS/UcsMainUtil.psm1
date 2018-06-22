@@ -474,13 +474,15 @@ Function New-UcsCallObject
 {
   Param(`
     [String][ValidatePattern('^(0x)?[a-f0-9]{7,8}$')]$CallHandle = $null,
-    [ValidateSet('','Incoming','Outgoing','Missed','Placed','Received')][String]$Type = $null,
-    [ValidateSet('','Conference','Normal','Rejected','RemotelyHandled','Transferred','Busy','UserForwarded')][String]$Disposition = $null,
-    [String]$RemotePartyName = $null,
-    [String]$RemotePartyNumber = $null,
-    [String]$LocalPartyName = $null,
-    [String]$LocalPartyNumber = $null,
-    [ValidateSet('Dialtone','Connected','CallHold','Hold','Setup','RingBack','Offering','')][String]$CallState = $null,
+    [ValidateSet('','Incoming','Outgoing','Missed','Placed','Received','In','Out')][String]$Type = $null,
+    [ValidateSet('','Conference','Normal','Rejected','RemotelyHandled','Transferred','Busy','UserForwarded','Partial')][String]$Disposition = $null,
+    [String[]]$RemotePartyName = $null,
+    [String[]]$RemotePartyNumber = $null,
+    [String[]]$LocalPartyName = $null,
+    [String[]]$LocalPartyNumber = $null,
+    [String[]]$ConnectionName = $null,
+    [String[]]$ConnectionNumber = $null,
+    [ValidateSet('Dialtone','Connected','CallHold','Hold','Setup','RingBack','Offering','Log','')][String]$CallState = $null,
     [ValidateSet('SIP','')][String]$Protocol = $null,
     [Nullable[DateTime]]$StartTime = $null,
     [Nullable[TimeSpan]]$Duration = $null,
@@ -506,6 +508,8 @@ Function New-UcsCallObject
   $ThisOutputCall | Add-Member -MemberType NoteProperty -Name RemotePartyNumber -Value $RemotePartyNumber
   $ThisOutputCall | Add-Member -MemberType NoteProperty -Name LocalPartyName -Value $LocalPartyName
   $ThisOutputCall | Add-Member -MemberType NoteProperty -Name LocalPartyNumber -Value $LocalPartyNumber
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name ConnectionName -Value $ConnectionName
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name ConnectionNumber -Value $ConnectionNumber
   $ThisOutputCall | Add-Member -MemberType NoteProperty -Name CallState -Value $CallState
   $ThisOutputCall | Add-Member -MemberType NoteProperty -Name Protocol -Value $Protocol
   $ThisOutputCall | Add-Member -MemberType NoteProperty -Name StartTime -Value $StartTime
@@ -552,6 +556,23 @@ Function New-UcsCallObject
       {
         $IsNull = $true
       }
+    }
+    elseif($ThisValue.GetType().Name -eq "String[]")
+    {
+      #String array, smash into a string if it's only one long.
+      if($ThisValue.Count -eq 0)
+      {
+        $IsNull = $true
+      }
+      elseif($ThisValue.Count -eq 1)
+      {
+        $ThisOutputCall.$Property = $ThisValue[0]
+        Write-Debug "Property $Property was a single-value array. Smashed to string."
+      }
+    }
+    else
+    {
+      Write-Debug "Value for property $Property was non-null: $ThisValue"
     }
 
     if($IsNull)
