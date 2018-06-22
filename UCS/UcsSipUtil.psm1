@@ -109,7 +109,7 @@ Function Convert-UcsSipResponse
   $ParameterList = New-Object -TypeName System.Collections.ArrayList
   
   $SipOK = $false
-  $ObjectBuilder = $null
+  $ObjectBuilder = New-Object -TypeName PSObject
   Foreach($Line in $PhoneResponse) 
   {
     if($Line -like '*SIP/2.0 200 OK*') 
@@ -131,26 +131,10 @@ Function Convert-UcsSipResponse
     $ColonIndex = $Line.IndexOf(':')
     $ParameterName = $Line.Substring(0,$ColonIndex)
     $ParameterValue = ($Line.Substring($ColonIndex + 1)).Trim(' ')
+
     $null = $ParameterList.Add($ParameterName)
     
-    if($ObjectBuilder -ne $null) 
-    {
-      $ObjectBuilder = $ObjectBuilder | Select-Object -Property *, @{
-        Name       = "$ParameterName"
-        Expression = {
-          $ParameterValue
-        }
-      }
-    }
-    else 
-    {
-      $ObjectBuilder = $ParameterName | Select-Object -Property @{
-        Name       = "$ParameterName"
-        Expression = {
-          $ParameterValue
-        }
-      }
-    }
+    $ObjectBuilder | Add-Member -MemberType NoteProperty -Name $ParameterName -Value $ParameterValue -Force
   }
   
   $ParsedSipMessage = $ObjectBuilder
