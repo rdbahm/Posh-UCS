@@ -482,7 +482,7 @@ Function New-UcsCallObject
     [String[]]$LocalPartyNumber = $null,
     [String[]]$ConnectionName = $null,
     [String[]]$ConnectionNumber = $null,
-    [ValidateSet('Dialtone','Connected','CallHold','Hold','Setup','RingBack','Offering','Log','')][String]$CallState = $null,
+    [ValidateSet('Dialtone','Connected','CallHold','Hold','Setup','RingBack','Offering','Log','Proceeding','')][String]$CallState = $null,
     [ValidateSet('SIP','')][String]$Protocol = $null,
     [Nullable[DateTime]]$StartTime = $null,
     [Nullable[TimeSpan]]$Duration = $null,
@@ -621,6 +621,10 @@ Function New-UcsCallObject
   {
     #V1 REST API returns "CallHold" instead of "Hold," so we coerce it into the right format.
     $ThisOutputCall.CallState = 'Hold'
+  }
+  elseif($ThisOutputCall.CallState -eq 'Proceeding')
+  {
+    $ThisOutputCall.CallState = 'Connected'
   }
 
   #We standardize calls and call logs with the same names.
