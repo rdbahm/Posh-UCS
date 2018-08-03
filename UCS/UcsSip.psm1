@@ -35,7 +35,7 @@ Function Get-UcsSipPhoneInfo
       }
       Catch 
       {
-        Write-Error -Message "Unable to get results from $ThisIPv4Address." -ErrorAction Stop -Category ConnectionError
+        Write-Error -Message "Unable to get results from $ThisIPv4Address." -Category ConnectionError
       }
       
       
