@@ -138,6 +138,7 @@ Function Get-UcsRestParameter
         $Output = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/config/get' -Body $ParameterName -Method Post -Retries $Retries
             
         $Output = $Output.Data
+        #TODO: Add capability of checking InvalidParams.
       }
       Catch 
       {
@@ -159,55 +160,21 @@ Function Get-UcsRestParameter
 
       Foreach($ParameterName in $ParameterNames) 
       {
+        $ThisResult = New-Object -TypeName PsCustomObject
+        $ThisResult | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $ThisIPv4Address
+        $ThisResult | Add-Member -MemberType NoteProperty -Name Parameter -Value $ParameterName
+        
         Try 
         {
-          $ThisParameterResult = $Output | Select-Object -ExpandProperty $ParameterName
-          $ThisResult = $ThisParameterResult | Select-Object -Property @{
-            Name       = 'IPv4Address'
-            Expression = {
-              $IPv4Address
-            }
-          }, @{
-            Name       = 'Parameter'
-            Expression = {
-              $ParameterName
-            }
-          }, @{
-            Name       = 'Value'
-            Expression = {
-              $ThisParameterResult.Value
-            }
-          }, @{
-            Name       = 'Source'
-            Expression = {
-              $ThisParameterResult.Source
-            }
-          }
+          $ThisParameterResult = $Output | Select-Object -ExpandProperty $ParameterName -ErrorAction Stop
+          $ThisResult | Add-Member -MemberType NoteProperty -Name Value -Value $ThisParameterResult.Value
+          $ThisResult | Add-Member -MemberType NoteProperty -Name Source -Value $ThisParameterResult.Source
         }
         Catch 
         {
           Write-Error -Message "Couldn't create a parameter output object for $ThisIPv4Address"
-          $ThisResult = $Output | Select-Object -Property @{
-            Name       = 'IPv4Address'
-            Expression = {
-              $IPv4Address
-            }
-          }, @{
-            Name       = 'Parameter'
-            Expression = {
-              $ParameterName
-            }
-          }, @{
-            Name       = 'Value'
-            Expression = {
-              $null
-            }
-          }, @{
-            Name       = 'Source'
-            Expression = {
-              'Error'
-            }
-          }
+          $ThisResult | Add-Member -MemberType NoteProperty -Name Value -Value $null
+          $ThisResult | Add-Member -MemberType NoteProperty -Name Source -Value "Error"
         }
       
         $null = $OutputArray.Add($ThisResult)

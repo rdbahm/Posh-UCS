@@ -85,7 +85,12 @@ Function Get-UcsPollDeviceInfo
         Write-Debug "Couldn't get a SIP address."
       }
 
-      $FinalResult = $ThisResult | Select-Object @{Name='MacAddress';Expression={$_.MACAddress}},@{Name='Model';Expression={$_.ModelNumber}},@{Name='FirmwareRelease';Expression={$FirmwareRelease}},@{Name='SipAddress';Expression={$SipAddress}},@{Name='IPv4Address';Expression={$ThisIPv4Address}}
+      $FinalResult = New-Object PsCustomObject
+      $FinalResult | Add-Member -MemberType NoteProperty -Name MacAddress -Value $ThisResult.MacAddress
+      $FinalResult | Add-Member -MemberType NoteProperty -Name Model -Value $ThisResult.ModelNumber
+      $FinalResult | Add-Member -MemberType NoteProperty -Name FirmwareRelease -Value $FirmwareRelease
+      $FinalResult | Add-Member -MemberType NoteProperty -Name SipAddress -Value $SipAddress
+      $FinalResult | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $ThisIPv4Address
       
       $null = $AllResults.Add($FinalResult)
     }
@@ -133,7 +138,17 @@ Function Get-UcsPollNetworkInfo
         $DHCPEnabled = $null
       }
       
-      $FinalResult = $ThisResult | Select-Object SubnetMask,VLANID,DHCPServer,@{Name='DNSDomain';Expression={$_.DNSSuffix}},@{Name='ProvServerAddress';Expression={$_.ProvServer}},@{Name='DefaultGateway';Expression={$_.DefaultRouter}},@{Name='DNSServer';Expression={$_.DNSServer1}},@{Name='AlternateDNSServer';Expression={$_.DNSServer2}},@{Name='DHCPEnabled';Expression={$DHCPEnabled}},@{Name='MacAddress';Expression={$_.MACAddress}},@{Name='IPv4Address';Expression={$ThisIPv4Address}}
+      $FinalResult = New-Object PsCustomObject
+      $FinalResult | Add-Member -MemberType NoteProperty -Name SubnetMask -Value $ThisResult.SubnetMask
+      $FinalResult | Add-Member -MemberType NoteProperty -Name VLANID -Value $ThisResult.VLANID
+      $FinalResult | Add-Member -MemberType NoteProperty -Name DHCPServer -Value $ThisResult.DNSSuffix
+      $FinalResult | Add-Member -MemberType NoteProperty -Name ProvServerAddress -Value $ThisResult.ProvServer
+      $FinalResult | Add-Member -MemberType NoteProperty -Name DefaultGateway -Value $ThisResult.DefaultRouter
+      $FinalResult | Add-Member -MemberType NoteProperty -Name DNSServer -Value $ThisResult.DNSServer1
+      $FinalResult | Add-Member -MemberType NoteProperty -Name AlternateDNSServer -Value $ThisResult.DNSServer2
+      $FinalResult | Add-Member -MemberType NoteProperty -Name DHCPEnabled -Value $DHCPEnabled
+      $FinalResult | Add-Member -MemberType NoteProperty -Name MacAddress -Value $ThisResult.MacAddress
+      $FinalResult | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $ThisIPv4Address
       
       $null = $AllResults.Add($FinalResult)
     }
