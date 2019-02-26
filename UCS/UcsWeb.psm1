@@ -1030,10 +1030,16 @@ Function Get-UcsWebLyncSignIn
           $IsUsingCfg = $true
         }
        
+        $SipAddress = $null
+        if($Credentials.address.length -gt 2)
+        {
+          $SipAddress = ('sip:{0}' -f $Credentials.address)
+        }
+       
         $ThisOutput = $ThisOutput | Select-Object -Property *, @{
           Name       = 'SipAddress'
           Expression = {
-            $Credentials.address
+            $SipAddress
           }
         }, @{
           Name       = 'Domain'

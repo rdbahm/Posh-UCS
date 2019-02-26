@@ -110,15 +110,12 @@ Function Invoke-UcsRestMethod
     {
       $RetriesRemaining-- #Deincrement the counter so we remember our state.
       $ErrorStatusCode = $_.Exception.Response.StatusCode.Value__ #Returns null if it timed out.
-      $Category = "ConnectionError"
 
             if($ErrorStatusCode -eq '403' -or $ErrorStatusCode -eq '401')
             {
               #No number of retries will fix an authentication error.
-              $AdditionalInfo =  "403 error returned - unauthorized or wrong credentials."
-              Write-Debug $AdditionalInfo
-              
-              $Category = "AuthenticationError"
+             
+              $Exception = New-Object System.UnauthorizedAccessException ("Couldn't connect. REST API may be disabled on $IPv4Address.",$_.Exception)
               $ThisCredentialIndex++
               
               if($ThisCredentialIndex -lt $Credential.Count)
@@ -133,9 +130,12 @@ Function Invoke-UcsRestMethod
             }
             elseif($ErrorStatusCode -eq '404')
             {
-              $AdditionalInfo = "404 error returned - API is disabled on phone. Skipping retries."
-              Write-Debug $AdditionalInfo
+              $Exception = New-Object System.Runtime.InteropServices.ExternalException ("Couldn't connect. REST API may be disabled on $IPv4Address.",$_.Exception)
               $RetriesRemaining = 0
+            }
+            else
+            {
+              $Exception = New-Object System.Runtime.InteropServices.ExternalException ("An error occurred while connecting to $IPv4Address.",$_.Exception)
             }
             
       if($RetriesRemaining -le 0) 
@@ -149,8 +149,7 @@ Function Invoke-UcsRestMethod
           }
         }
         
-        Write-Error -Message ("Couldn't connect to IP {0}. {1}" -f $IPv4Address,$AdditionalInfo) -Category $Category
-        Write-Debug -Message ('Returned error was "{0}".' -f $_)
+        Throw $Exception
       }
       else 
       {
@@ -175,9 +174,58 @@ Function Invoke-UcsRestMethod
     $RestOutput.Status = $ThisStatus
     if($ThisStatus.IsSuccess -eq $false) 
     {
-      Write-Error -Message ('An error occurred for API endpoint {0} with status code {1}: {2}' -f $ApiEndpoint, $ThisStatus.StatusCode, $ThisStatus.StatusString) -Category InvalidResult
+      Throw $ThisStatus.Exception
     }
   }
 
   Return $RestOutput
+}
+
+Function Convert-UcsRestDuration 
+{
+  <#
+      .SYNOPSIS
+      Gets a call duration from output, then converts to a timespan.
+
+      .DESCRIPTION
+      Takes a pattern such as "5 mins 25 secs" and converts to a standard timespan.
+
+      .PARAMETER Duration
+      Duration string from UCS.
+
+      .EXAMPLE
+      Convert-UcsDuration -Duration Value
+      Returns a timespan object.
+
+      .OUTPUTS
+      Timespan
+  #>
+  Param ([Parameter(Mandatory,HelpMessage = '1 day 2 hours 3 mins 1 sec')][String]$Duration)
+  
+  $AvailableStrings = ('day','hour','min','sec')
+
+  #This is about the least programmer-friendly return for a REST API that I can imagine.
+  #Format is "1 day 2 hours 3 mins 12 secs".
+  #I've not found documentation on the generation of the string, so I've only confirmed...
+  #that minutes and seconds work this way - unsure if hours or days are abbreviated.
+  #I'm also not sure that they even give you hours and days.
+  #But I can confirm that they unhelpfully pluralize the words when appropriate.
+  
+  Foreach($Interval in $AvailableStrings)
+  {
+    if ($Duration -match ('\d+ (?={0}s?)' -f $Interval))
+    {
+      $IntervalValue = [Int]$Matches[0]
+      Write-Debug "Found a duration for $Interval. $ThisDuration"
+      
+    }
+    else
+    {
+      $IntervalValue = 0
+    }
+    
+    Set-Variable -Name $Interval -Value $IntervalValue
+  }
+
+  return New-TimeSpan -Days $day -Hours $hour -Minutes $min -Seconds $sec
 }

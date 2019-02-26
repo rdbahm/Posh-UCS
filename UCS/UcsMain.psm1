@@ -161,31 +161,8 @@ Function Get-UcsPhoneInfo
       .SYNOPSIS
       Retrieves most commonly used phone data.
 
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
       .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67.
-
-      .PARAMETER Quiet
-      Describe parameter -Quiet.
-
-      .EXAMPLE
-      Get-SummaryPhoneData -IPv4Address Value -Quiet
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-SummaryPhoneData
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
   #>
 
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
@@ -746,23 +723,6 @@ Function Find-UcsPhoneByDHCP
 
       .DESCRIPTION
       Uses the DHCP cmdlets to enumerate all DHCP scopes, then checks each scope for leases assigned to Polycom-prefixed MAC addresses. It requires the DHCP and AD Powershell modules to operate.
-
-      .EXAMPLE
-      Find-PhoneByDHCP
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Find-PhoneByDHCP
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
   #>
   Param(
     [String[]]$MacAddressPrefix = ('0004f2', '64167F')
@@ -1080,42 +1040,14 @@ Function Test-UcsAPI
         $SIPStatus = $false
       }
       
-      $ThisStatusResult = 1 | Select-Object -Property @{
-        Name       = 'REST'
-        Expression = {
-          $RESTStatus
-        }
-      }, @{
-        Name       = 'Poll'
-        Expression = {
-          $PollStatus
-        }
-      }, @{
-        Name       = 'Provisioning'
-        Expression = {
-          $ProvisioningStatus
-        }
-      }, @{
-        Name       = 'Push'
-        Expression = {
-          $PushStatus
-        }
-      }, @{
-        Name       = 'SIP'
-        Expression = {
-          $SIPStatus
-        }
-      }, @{
-        Name       = 'Web'
-        Expression = {
-          $WebStatus
-        }
-      }, @{
-        Name       = 'IPv4Address'
-        Expression = {
-          $ThisIPv4Address
-        }
-      }
+      $ThisStatusResult = New-Object -TypeName PSObject
+      $ThisStatusResult | Add-Member -MemberType NoteProperty -Name REST -Value $RESTStatus
+      $ThisStatusResult | Add-Member -MemberType NoteProperty -Name Poll -Value $PollStatus
+      $ThisStatusResult | Add-Member -MemberType NoteProperty -Name Provisioning -Value $ProvisioningStatus
+      $ThisStatusResult | Add-Member -MemberType NoteProperty -Name Push -Value $PushStatus
+      $ThisStatusResult | Add-Member -MemberType NoteProperty -Name SIP -Value $SIPStatus
+      $ThisStatusResult | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $ThisIPv4Address
+      
       $null = $ResultArray.Add($ThisStatusResult)
     }
   }

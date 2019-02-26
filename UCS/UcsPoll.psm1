@@ -51,16 +51,46 @@ Function Get-UcsPollDeviceInfo
       {
         $Matches = $null
         $PhoneDNs = $ThisResult.PhoneDN.Split(',')
-        $PhoneDN = $PhoneDNs[0] #We're dropping all results but the first one because I'm in a Skype for Business environment and can't be bothered.
-        $null = $ThisResult.PhoneDN -match '(?<=:).+@.+$'
-        $SipAddress = $Matches[0]
+        
+        $SipAddress = $null
+        Foreach($DN in $PhoneDNs)
+        {
+          $null = $DN -match '[^@&=+$,:;\?/]+@[^@&=+$:,;\?/]+'
+          $ThisSipAddress = $Matches[0]
+          $ThisSipAddress = ('sip:{0}' -f $ThisSipAddress)
+          
+          #If we have only one, we return it as a bare string. Otherwise, we make an ArrayList.
+          if($SipAddress -eq $null)
+          {
+            $SipAddress = $ThisSipAddress
+          }
+          elseif($SipAddress.Count -gt 1)
+          {
+            $null = $SipAddress.Add($ThisSipAddress)
+          }
+          else
+          {
+            $NewSipAddress = New-Object System.Collections.ArrayList
+            $null = $NewSipAddress.Add($ThisSipAddress)
+            $null = $NewSipAddress.Add($SipAddress)
+            $SipAddress = $NewSipAddress
+          }
+        }
+        
+        $SipAddress = $SipAddress | Sort-Object -Unique #Remove duplicates.
+        
       }
       Catch
       {
         Write-Debug "Couldn't get a SIP address."
       }
 
-      $FinalResult = $ThisResult | Select-Object @{Name='MacAddress';Expression={$_.MACAddress}},@{Name='Model';Expression={$_.ModelNumber}},@{Name='FirmwareRelease';Expression={$FirmwareRelease}},@{Name='SipAddress';Expression={$SipAddress}},@{Name='IPv4Address';Expression={$ThisIPv4Address}}
+      $FinalResult = New-Object PsCustomObject
+      $FinalResult | Add-Member -MemberType NoteProperty -Name MacAddress -Value $ThisResult.MacAddress
+      $FinalResult | Add-Member -MemberType NoteProperty -Name Model -Value $ThisResult.ModelNumber
+      $FinalResult | Add-Member -MemberType NoteProperty -Name FirmwareRelease -Value $FirmwareRelease
+      $FinalResult | Add-Member -MemberType NoteProperty -Name SipAddress -Value $SipAddress
+      $FinalResult | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $ThisIPv4Address
       
       $null = $AllResults.Add($FinalResult)
     }
@@ -108,7 +138,17 @@ Function Get-UcsPollNetworkInfo
         $DHCPEnabled = $null
       }
       
-      $FinalResult = $ThisResult | Select-Object SubnetMask,VLANID,DHCPServer,@{Name='DNSDomain';Expression={$_.DNSSuffix}},@{Name='ProvServerAddress';Expression={$_.ProvServer}},@{Name='DefaultGateway';Expression={$_.DefaultRouter}},@{Name='DNSServer';Expression={$_.DNSServer1}},@{Name='AlternateDNSServer';Expression={$_.DNSServer2}},@{Name='DHCPEnabled';Expression={$DHCPEnabled}},@{Name='MacAddress';Expression={$_.MACAddress}},@{Name='IPv4Address';Expression={$ThisIPv4Address}}
+      $FinalResult = New-Object PsCustomObject
+      $FinalResult | Add-Member -MemberType NoteProperty -Name SubnetMask -Value $ThisResult.SubnetMask
+      $FinalResult | Add-Member -MemberType NoteProperty -Name VLANID -Value $ThisResult.VLANID
+      $FinalResult | Add-Member -MemberType NoteProperty -Name DHCPServer -Value $ThisResult.DNSSuffix
+      $FinalResult | Add-Member -MemberType NoteProperty -Name ProvServerAddress -Value $ThisResult.ProvServer
+      $FinalResult | Add-Member -MemberType NoteProperty -Name DefaultGateway -Value $ThisResult.DefaultRouter
+      $FinalResult | Add-Member -MemberType NoteProperty -Name DNSServer -Value $ThisResult.DNSServer1
+      $FinalResult | Add-Member -MemberType NoteProperty -Name AlternateDNSServer -Value $ThisResult.DNSServer2
+      $FinalResult | Add-Member -MemberType NoteProperty -Name DHCPEnabled -Value $DHCPEnabled
+      $FinalResult | Add-Member -MemberType NoteProperty -Name MacAddress -Value $ThisResult.MacAddress
+      $FinalResult | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $ThisIPv4Address
       
       $null = $AllResults.Add($FinalResult)
     }
@@ -147,30 +187,44 @@ Function Get-UcsPollCall
       
       Foreach($Line in $ThisResult)
       {
-        Foreach($Call in $Line.CallInfo)
+        Foreach($ThisCall in $Line.CallInfo)
         {
-          $Ringing = [Bool]$Line.Ringing
-          $Muted = [Bool]$Line.Muted
-          if($Call.UIAppearanceIndex -match '^\d+\*$')
+          #Most cmdlets return "remote" and "local" party info. Poll returns "called" and "calling."
+          if($ThisCall.CallType -eq "Outgoing")
           {
-            $ActiveCall = $true
-          }
-          elseif ($Call.UIAppearanceIndex -match '^\d+$')
-          {
-            $ActiveCall = $false
+            $LocalPartyName = $ThisCall.CallingPartyName
+            $LocalPartyNumber = $ThisCall.CallingPartyDirNum
+            $RemotePartyName = $ThisCall.CalledPartyName
+            $RemotePartyNumber = $ThisCall.CalledPartyDirNum
           }
           else
           {
-            $ActiveCall = $null
+            $LocalPartyName = $ThisCall.CalledPartyName
+            $LocalPartyNumber = $ThisCall.CalledPartyDirNum
+            $RemotePartyName = $ThisCall.CallingPartyName
+            $RemotePartyNumber = $ThisCall.CallingPartyDirNum
           }
+
           #Older firmware versions (4.1.4 was tested) don't return a protocol for a call.
-          $UIAppearanceIndex = $Call.UiAppearanceIndex.Trim(' *')
-          $ThisOutput = $Call | Select-Object Protocol,CallState,@{Name='Type';Expression={$_.CallType}},@{Name='CallHandle';Expression={('0x{0}' -f $_.CallReference)}},@{Name='RemotePartyName';Expression={$_.CalledPartyName}},@{Name='RemotePartyNumber';Expression={$_.CalledPartyDirNum}},@{Name='RemoteMuted';Expression={$Muted}},@{Name='Ringing';Expression={$Ringing}},@{Name='Duration';Expression={New-Timespan -Seconds $_.CallDuration}},@{Name='LineId';Expression={$Line.LineKeyNum}},@{Name='SipAddress';Expression={$Line.LineDirNum}},@{Name='ActiveCall';Expression={$ActiveCall}},@{Name='UIAppearanceIndex';Expression={$UIAppearanceIndex}},@{Name='IPv4Address';Expression={$ThisIPv4Address}}
-          $null = $AllResults.Add($ThisOutput)
+          $ThisCallObject = New-UcsCallObject `
+            -Type $ThisCall.CallType `
+            -CallHandle $ThisCall.CallReference `
+            -Duration (New-TimeSpan -Seconds $ThisCall.CallDuration) `
+            -Protocol $ThisCall.Protocol.ToUpper() `
+            -CallState $ThisCall.CallState `
+            -RemotePartyName $RemotePartyName `
+            -RemotePartyNumber $RemotePartyNumber `
+            -LocalPartyName $LocalPartyName `
+            -LocalPartyNumber $LocalPartyNumber `
+            -LineId $ThisCall.LineId `
+            -Muted ([Int]$ThisCall.Muted) `
+            -Ringing ([Int]$ThisCall.Ringing) `
+            -UIAppearanceIndex $ThisCall.UiAppearanceIndex `
+            -IPv4Address $ThisIPv4Address `
+            -ExcludeNullProperties
+          $null = $AllResults.Add($ThisCallObject)
         }
-      }
-      
-      
+      }      
     }
   }
   End

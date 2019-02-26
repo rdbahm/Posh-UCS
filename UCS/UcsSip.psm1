@@ -35,7 +35,7 @@ Function Get-UcsSipPhoneInfo
       }
       Catch 
       {
-        Write-Error -Message "Unable to get results from $ThisIPv4Address." -ErrorAction Stop -Category ConnectionError
+        Write-Error -Message "Unable to get results from $ThisIPv4Address." -Category ConnectionError
       }
       
       
@@ -57,7 +57,7 @@ Function Get-UcsSipPhoneInfo
         Write-Error -Message "No properties available for $ThisIPv4Address"
         Continue
       }
-      $TheseProperties = $null
+      $TheseProperties = New-Object -TypeName PSObject
       $Registered = $false
       Foreach($Property in $AllProperties) 
       {
@@ -109,43 +109,13 @@ Function Get-UcsSipPhoneInfo
                 Write-Debug -Message "Couldn't get MAC address for $ThisIPv4Address."
               }
               
-              if($TheseProperties -eq $null) 
-              {
-                $TheseProperties = 1 | Select-Object -Property @{
-                  Name       = 'Model'
-                  Expression = {
-                    $Model
-                  }
-                }, @{
-                  Name       = 'FirmwareRelease'
-                  Expression = {
-                    $Version
-                  }
-                }
-              }
-              else 
-              {
-                $TheseProperties = $TheseProperties | Select-Object -Property *, @{
-                  Name       = 'Model'
-                  Expression = {
-                    $Model
-                  }
-                }, @{
-                  Name       = 'FirmwareRelease'
-                  Expression = {
-                    $Version
-                  }
-                }
-              }
+              $TheseProperties | Add-Member -MemberType NoteProperty -Name Model -Value $Model
+              $TheseProperties | Add-Member -MemberType NoteProperty -Name FirmwareRelease -Value $Version
+
               
               if($MacAddress -ne $null) 
               {
-                $TheseProperties = $TheseProperties | Select-Object -Property *, @{
-                  Name       = 'MacAddress'
-                  Expression = {
-                    $MacAddress
-                  }
-                }
+                $TheseProperties | Add-Member -MemberType NoteProperty -Name MacAddress -Value $MacAddress
               }
             }
           }
@@ -159,7 +129,7 @@ Function Get-UcsSipPhoneInfo
               #Actual value looks like: "John Smith" <sip:john@smith.com>,<tel:+15555555555;ext=55555> in Lync base profile when signed in.
               #If a user doesn't have a LineURI, it'll look like: "John Smith" <sip:john@smith.com>
               $Matches = $null
-              $null = $Value -match '(?<=<sip:).+@.+\.[^>]+(?=>)'
+              $null = $Value -match 'sip:.+@.+\.[^>]+(?=>)'
               $SipAddress = $Matches[0]
               $Matches = $null
               $null = $Value -match "^`"[^`"]+`"" #Find the display name.
@@ -173,44 +143,9 @@ Function Get-UcsSipPhoneInfo
                 $LineUri = $Matches[0]
               }
               
-              if($TheseProperties -eq $null) 
-              {
-                $TheseProperties = 1 | Select-Object -Property @{
-                  Name       = 'SIPAddress'
-                  Expression = {
-                    $SipAddress
-                  }
-                }, @{
-                  Name       = 'Label'
-                  Expression = {
-                    $DisplayName
-                  }
-                }, @{
-                  Name       = 'LineUri'
-                  Expression = {
-                    $LineUri
-                  }
-                }
-              }
-              else 
-              {
-                $TheseProperties = $TheseProperties | Select-Object -Property *, @{
-                  Name       = 'SIPAddress'
-                  Expression = {
-                    $SipAddress
-                  }
-                }, @{
-                  Name       = 'Label'
-                  Expression = {
-                    $DisplayName
-                  }
-                }, @{
-                  Name       = 'LineUri'
-                  Expression = {
-                    $LineUri
-                  }
-                }
-              }
+              $TheseProperties | Add-Member -MemberType NoteProperty -Name SipAddress -Value $SipAddress
+              $TheseProperties | Add-Member -MemberType NoteProperty -Name Label -Value $DisplayName
+              $TheseProperties | Add-Member -MemberType NoteProperty -Name LineUri -Value $LineUri
             }
           }
           'Authorization' 
@@ -221,24 +156,7 @@ Function Get-UcsSipPhoneInfo
               $null = $Value -match "(?<=targetname=`")[^`"]+(?=`")"
               $Server = $Matches[0]
               
-              if($TheseProperties -eq $null) 
-              {
-                $TheseProperties = 1 | Select-Object -Property @{
-                  Name       = 'Server'
-                  Expression = {
-                    $Server
-                  }
-                }
-              }
-              else 
-              {
-                $TheseProperties = $TheseProperties | Select-Object -Property *, @{
-                  Name       = 'Server'
-                  Expression = {
-                    $Server
-                  }
-                }
-              }
+              $TheseProperties | Add-Member -MemberType NoteProperty -Name Server -Value $Server
             }
           } default 
           {
@@ -247,34 +165,15 @@ Function Get-UcsSipPhoneInfo
         }
       }
       
-      if($TheseProperties -eq $null -and $IncludeUnreachablePhones -eq $true) 
+      if(($TheseProperties | Get-Member -MemberType NoteProperty | Measure-Object | Select-Object -ExpandProperty Count) -eq 0 -and $IncludeUnreachablePhones -eq $true) 
       {
-        $TheseProperties = 1 | Select-Object -Property @{
-          Name       = 'Registered'
-          Expression = {
-            $Registered
-          }
-        }
-      }
-      else 
-      {
-        $TheseProperties = $TheseProperties | Select-Object -Property *, @{
-          Name       = 'Registered'
-          Expression = {
-            $Registered
-          }
-        }
+        $TheseProperties | Add-Member -MemberType NoteProperty -Name Registered -Value $Registered
       }
       
       if($TheseProperties -ne $null) 
       {
-        $ThisResult = $TheseProperties | Select-Object -Property *, @{
-          Name       = 'IPv4Address'
-          Expression = {
-            $ThisIPv4Address
-          }
-        }
-        $null = $AllResult.Add($ThisResult)
+        $TheseProperties | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $ThisIPv4Address
+        $null = $AllResult.Add($TheseProperties)
       }
     }
   } END {

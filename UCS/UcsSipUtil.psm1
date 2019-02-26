@@ -109,7 +109,7 @@ Function Convert-UcsSipResponse
   $ParameterList = New-Object -TypeName System.Collections.ArrayList
   
   $SipOK = $false
-  $ObjectBuilder = $null
+  $ObjectBuilder = New-Object -TypeName PSObject
   Foreach($Line in $PhoneResponse) 
   {
     if($Line -like '*SIP/2.0 200 OK*') 
@@ -124,33 +124,22 @@ Function Convert-UcsSipResponse
     
     if($Line.Length -lt 3) 
     {
-      Write-Debug -Message "Skipped Line $Line"
+      Write-Debug -Message "Skipped Line `"$Line`""
       Continue
     }
     
     $ColonIndex = $Line.IndexOf(':')
     $ParameterName = $Line.Substring(0,$ColonIndex)
     $ParameterValue = ($Line.Substring($ColonIndex + 1)).Trim(' ')
+
+    if($ParameterName -in $ParameterList)
+    {
+      Write-Debug ('{0} is already in the parameter set. Overriding original value "{1}" with new value "{2}".' -f $ParameterName,$ObjectBuilder.$ParameterName,$ParameterValue)
+    }
+
     $null = $ParameterList.Add($ParameterName)
     
-    if($ObjectBuilder -ne $null) 
-    {
-      $ObjectBuilder = $ObjectBuilder | Select-Object -Property *, @{
-        Name       = "$ParameterName"
-        Expression = {
-          $ParameterValue
-        }
-      }
-    }
-    else 
-    {
-      $ObjectBuilder = $ParameterName | Select-Object -Property @{
-        Name       = "$ParameterName"
-        Expression = {
-          $ParameterValue
-        }
-      }
-    }
+    $ObjectBuilder | Add-Member -MemberType NoteProperty -Name $ParameterName -Value $ParameterValue -Force
   }
   
   $ParsedSipMessage = $ObjectBuilder

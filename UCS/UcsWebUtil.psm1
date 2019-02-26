@@ -49,12 +49,12 @@ Function Invoke-UcsWebRequest
       if($Body.Length -gt 0) 
       {
         Write-Debug -Message ("Invoking webrequest for `"{0}`" and sending {1}." -f $ThisUri, $Body)
-        $RestOutput = Invoke-WebRequest -Uri $ThisUri -WebSession $Session -Headers $Header -Body $Body -ContentType $ContentType -TimeoutSec $Timeout.TotalSeconds -Method $Method -ErrorAction Stop
+        $RestOutput = Invoke-WebRequest -Uri $ThisUri -WebSession $Session -Headers $Header -Body $Body -ContentType $ContentType -TimeoutSec $Timeout.TotalSeconds -Method $Method -UseBasicParsing -ErrorAction Stop
       }
       else 
       {
         Write-Debug -Message ("Invoking webrequest for `"{0}`", no body to send." -f $ThisUri)
-        $RestOutput = Invoke-WebRequest -Uri $ThisUri -WebSession $Session -Headers $Header -ContentType $ContentType -TimeoutSec $Timeout.TotalSeconds -Method $Method -ErrorAction Stop
+        $RestOutput = Invoke-WebRequest -Uri $ThisUri -WebSession $Session -Headers $Header -ContentType $ContentType -TimeoutSec $Timeout.TotalSeconds -Method $Method -UseBasicParsing -ErrorAction Stop
       }
       Break
     }

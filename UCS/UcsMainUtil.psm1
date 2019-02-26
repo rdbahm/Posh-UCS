@@ -3,29 +3,6 @@ Function Get-UcsCleanJSON
   <#
       .SYNOPSIS
       Takes a string intended for a JSON string, sanitizes it, and returns the result.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER String
-      Describe parameter -String.
-
-      .EXAMPLE
-      Get-UcsCleanJSON -String Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-UcsCleanJSON
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
   #>
 
   Param (
@@ -43,9 +20,8 @@ Function Get-UcsCleanJSON
 
 Function Test-UcsIsAdministrator 
 {
-  
   <#
-      SYNOPSIS
+      .SYNOPSIS
       Returns if the current powershell session has administrator rights.
   #>
   $user = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -58,32 +34,6 @@ Function Test-UcsPolycomRootCertificate
 {
   <#
       .SYNOPSIS
-      Describe purpose of "Test-UcsPolycomRootCertificate" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .EXAMPLE
-      Test-UcsPolycomRootCertificate
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Test-UcsPolycomRootCertificate
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
-  <#
-      SYNOPSIS
       Tests for the presence of the Polycom Root certificate in the certificates store.
   #>
   $MachineCertificates = Get-ChildItem -Path Cert:\LocalMachine\Root
@@ -104,38 +54,6 @@ Function Add-UcsHost
 {
   <#
       .SYNOPSIS
-      Describe purpose of "Add-UcsHost" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER Hostname
-      Describe parameter -Hostname.
-
-      .EXAMPLE
-      Add-UcsHost -IPv4Address Value -Hostname Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Add-UcsHost
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
-  <#
-      SYNOPSIS
       Adds an entry to the system's hosts file.
   #>
   Param (
@@ -151,35 +69,6 @@ Function Remove-UcsHost
 {
   <#
       .SYNOPSIS
-      Describe purpose of "Remove-UcsHost" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER Hostname
-      Describe parameter -Hostname.
-
-      .EXAMPLE
-      Remove-UcsHost -Hostname Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Remove-UcsHost
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
-  <#
-      SYNOPSIS
       Removes an entry from the system's hosts file.
   #>
   Param(
@@ -226,20 +115,6 @@ Function Convert-UcsUptimeString
       .PARAMETER Uptime
       A timespan in string format, formatted in Polycom Unified Communications Software format - such as "2 days 12:44:11." Allows input of "day" or "days" and additionally for the hours to be reprsented as a single number without a leading 0.
 
-      .EXAMPLE
-      Convert-UcsUptimeString -Uptime Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Convert-UcsUptimeString
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
       .OUTPUTS
       A timespan object.
   #>
@@ -272,43 +147,8 @@ Function Get-UcsStatusCodeString
 {
   <#
       .SYNOPSIS
-      Describe purpose of "Get-UcsStatusCodeString" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER StatusCode
-      Describe parameter -StatusCode.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER ApiEndpoint
-      Describe parameter -ApiEndpoint.
-
-      .EXAMPLE
-      Get-UcsStatusCodeString -StatusCode Value -IPv4Address Value -ApiEndpoint Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-UcsStatusCodeString
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
-  <#
-      SYNOPSIS
       Turns a Polycom status code into a stringified description of what it represents. Optionally allows the user to include IPv4 address and Endpoint to allow return of additional information.
-      PARAMETER IPv4Address
+      .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67.
   #>
   Param([Parameter(Mandatory,HelpMessage = 'Add help message for user',ValueFromPipelineByPropertyName,ValueFromPipeline)][int]$StatusCode,
@@ -322,76 +162,90 @@ Function Get-UcsStatusCodeString
     {
       $ResponseOK = $false #Set to true if this code indicates the process completed successfully.
       $StatusString = 'Unknown status code.'
+      $Exception = $null
 
       if($ThisStatusCode -eq $null) 
       {
         $ResponseOK = $false
         $StatusString = 'No response returned from API.'
+        $Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 2000) 
       {
         $ResponseOK = $true
-        $StatusString = 'The operation completed successfully.'
+        $StatusString = 'API executed successfully.'
       }
       elseif($ThisStatusCode -eq 4000) 
       {
         $ResponseOK = $false
         $StatusString = 'Invalid input parameters.'
+        $Exception = New-Object System.ArgumentException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4001) 
       {
         $ResponseOK = $false
-        $StatusString = 'The device is busy.'
+        $StatusString = 'Device busy.'
+        $Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4002) 
       {
         $ResponseOK = $false
-        $StatusString = 'Line is not registered.'
+        $StatusString = 'Line not registered.'
+        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4003) 
       {
         $ResponseOK = $false
         $StatusString = 'Operation not allowed.'
+        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4004) 
       {
         $ResponseOK = $false
         $StatusString = 'Operation not supported.'
+        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4005) 
       {
         $ResponseOK = $false
-        $StatusString = 'Invalid line selection.'
+        $StatusString = 'Line does not exist.'
+        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4006) 
       {
         $ResponseOK = $false
         $StatusString = 'URLs not configured.'
+        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4007) 
       {
         $ResponseOK = $true
         $StatusString = 'Call does not exist.'
+        $Exception = New-Object System.NullReferenceException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4008) 
       {
         $ResponseOK = $false
         $StatusString = 'Configuration export failed.'
+        $Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4009) 
       {
         $ResponseOK = $false
         $StatusString = 'Input size limit exceeded.'
+        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 4010) 
       {
         $ResponseOK = $false
         $StatusString = 'Default password not permitted.'
+        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 5000) 
       {
         $ResponseOK = $false
-        $StatusString = 'Failed to process request due to an internal error.'
+        $StatusString = 'Failed to process request.'
+        $Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $StatusString
       }
 
       $Result = $ThisStatusCode | Select-Object -Property @{
@@ -408,6 +262,11 @@ Function Get-UcsStatusCodeString
         Name       = 'StatusString'
         Expression = {
           $StatusString
+        }
+      }, @{
+        Name       = 'Exception'
+        Expression = {
+          $Exception
         }
       }
       if($ApiEndpoint) 
@@ -437,32 +296,6 @@ Function Get-UcsStatusCodeString
 
 Function Test-UcsSkypeModuleIsAvailable 
 {
-  <#
-      .SYNOPSIS
-      Describe purpose of "Test-UcsSkypeModuleIsAvailable" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .EXAMPLE
-      Test-UcsSkypeModuleIsAvailable
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Test-UcsSkypeModuleIsAvailable
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
   $Modules = ('Lync', 'SkypeForBusiness')
   $ReturnValue = $false
 
@@ -494,7 +327,7 @@ Function New-UcsLog
 {
   Param([Parameter(Mandatory,ValueFromPipeline)][String[]]$LogString,
     [Parameter(Mandatory)][String][ValidateSet('app','boot')]$LogType,
-    [Parameter(HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String]$IPv4Address = "",
+    [Parameter(ValueFromPipelineByPropertyName)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String]$IPv4Address = "",
   [Parameter(ValueFromPipelineByPropertyName)][ValidatePattern('^[a-f0-9]{12}$')][String]$MacAddress = "")
   BEGIN
   {
@@ -635,4 +468,179 @@ Function Get-UcsUnixTime
 {
   $UnixTime = [Math]::Round( (((Get-Date) - (Get-Date -Date 'January 1 1970 00:00:00.00')).TotalSeconds), 0)
   Return $UnixTime
+}
+
+Function New-UcsCallObject
+{
+  Param(`
+    [String][ValidatePattern('^(0x)?[a-f0-9]{7,8}$')]$CallHandle = $null,
+    [ValidateSet('','Incoming','Outgoing','Missed','Placed','Received','In','Out')][String]$Type = $null,
+    [ValidateSet('','Conference','Normal','Rejected','RemotelyHandled','Transferred','Busy','UserForwarded','Partial')][String]$Disposition = $null,
+    [String[]]$RemotePartyName = $null,
+    [String[]]$RemotePartyNumber = $null,
+    [String[]]$LocalPartyName = $null,
+    [String[]]$LocalPartyNumber = $null,
+    [String[]]$ConnectionName = $null,
+    [String[]]$ConnectionNumber = $null,
+    [ValidateSet('Dialtone','Connected','CallHold','Hold','Setup','RingBack','Offering','Log','Proceeding','')][String]$CallState = $null,
+    [ValidateSet('SIP','')][String]$Protocol = $null,
+    [Nullable[DateTime]]$StartTime = $null,
+    [Nullable[TimeSpan]]$Duration = $null,
+    [ValidateRange(0,100)][Int]$LineID = -1,
+    [ValidateRange(0,100)][Int]$CallSequence = -1,
+    [ValidatePattern('^(\d{1,2}\*?)?$')][String]$UIAppearanceIndex = $null,
+    [Nullable[Bool]]$ActiveCall = $null,
+    [Nullable[Bool]]$Ringing = $null,
+    [Nullable[Bool]]$Muted = $null,
+    [ValidateRange(0,65535)][Int]$RTPPort = -1,
+    [ValidateRange(0,65535)][Int]$RTCPPort = -1,
+    [ValidatePattern('^[a-f0-9]{12}$')][String]$MacAddress = $null,
+    [Parameter(HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String]$IPv4Address = $null,
+    [Switch]$ExcludeNullProperties,
+    [Switch]$IsLog ` #For logs, we don't want to compute based on current time.
+  )
+
+  $ThisOutputCall = New-Object -TypeName PSObject
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name CallHandle -Value $CallHandle
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name Type -Value $Type
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name Disposition -Value $Disposition
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name RemotePartyName -Value $RemotePartyName
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name RemotePartyNumber -Value $RemotePartyNumber
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name LocalPartyName -Value $LocalPartyName
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name LocalPartyNumber -Value $LocalPartyNumber
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name ConnectionName -Value $ConnectionName
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name ConnectionNumber -Value $ConnectionNumber
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name CallState -Value $CallState
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name Protocol -Value $Protocol
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name StartTime -Value $StartTime
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name Duration -Value $Duration
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name LineID -Value $LineID
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name CallSequence -Value $CallSequence
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name UIAppearanceIndex -Value $UIAppearanceIndex
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name ActiveCall -Value $UIAppearanceIndex #Temporary value
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name Ringing -Value $Ringing
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name Muted -Value $Muted
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name RTPPort -Value $RTPPort
+  $ThisOutputCall | Add-Member -MemberType NoteProperty -Name RTCPPort -Value $RTCPPort
+
+  if($MacAddress.Length -eq 12)
+  {
+    $ThisOutputCall | Add-Member -MemberType NoteProperty -Name MacAddress -Value $MacAddress
+  }
+  if($IPv4Address.Length -gt 0)
+  {
+    $ThisOutputCall | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address
+  }
+
+  #Null any properties that weren't included.
+  $NullProperties = New-Object System.Collections.ArrayList
+  Foreach($Property in ($ThisOutputCall | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name))
+  {
+    $ThisValue = $ThisOutputCall.$Property
+    $IsNull = $false
+
+    if($ThisValue -eq $null)
+    {
+      $IsNull = $true
+    }
+    elseif($ThisValue.GetType().Name -eq "Int32")
+    {
+      if($ThisValue -le 0)
+      {
+        $IsNull = $true
+      }
+    }
+    elseif($ThisValue.GetType().Name -eq "String")
+    {
+      if($ThisValue -eq "")
+      {
+        $IsNull = $true
+      }
+    }
+    elseif($ThisValue.GetType().Name -eq "String[]")
+    {
+      #String array, smash into a string if it's only one long.
+      if($ThisValue.Count -eq 0)
+      {
+        $IsNull = $true
+      }
+      elseif($ThisValue.Count -eq 1)
+      {
+        $ThisOutputCall.$Property = $ThisValue[0]
+        Write-Debug "Property $Property was a single-value array. Smashed to string."
+      }
+    }
+    else
+    {
+      Write-Debug "Value for property $Property was non-null: $ThisValue"
+    }
+
+    if($IsNull)
+    {
+      $ThisOutputCall.$Property = $null
+      $null = $NullProperties.Add($Property)
+    }
+  }
+
+  #Compute a start time based on duration and current time.
+  if($ThisOutputCall.StartTime -eq $null -and $ThisOutputCall.Duration -ne $null -and $IsLog -ne $true)
+  {
+    $ThisOutputCall.StartTime = (Get-Date) - $ThisOutputCall.Duration
+    $NullProperties = $NullProperties | Where-Object { $_ -ne "StartTime" }
+  }
+  elseif($ThisOutputCall.Duration -eq $null -and $ThisOutputCall.StartTime -ne $null -and $IsLog -ne $true)
+  {
+    #Calculate the duration. Drop milliseconds.
+    $ThisDuration = (Get-Date) - (Get-Date $ThisOutputCall.StartTime)
+    $ThisOutputCall.Duration = New-TimeSpan -Seconds ([Int]$ThisDuration.TotalSeconds)
+    $NullProperties = $NullProperties | Where-Object { $_ -ne "Duration" }
+  }
+
+  if($ThisOutputCall.CallHandle -ne $null -and $ThisOutputCall.CallHandle -notmatch '^0x?[a-f0-9]{7,8}$' )
+  {
+    #If there's a callhandle that needs modification.
+    $ThisOutputCall.CallHandle = ('0x{0}' -f $ThisOutputCall.CallHandle)
+  }
+
+  if($ThisOutputCall.UIAppearanceIndex -ne $null)
+  {
+    #If a UI Appearance Index is provided, compute if this is the active call.
+    if($ThisOutputCall.UIAppearanceIndex -match '^\d+\*$')
+    {
+      $ActiveCall = $true
+    }
+    else
+    {
+      $ActiveCall = $false
+    }
+    $ThisOutputCall.UIAppearanceIndex = [Int]($ThisOutputCall.UIAppearanceIndex.Trim(' *'))
+    $ThisOutputCall.ActiveCall = $ActiveCall
+  }
+
+  if($ThisOutputCall.CallState -eq 'CallHold')
+  {
+    #V1 REST API returns "CallHold" instead of "Hold," so we coerce it into the right format.
+    $ThisOutputCall.CallState = 'Hold'
+  }
+  elseif($ThisOutputCall.CallState -eq 'Proceeding')
+  {
+    $ThisOutputCall.CallState = 'Connected'
+  }
+
+  #We standardize calls and call logs with the same names.
+  if($ThisOutputCall.Type -eq 'Placed' -or $ThisOutputCall.Type -eq 'Out')
+  {
+    $ThisOutputCall.Type = 'Outgoing'
+  }
+  elseif($ThisOutputCall.Type -eq 'Received' -or $ThisOutputCall.Type -eq 'In')
+  {
+    $ThisOutputCall.Type = 'Incoming'
+  }
+
+  if($ExcludeNullProperties)
+  {
+    $ThisOutputCall = $ThisOutputCall | Select-Object -Property * -ExcludeProperty $NullProperties
+  }
+
+  Return $ThisOutputCall
 }

@@ -59,7 +59,8 @@ Function Invoke-UcsPollRequest {
   
   $Content = [XML]$RestOutput.Content
   $Content = $Content.PolycomIPPhone
-  $Content = $Content.FirstChild
+  $ContentMainProperty = $Content | Get-Member -MemberType Property | Select-Object -ExpandProperty Name
+  $Content = $Content.$ContentMainProperty
   
   Return $Content
 }
