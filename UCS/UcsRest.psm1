@@ -135,10 +135,10 @@ Function Get-UcsRestParameter
 
       Try 
       {
-        $Output = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/config/get' -Body $ParameterName -Method Post -Retries $Retries
-            
-        $Output = $Output.Data
-        #TODO: Add capability of checking InvalidParams.
+        $RawOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/config/get' -Body $ParameterName -Method Post -Retries $Retries
+        
+        $Output = $RawOutput.Data
+        $InvalidParams = $RawOutput.InvalidParams
       }
       Catch 
       {
@@ -156,6 +156,18 @@ Function Get-UcsRestParameter
       Catch 
       {
         Write-Error -Message "Could not parse parameter information for $ThisIPv4Address."
+      }
+      
+      Try
+      {
+        $InvalidParameterNames = $InvalidParams |
+        Get-Member -ErrorAction Stop |
+        Where-Object -Property MemberType -EQ -Value 'NoteProperty' |
+        Select-Object -ExpandProperty Name
+      }
+      Catch
+      {
+        Write-Debug -Message "No invalid parameters detected for $ThisIPv4Address."
       }
 
       Foreach($ParameterName in $ParameterNames) 
@@ -176,6 +188,19 @@ Function Get-UcsRestParameter
           $ThisResult | Add-Member -MemberType NoteProperty -Name Value -Value $null
           $ThisResult | Add-Member -MemberType NoteProperty -Name Source -Value "Error"
         }
+      
+        $null = $OutputArray.Add($ThisResult)
+      }
+      
+      Foreach($IdName in $InvalidParameterNames) 
+      {
+        $ParameterName = $InvalidParams.$IdName
+        Write-Warning "$ParameterName is not a valid parameter name for $ThisIPv4Address."
+        $ThisResult = New-Object -TypeName PsCustomObject
+        $ThisResult | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $ThisIPv4Address
+        $ThisResult | Add-Member -MemberType NoteProperty -Name Parameter -Value $ParameterName
+        $ThisResult | Add-Member -MemberType NoteProperty -Name Value -Value $null
+        $ThisResult | Add-Member -MemberType NoteProperty -Name Source -Value "InvalidParams"
       
         $null = $OutputArray.Add($ThisResult)
       }
