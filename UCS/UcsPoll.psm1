@@ -57,6 +57,7 @@ Function Get-UcsPollDeviceInfo
         {
           $null = $DN -match '[^@&=+$,:;\?/]+@[^@&=+$:,;\?/]+'
           $ThisSipAddress = $Matches[0]
+          $ThisSipAddress = ('sip:{0}' -f $ThisSipAddress)
           
           #If we have only one, we return it as a bare string. Otherwise, we make an ArrayList.
           if($SipAddress -eq $null)

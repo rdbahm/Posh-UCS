@@ -129,7 +129,7 @@ Function Get-UcsSipPhoneInfo
               #Actual value looks like: "John Smith" <sip:john@smith.com>,<tel:+15555555555;ext=55555> in Lync base profile when signed in.
               #If a user doesn't have a LineURI, it'll look like: "John Smith" <sip:john@smith.com>
               $Matches = $null
-              $null = $Value -match '(?<=<sip:).+@.+\.[^>]+(?=>)'
+              $null = $Value -match 'sip:.+@.+\.[^>]+(?=>)'
               $SipAddress = $Matches[0]
               $Matches = $null
               $null = $Value -match "^`"[^`"]+`"" #Find the display name.

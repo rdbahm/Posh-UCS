@@ -862,7 +862,7 @@ Function Get-UcsRestLineInfo
       Registered         : True
       Label              : John Smith
       LineType           : private
-      SIPAddress         : jsmith@fakecompany.org
+      SIPAddress         : sip:jsmith@fakecompany.org
       Protocol           : SIP
       UserID             : John Sminth
       Port               : 0
@@ -908,7 +908,7 @@ Function Get-UcsRestLineInfo
         
           if( ($Modified | Get-Member).Name -contains 'Username')
           {
-            #5.7.0+ format
+            #5.7.0 format
             $SipAddress = $Modified.Username
           }
           else
@@ -922,6 +922,11 @@ Function Get-UcsRestLineInfo
             {
               $SIPAddress = $Modified.SIPAddress
             }
+          }
+
+          if($SipAddress -ne $null)
+          {
+            $SipAddress = ('sip:{0}' -f $SipAddress)
           }
         
           $Modified = $Modified | Select-Object -ExcludeProperty Username,SipAddress,RegistrationStatus -Property *, @{
