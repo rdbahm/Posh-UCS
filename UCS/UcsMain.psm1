@@ -724,6 +724,7 @@ Function Find-UcsPhoneByDHCP
       .DESCRIPTION
       Uses the DHCP cmdlets to enumerate all DHCP scopes, then checks each scope for leases assigned to Polycom-prefixed MAC addresses. It requires the DHCP and AD Powershell modules to operate.
   #>
+  [CmdletBinding()]
   Param(
     [String[]]$MacAddressPrefix = ('0004f2', '64167F')
   )

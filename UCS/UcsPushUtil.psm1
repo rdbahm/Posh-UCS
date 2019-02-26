@@ -88,7 +88,7 @@ Function Invoke-UcsPushWebRequest
   $RetriesRemaining = $Retries
   While($RetriesRemaining -gt 0) 
   {
-    $ThisCredential = $Credential[0] #Temporary until credential array support is added.
+    $ThisCredential = $Credential[0] #TODO: Update this to try alternate credentials if we get back an error code referring to an authentication error.
     Try 
     {
       $ThisUri = New-Object -TypeName System.Uri -ArgumentList ($ThisUri)
