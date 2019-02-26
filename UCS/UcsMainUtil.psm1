@@ -644,3 +644,50 @@ Function New-UcsCallObject
 
   Return $ThisOutputCall
 }
+
+Function Start-UcsSimultaneousJob
+{
+  <# Work in progress. Input a scriptblock with a placeholder for IP address. Use $Arg[0] as the placeholder for IP address. #>
+  [CmdletBinding()]
+  Param( [ScriptBlock]$ScriptBlock, [Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address, [Int]$MaxJobs = 40, [Int]$TimeoutSeconds = 120 )
+  
+  $AllJobs = New-Object System.Collections.ArrayList
+  Foreach($ThisIPv4Address in $IPv4Address)
+  {
+    if($AllJobs.Count -ge $MaxJobs)
+    {
+      Write-Debug "Hit max job count. Waiting..."
+      $WaitedJobs = Wait-Job -Id $AllJobs -Any
+      $WaitedJobs = Get-Job -Id $AllJobs | ? State -ne "Running"
+      Write-Debug ("Got {0} done jobs." -f $WaitedJobs.Count)
+      
+      Foreach ($DoneJob in $WaitedJobs)
+      {
+        Write-Debug ("Got job {0}" -f $DoneJob.Name)
+        $DoneJob | Receive-Job #Output the result.
+        $null = $AllJobs.Remove($DoneJob.Id)
+      }
+    }
+    
+    $ThisJob = Start-Job -ScriptBlock $ScriptBlock -ArgumentList $ThisIPv4Address -Name ("{0}-{1}" -f $ThisIPv4Address,[Guid]::NewGuid().ToString())
+    $null = $AllJobs.Add($ThisJob.Id)
+  }
+  
+  Write-Debug ("After completion of loops, {0} jobs are still pending at {1}" -f $AllJobs.Count,(Get-Date).ToShortTimeString())
+  $FinalJobs = Wait-Job -Id $AllJobs -Timeout $TimeoutSeconds
+  Write-Debug ("After waiting, {0} jobs are finished at {1}." -f $FinalJobs.Count,(Get-Date).ToShortTimeString())
+  
+  Foreach ($DoneJob in $FinalJobs)
+  {
+    $DoneJob | Receive-Job #Output the result.
+    $null = $AllJobs.Remove($DoneJob.Id) #remove this ID from the remaining jobs.
+  }
+  
+  Foreach($UnfinishedJob in $AllJobs)
+  {
+    Write-Warning ("Job {0} failed to complete within timeout period." -f $UnfinishedJob.Name)
+    $null = $UnfinishedJob | Stop-Job
+    $null = $UnfinishedJob | Remove-Job
+  }
+  
+}
