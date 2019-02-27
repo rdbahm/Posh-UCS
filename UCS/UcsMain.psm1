@@ -331,15 +331,14 @@ Function Restart-UcsPhone
   {
     $StatusResult = New-Object -TypeName System.Collections.ArrayList
     
+    $ThisProtocolPriority = Get-UcsConfigPriority
+    
     if($Type -eq 'Restart') 
     {
       Write-Verbose -Message 'Protocol priority temporarily overridden, as a restart is only possible with Web.'
-      $ThisProtocolPriority = ('Web') #A restart is only possible using the web UI at this time.
+      $ThisProtocolPriority = $ThisProtocolPriority | Where-Object { $_ -ne "SIP" }  #A restart is not possible using SIP.
     }
-    else 
-    {
-      $ThisProtocolPriority = Get-UcsConfigPriority
-    }
+    
   }
   PROCESS
   {
@@ -365,7 +364,7 @@ Function Restart-UcsPhone
           {
             'REST'
             {
-              $null = Restart-UcsRestPhone -IPv4Address $ThisIPv4Address -ErrorAction Stop -Confirm:$false -WhatIf:$WhatIf
+              $null = Restart-UcsRestPhone -IPv4Address $ThisIPv4Address -Type $Type -ErrorAction Stop -Confirm:$false -WhatIf:$WhatIf
               $RebootSuccess = $true
             }
             'Web'

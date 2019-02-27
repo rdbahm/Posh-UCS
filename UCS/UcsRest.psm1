@@ -403,34 +403,47 @@ Function Restart-UcsRestPhone
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Switch]$PassThru,
-  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
+    [String][ValidateSet('Reboot','Restart')]$Type = 'Reboot',
+    [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
 
-  BEGIN {
-    #$Output = New-Object -TypeName System.Collections.ArrayList
-  } PROCESS {
+  BEGIN
+  {
+  }
+  PROCESS
+  {
     foreach($ThisIPv4Address in $IPv4Address) 
     {
       if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
       {
-        Write-Verbose -Message ('Restarting {0}.' -f $ThisIPv4Address)
+        if($Type -eq 'Reboot')
+        {
+          $ApiEndpoint = 'api/v1/mgmt/safeReboot'
+        }
+        else
+        {
+          $ApiEndpoint = 'api/v1/mgmt/safeRestart'
+        }
+        Write-Verbose -Message ('Sending {1} command to {0}.' -f $ThisIPv4Address,$Type)
         Try 
         {
-          $ThisResult = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/safeRestart' -Method Post -Retries $Retries -ErrorAction Stop
+          $ThisResult = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint $ApiEndpoint -Method Post -Retries $Retries -ErrorAction Stop
         }
         Catch 
         {
           Write-Debug -Message $_
-          Write-Error -Message "Could not restart phone $ThisIPv4Address. Could not connect to phone."
+          Write-Error -Message "Could not $Type phone $ThisIPv4Address. Could not connect to phone."
         }
 
         if($ThisResult.Status.IsSuccess -ne $true) 
         {
-          Write-Error -Message "Failed to restart phone $ThisIPv4Address. Phone rejected the reboot request."
+          Write-Error -Message "Failed to $Type phone $ThisIPv4Address. Phone rejected the $Type request."
           Continue
         }
       }
     }
-  } END {
+  }
+  END
+  {
 
   }
 }
