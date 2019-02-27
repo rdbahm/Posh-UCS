@@ -151,146 +151,115 @@ Function Get-UcsStatusCodeString
       .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67.
   #>
-  Param([Parameter(Mandatory,HelpMessage = 'Add help message for user',ValueFromPipelineByPropertyName,ValueFromPipeline)][int]$StatusCode,
+  Param([Parameter(Mandatory,HelpMessage = 'One or more status codes to get a value for.',ValueFromPipelineByPropertyName,ValueFromPipeline)][int[]]$StatusCode,
     [ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String]$IPv4Address,
   [String]$ApiEndpoint)
 
-  BEGIN {
-    $OutputArray = New-Object -TypeName System.Collections.ArrayList
-  } PROCESS {
+  BEGIN
+  {
+    
+  }
+  PROCESS
+  {
     Foreach ($ThisStatusCode in $StatusCode) 
     {
-      $ResponseOK = $false #Set to true if this code indicates the process completed successfully.
-      $StatusString = 'Unknown status code.'
-      $Exception = $null
+      $Result = New-Object PsCustomObject
+      $Result | Add-Member -MemberType NoteProperty -Name StatusCode -Value $ThisStatusCode
+      $Result | Add-Member -MemberType NoteProperty -Name ResponseOK -Value $false
+      $Result | Add-Member -MemberType NoteProperty -Name StatusString -Value 'Unknown status code.'
+      $Result | Add-Member -MemberType NoteProperty -Name Exception -Value $null
 
       if($ThisStatusCode -eq $null) 
       {
-        $ResponseOK = $false
-        $StatusString = 'No response returned from API.'
-        $Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $StatusString
+        $Result.StatusString = 'No response returned from API.'
+        $Result.Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $Result.StatusString
       }
       elseif($ThisStatusCode -eq 2000) 
       {
-        $ResponseOK = $true
-        $StatusString = 'API executed successfully.'
+        $Result.ResponseOK = $true
+        $Result.StatusString = 'API executed successfully.'
       }
       elseif($ThisStatusCode -eq 4000) 
       {
-        $ResponseOK = $false
-        $StatusString = 'Invalid input parameters.'
-        $Exception = New-Object System.ArgumentException -ArgumentList $StatusString
+        $Result.StatusString = 'Invalid input parameters.'
+        $Result.Exception = New-Object System.ArgumentException -ArgumentList $Result.StatusString
       }
       elseif($ThisStatusCode -eq 4001) 
       {
-        $ResponseOK = $false
-        $StatusString = 'Device busy.'
-        $Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $StatusString
+        $Result.StatusString = 'Device busy.'
+        $Result.Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $Result.StatusString
       }
       elseif($ThisStatusCode -eq 4002) 
       {
-        $ResponseOK = $false
-        $StatusString = 'Line not registered.'
-        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
+        $Result.StatusString = 'Line not registered.'
+        $Result.Exception = New-Object System.InvalidOperationException -ArgumentList $Result.StatusString
       }
       elseif($ThisStatusCode -eq 4003) 
       {
-        $ResponseOK = $false
-        $StatusString = 'Operation not allowed.'
-        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
+        $Result.StatusString = 'Operation not allowed.'
+        $Result.Exception = New-Object System.InvalidOperationException -ArgumentList $Result.StatusString
       }
       elseif($ThisStatusCode -eq 4004) 
       {
-        $ResponseOK = $false
-        $StatusString = 'Operation not supported.'
-        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
+        $Result.StatusString = 'Operation not supported.'
+        $Result.Exception = New-Object System.InvalidOperationException -ArgumentList $Result.StatusString
       }
       elseif($ThisStatusCode -eq 4005) 
       {
-        $ResponseOK = $false
-        $StatusString = 'Line does not exist.'
-        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
+        $Result.StatusString = 'Line does not exist.'
+        $Result.Exception = New-Object System.InvalidOperationException -ArgumentList $Result.StatusString
       }
       elseif($ThisStatusCode -eq 4006) 
       {
-        $ResponseOK = $false
-        $StatusString = 'URLs not configured.'
-        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
+        $Result.StatusString = 'URLs not configured.'
+        $Result.Exception = New-Object System.InvalidOperationException -ArgumentList $Result.StatusString
       }
       elseif($ThisStatusCode -eq 4007) 
       {
-        $ResponseOK = $true
-        $StatusString = 'Call does not exist.'
-        $Exception = New-Object System.NullReferenceException -ArgumentList $StatusString
+        $Result.ResponseOK = $true
+        $Result.StatusString = 'Call does not exist.'
+        $Result.Exception = New-Object System.NullReferenceException -ArgumentList $Result.StatusString
       }
       elseif($ThisStatusCode -eq 4008) 
       {
-        $ResponseOK = $false
-        $StatusString = 'Configuration export failed.'
-        $Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $StatusString
+        $Result.StatusString = 'Configuration export failed.'
+        $Result.Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $Result.StatusString
       }
       elseif($ThisStatusCode -eq 4009) 
       {
-        $ResponseOK = $false
-        $StatusString = 'Input size limit exceeded.'
-        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
+        $Result.StatusString = 'Input size limit exceeded.'
+        $Result.Exception = New-Object System.InvalidOperationException -ArgumentList $Result.StatusString
       }
       elseif($ThisStatusCode -eq 4010) 
       {
-        $ResponseOK = $false
-        $StatusString = 'Default password not allowed.'
-        $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
+        $Result.StatusString = 'Default password not allowed.'
+        $Result.Exception = New-Object System.InvalidOperationException -ArgumentList $Result.StatusString
       }
       elseif($ThisStatusCode -eq 5000) 
       {
-        $ResponseOK = $false
-        $StatusString = 'Failed to process request.'
-        $Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $StatusString
+        $Result.StatusString = 'Failed to process request.'
+        $Result.Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $Result.StatusString
+      }
+      else
+      {
+        $Result.StatusString = "Unknown error $StatusCode occurred."
+        $Result.Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $Result.StatusString
       }
 
-      $Result = $ThisStatusCode | Select-Object -Property @{
-        Name       = 'StatusCode'
-        Expression = {
-          $ThisStatusCode
-        }
-      }, @{
-        Name       = 'IsSuccess'
-        Expression = {
-          $ResponseOK
-        }
-      }, @{
-        Name       = 'StatusString'
-        Expression = {
-          $StatusString
-        }
-      }, @{
-        Name       = 'Exception'
-        Expression = {
-          $Exception
-        }
-      }
       if($ApiEndpoint) 
       {
-        $Result = $Result | Select-Object -Property *, @{
-          Name       = 'ApiEndpoint'
-          Expression = {
-            $ApiEndpoint
-          }
-        }
+        $Result | Add-Member -MemberType NoteProperty -Name ApiEndpoint -Value $ApiEndpoint
       }
       if($IPv4Address) 
       {
-        $Result = $Result | Select-Object -Property *, @{
-          Name       = 'IPv4Address'
-          Expression = {
-            $IPv4Address
-          }
-        }
+        $Result | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address
       }
-      $null = $OutputArray.Add($Result)
+
+      $Result
     }
-  } END {
-    Return $OutputArray
+  }
+  END
+  {
   }
 }
 
