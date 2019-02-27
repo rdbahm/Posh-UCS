@@ -283,82 +283,105 @@ Function Get-UcsRestDeviceInfo
     [Switch]$Quiet,
   [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
 
-  BEGIN {
-    $OutputArray = New-Object -TypeName System.Collections.ArrayList
-  } PROCESS {
+  BEGIN
+  {
+
+  }
+  PROCESS {
     foreach($ThisIPv4Address in $IPv4Address) 
     {
       Try 
       {
         Write-Debug -Message "Connecting to $ThisIPv4Address"
         $Output = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/device/info' -Method Get -Retries $Retries -ErrorAction Stop
+        $OutputData = $Output.Data
       }
       Catch 
       {
         Write-Error -Message "Couldn't connect to $ThisIPv4Address"
       }
                 
-      if($Output -ne $null) 
+      if($OutputData -ne $null) 
       {
-        $Modified = $Output.data
+        $OutputObject = New-Object PsCustomObject
     
-        Write-Debug -Message "Connecting to $ThisIPv4Address"
+        Write-Debug -Message "Parsing data for $ThisIPv4Address"
+
+        $OutputObject | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $ThisIPv4Address
         
-        <#### Get the uptime ###>
-        if( ($Modified | Get-Member).Name -contains "UpTime")
+        $MacAddress = $OutputData.MacAddress
+        $OutputObject | Add-Member -MemberType NoteProperty -Name MacAddress -Value $MacAddress
+
+        $ModelNumber = $OutputData.ModelNumber
+        if($ModelNumber -eq "Trio 8800")
         {
-          #Version 5.7.0 and above.
-          $NewTimespan = New-Timespan -Days $Modified.Uptime.Days -Hours $Modified.Uptime.Hours -Minutes $Modified.Uptime.Minutes -Seconds $Modified.Uptime.Seconds
-          $Modified = $Modified | Select-Object -ExcludeProperty Uptime -Property *,@{Name="UpTimeSinceLastReboot";Expression={$NewTimespan}}
+          #Some versions of the Trio firmware output the model differently.
+          #TODO: If we find this is true on a lot of models/firmwares, implement some sort of table for this data.
+          $ModelNumber = "RealPresence Trio 8800"
+        }
+        $OutputObject | Add-Member -MemberType NoteProperty -Name Model -Value $ModelNumber
+        
+        $DeviceVendor = $OutputData.DeviceVendor
+        $OutputObject | Add-Member -MemberType NoteProperty -Name DeviceVendor -Value $DeviceVendor
+        
+        $DeviceType = $OutputData.DeviceType
+        $OutputObject | Add-Member -MemberType NoteProperty -Name DeviceType -Value $DeviceType
+        
+        $AttachedHardware = $OutputData.AttachedHardware
+        $OutputObject | Add-Member -MemberType NoteProperty -Name AttachedHardware -Value $AttachedHardware
+
+        <### Get firmware info ###>
+        if( ($OutputData | Get-Member).Name -contains 'Firmware')
+        {
+          #If we're running on a 5.7.X firmware, there's no FirmwareRelease row, so we need to add it from the new Firmware row.      
+          $Updater = $OutputData.Firmware.Updater
+          $OutputObject | Add-Member -MemberType NoteProperty -Name UpdaterFirmware -Value $Updater
+          
+          $ApplicationFirmware = $OutputData.Firmware.Application
+          $null = $ApplicationFirmware -match '(\d+\.){3}\d{4,}[A-Z]?'
+          $ApplicationFirmware = $Matches[0]
+          $OutputObject | Add-Member -MemberType NoteProperty -Name FirmwareRelease -Value $ApplicationFirmware
+          
+          $BootBlock = $OutputData.Firmware.BootBlock
+          $null = $BootBlock -match '(\d+\.){3}\d{4,}[A-Z]?'
+          $BootBlock = $Matches[0]
+          $OutputObject | Add-Member -MemberType NoteProperty -Name BootBlockFirmware -Value $BootBlock
+        }
+        elseif( ($OutputData | Get-Member).Name -contains 'FirmwareRelease')
+        {
+          #On non-5.7.X firmwares, just grab the FirmwareRelease property.
+          $OutputObject | Add-Member -MemberType NoteProperty -Name FirmwareRelease -Value $OutputData.FirmwareRelease
         }
         else
         {
-          #Below version 5.7.0
-          $Modified.UpTimeSinceLastReboot = Convert-UcsUptimeString -Uptime ($Modified.UpTimeSinceLastReboot)
-        }
-        $LastReboot = (Get-Date) - ($Modified.UpTimeSinceLastReboot)
-
-        $Modified = $Modified | Select-Object -ExcludeProperty ModelNumber -Property *, @{
-          Name       = 'Model'
-          Expression = {
-            $_.ModelNumber
-          }
-        }, @{
-          Name       = 'LastReboot'
-          Expression = {
-            $LastReboot
-          }
-        }
-        #$Modified.AttachedHardware = $Modified.AttachedHardware.EM
-
-        <### Get firmware info ###>
-        if( ($Modified | Get-Member).Name -contains 'Firmware')
-        {
-          #If we're running on a 5.7.0+ firmware, there's no FirmwareRelease row, so we need to add it from the new Firmware row.      
-          $Updater = $Modified.Firmware.Updater
-          
-          $ApplicationFirmware = $Modified.Firmware.Application
-          $null = $ApplicationFirmware -match '(\d+\.){3}\d{4,}[A-Z]?'
-          $ApplicationFirmware = $Matches[0]
-          
-          $BootBlock = $Modified.Firmware.BootBlock
-          $null = $BootBlock -match '(\d+\.){3}\d{4,}[A-Z]?'
-          $BootBlock = $Matches[0]
-          
-          $Modified = $Modified | Select-Object -ExcludeProperty Firmware -Property *,@{Name='FirmwareRelease';Expression={$ApplicationFirmware}},@{Name='UpdaterFirmware';Expression={$Updater}},@{Name='BootBlockFirmware';Expression={$BootBlock}}
+          Write-Warning "Couldn't get firmware release for $ThisIPv4Address. Possible API change?"
         }
         
-        if( ($Modified | Get-Member).Name -notcontains 'IPv4Address')
+                <#### Get the uptime ###>
+        if( ($OutputData | Get-Member).Name -contains "UpTime")
         {
-          $Modified = $Modified | Select-Object *,@{Name='IPv4Address';Expression={$ThisIPv4Address}} #TODO: We might want to be smarter about this.
+          #Version 5.7.0
+          $Uptime = New-Timespan -Days $OutputData.Uptime.Days -Hours $OutputData.Uptime.Hours -Minutes $OutputData.Uptime.Minutes -Seconds $OutputData.Uptime.Seconds
         }
+        else
+        {
+          #All other versions
+          $Uptime = Convert-UcsUptimeString -Uptime ($OutputData.UpTimeSinceLastReboot)
+        }
+        
+        $OutputObject | Add-Member -MemberType NoteProperty -Name UpTimeSinceLastReboot -Value $Uptime
 
-        $null = $OutputArray.Add($Modified)
+        $LastReboot = (Get-Date) - ($Uptime)
+        $OutputObject | Add-Member -MemberType NoteProperty -Name LastReboot -Value $LastReboot
+
+        $OutputObject
       }
     }
 
-  } END {
-    Return $OutputArray
+  }
+  END
+  {
+    
   }
 }
 
