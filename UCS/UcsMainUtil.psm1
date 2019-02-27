@@ -238,7 +238,7 @@ Function Get-UcsStatusCodeString
       elseif($ThisStatusCode -eq 4010) 
       {
         $ResponseOK = $false
-        $StatusString = 'Default password not permitted.'
+        $StatusString = 'Default password not allowed.'
         $Exception = New-Object System.InvalidOperationException -ArgumentList $StatusString
       }
       elseif($ThisStatusCode -eq 5000) 
