@@ -13,15 +13,8 @@ Function Start-UcsPushCall
       .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67.
 
-      .PARAMETER Priority
-      Describe parameter -Priority.
-
       .PARAMETER PassThru
       Returns an object with call status for this phone. Uses Get-UcsCall, so either REST or Poll APIs must be available.
-
-      .EXAMPLE
-      Send-CallAction -IPv4Address Value -Priority Value -CallAction Value
-      Describe what this call does
 
       .NOTES
       Additional configuration is required to run this. The phone's "Push" credentials must be set (this script defaults to using "UCSToolkit" for both), "Allow Push Messages" must be set to "Critical" or lower, and "Application Server Root URL" must be specified. HTTPS must be enabled using Set-UcsPushConnectionSettings. Additionally, in Skype for Business deployments, the script must be run from a pool server.
@@ -150,15 +143,8 @@ Function Send-UcsPushCallAction
       .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67.
 
-      .PARAMETER Priority
-      Describe parameter -Priority.
-
       .PARAMETER CallAction
       One or more CallActions from this list: 'EndCall','Answer','Reject','Ignore','MicMute','Hold','Resume','Transfer','Conference','Join','Split','Remove.'
-
-      .EXAMPLE
-      Send-CallAction -IPv4Address Value -Priority Value -CallAction Value
-      Describe what this call does
 
       .NOTES
       Additional configuration is required to run this. The phone's "Push" credentials must be set (this script defaults to using "UCSToolkit" for both), "Allow Push Messages" must be set to "Critical" or lower, and "Application Server Root URL" must be specified. HTTPS must be enabled using Set-UcsPushConnectionSettings. Additionally, in Skype for Business deployments, the script must be run from a pool server.
@@ -198,9 +184,6 @@ Function Send-UcsPushKeyPress
   <#
       .SYNOPSIS
       Send a keypress to a VVX. Multiple keypresses can be strung together in an array and sent in the same command.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
 
       .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67.
@@ -294,8 +277,11 @@ Function Start-UcsPushAudioFile
       .PARAMETER Priority
       Defaults to 'Critical.' Lower priorities may not be shown on some phones.
 
+      .PARAMETER Path
+      A network path, such as http://server/directory/audiofile.wav
+
       .NOTES
-      Untested. Additional configuration is required to run this. The phone's "Push" credentials must be set (this script defaults to using "UCSToolkit" for both), "Allow Push Messages" must be set to "Critical" or lower, and "Application Server Root URL" must be specified. HTTPS must be enabled using Set-UcsPushConnectionSettings. Additionally, in Skype for Business deployments, the script must be run from a pool server.
+      Additional configuration is required to run this. The phone's "Push" credentials must be set (this script defaults to using "UCSToolkit" for both), "Allow Push Messages" must be set to "Critical" or lower, and "Application Server Root URL" must be specified. HTTPS must be enabled using Set-UcsPushConnectionSettings. Additionally, in Skype for Business deployments, the script must be run from a pool server.
   #>
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
@@ -377,31 +363,9 @@ Function Get-UcsPushScreenCapture
       .SYNOPSIS
       Captures the main screen of the phone and returns the result as an image object.
 
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER IPv4Address
-      Describe parameter -IPv4Address.
-
-      .PARAMETER ScreenToCapture
-      Describe parameter -ScreenToCapture.
-
-      .EXAMPLE
-      Get-ScreenCapture -IPv4Address Value -ScreenToCapture Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
       .LINK
       Syntax source
       http://community.polycom.com/t5/VoIP/FAQ-How-can-I-create-a-Screen-Capture-of-the-phone-GUI/td-p/4713
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
   #>
   Param(
     [Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,

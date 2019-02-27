@@ -19,10 +19,6 @@ Function Set-UcsRestParameter
       .PARAMETER Quiet
       Suppresses warnings and some errors, and inhibits result output.
 
-      .EXAMPLE
-      Set-Parameter -IPv4Address Value -Parameter Value -Value Value -Quiet
-      Describe what this call does
-
       .NOTES
       Phone may reboot after setting a parameter, especially in the case of an invalid assignment.
   #>
@@ -216,31 +212,8 @@ Function Get-UcsRestNetworkInfo
       .SYNOPSIS
       Returns basic networking information.
 
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
       .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67.
-
-      .PARAMETER Quiet
-      Describe parameter -Quiet.
-
-      .EXAMPLE
-      Get-NetworkInfo -IPv4Address Value -Quiet
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-NetworkInfo
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
   #>
 
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
@@ -401,13 +374,6 @@ Function Restart-UcsRestPhone
       .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67.
 
-      .PARAMETER Quiet
-      Describe parameter -Quiet.
-
-      .EXAMPLE
-      Restart-Phone -IPv4Address Value -Quiet
-      Describe what this call does
-
       .NOTES
       Will generate warnings for each phone which does not successfully restart, and status objects for each phone successfully restarted. If -Quiet is specified, no output will be returned.
   #>
@@ -452,27 +418,11 @@ Function Reset-UcsRestConfiguration
       .SYNOPSIS
       Restores a phone's configuration to defaults.
 
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
       .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67.
 
       .PARAMETER ToFactoryDefaults
       Specify that the phone should be returned to factory defaults. Note: The available information does not specify the difference between the normal behavior and "ToFactoryDefaults."
-
-      .PARAMETER ReturnResult
-      Describe parameter -ReturnResult.
-
-      .PARAMETER Quiet
-      Describe parameter -Quiet.
-
-      .EXAMPLE
-      Reset-PhoneConfig -IPv4Address Value -ToFactoryDefaults -ReturnResult -Quiet
-      Describe what this call does
-
-      .NOTES
-      Documentation was unavailable to determine the difference between "configReset" and "factoryReset."
   #>
 
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
@@ -544,9 +494,6 @@ Function Get-UcsRestCall
       .EXAMPLE
       Get-CallStatus -IPv4Address 192.168.1.20 -Quiet
       Returns the call status of 192.168.1.20 but does not return warnings to the console in case of errors during API calls.
-
-      .NOTES
-      Tested only in Skype for Business environment.
   #>
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Switch]$Quiet,
@@ -952,28 +899,8 @@ Function Get-UcsRestSipStatus
       .SYNOPSIS
       Returns advanced SIP information.
 
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
       .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67
-
-      .EXAMPLE
-      Get-SipStatus -IPv4Address Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-SipStatus
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
   #>
 
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
@@ -1008,28 +935,8 @@ Function Get-UcsRestNetworkStats
       .SYNOPSIS
       Returns basic device information.
 
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
       .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67.
-
-      .EXAMPLE
-      Get-NetworkStats -IPv4Address Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Get-NetworkStats
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
   #>
 
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
@@ -1074,9 +981,6 @@ Function Start-UcsRestCall
       .SYNOPSIS
       Dial a phone
 
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
       .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67.
 
@@ -1095,19 +999,6 @@ Function Start-UcsRestCall
       .EXAMPLE
       Start-PhoneCall -IPv4Address 192.168.1.2 -Destination "+15555551234@example.com"
       Initiates a call with the PSTN number 1-555-555-1234.
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Start-PhoneCall
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
   #>
   Param([Parameter(Position = 1,Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(Position = 2,Mandatory,HelpMessage = 'The call''s destination, such as +15555555555@example.com or example@example.com')][ValidatePattern('.+@.+\..+')][String]$Destination,
@@ -1565,7 +1456,7 @@ Function Start-UcsRestCallAnswer
 {
   <#
       .SYNOPSIS
-      Answer
+      Take an action on a current ringing call.
 
       .PARAMETER IPv4Address
       The network address in IPv4 notation, such as 192.123.45.67.

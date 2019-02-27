@@ -196,10 +196,6 @@ Function Restart-UcsSipPhone
       .PARAMETER PassThru
       Returns the SIP response message.
 
-      .EXAMPLE
-      Restart-UcsSipPhone -IPv4Address Value -PassThru
-      Describe what this call does
-
       .NOTES
       voIpProt.SIP.specialEvent.checkSync.alwaysReboot must be set to 1 for this to function.
 
