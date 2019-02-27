@@ -300,7 +300,7 @@ Function New-UcsLog
   [Parameter(ValueFromPipelineByPropertyName)][ValidatePattern('^[a-f0-9]{12}$')][String]$MacAddress = "")
   BEGIN
   {
-    $LogOutput = New-Object System.Collections.ArrayList
+    
   }
   PROCESS
   {
@@ -344,65 +344,25 @@ Function New-UcsLog
             }
           }
 
-          $ThisOutput = 1 | Select-Object -Property @{
-            Name       = 'RawTime'
-            Expression = {
-              $SplitLine[0]
-            }
-          }, @{
-            Name       = 'DateTime'
-            Expression = {
-              $Datetime
-            }
-          }, @{
-            Name       = 'TimeSinceBoot'
-            Expression = {
-              $TimeSinceBoot
-            }
-          }, @{
-            Name       = 'Id'
-            Expression = {
-              $SplitLine[1].Trim(' ')
-            }
-          }, @{
-            Name       = 'Level'
-            Expression = {
-              $SplitLine[2]
-            }
-          }, @{
-            Name       = 'MissedEvents'
-            Expression = {
-              $SplitLine[3]
-            }
-          }, @{
-            Name       = 'Message'
-            Expression = {
-              $Message
-            }
-          }, @{
-            Name       = 'LogType'
-            Expression = {
-              $LogType
-            }
-          }
-          
+          $ThisOutput = New-Object PsCustomObject
+          $ThisOutput | Add-Member -MemberType NoteProperty -Name RawTime -Value $SplitLine[0]
+          $ThisOutput | Add-Member -MemberType NoteProperty -Name DateTime -Value $Datetime
+          $ThisOutput | Add-Member -MemberType NoteProperty -Name TimeSinceBoot -Value $TimeSinceBoot
+          $ThisOutput | Add-Member -MemberType NoteProperty -Name Id -Value $SplitLine[1].Trim(' ')
+          $ThisOutput | Add-Member -MemberType NoteProperty -Name Level -Value $SplitLine[2]
+          $ThisOutput | Add-Member -MemberType NoteProperty -Name MissedEvents -Value $SplitLine[3]
+          $ThisOutput | Add-Member -MemberType NoteProperty -Name Message -Value $Message
+          $ThisOutput | Add-Member -MemberType NoteProperty -Name LogType -Value $LogType
+
           if($IPv4Address.length -ge 7) {
-            $ThisOutput | Select-Object *, @{
-              Name       = 'IPv4Address'
-              Expression = {
-                $IPv4Address
-              }
-            }
+            $ThisOutput | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address
           } 
           if($MacAddress.length -eq 12) {
-            $ThisOutput | Select-Object *, @{
-              Name       = 'MacAddress'
-              Expression = {
-                $MacAddress
-              }
-            }
+            $ThisOutput | Add-Member -MemberType NoteProperty -Name MacAddress -Value $MacAddress
           }
-          $null = $LogOutput.Add($ThisOutput)
+          
+          $ThisOutput
+
         } Catch 
         {
           Write-Debug -Message "Skipped $Line due to error $_"
@@ -411,7 +371,7 @@ Function New-UcsLog
   }
   END
   {
-    Return $LogOutput
+    
   }
 
 }
