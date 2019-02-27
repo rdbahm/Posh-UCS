@@ -647,12 +647,19 @@ Function New-UcsCallObject
 
 Function Start-UcsSimultaneousJob
 {
-  <# Work in progress. Input a scriptblock with a placeholder for IP address. Use $Arg[0] as the placeholder for IP address. #>
+  <# Work in progress. Input a scriptblock with a placeholder for IP address. Use $Args as the placeholder for IP address. #>
   [CmdletBinding()]
-  Param( [ScriptBlock]$ScriptBlock, [Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address, [Int]$MaxJobs = 40, [Int]$TimeoutSeconds = 120 )
-  
+  Param( 
+    [Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [Parameter(Mandatory,HelpMessage = 'Use $Args in place of the IP address input.')][ScriptBlock]$ScriptBlock,
+    [ValidateRange(1,100)][Int]$MaxJobs = 20,
+    [ValidateRange(1,([int]::MaxValue))][Int]$JobChunkSize = 20,
+    [ValidateRange(1,([int]::MaxValue))][Int]$TimeoutSeconds = 120 )
+
+  $RandomizedIpV4AddressList = $IPv4Address | Get-Random -Count ($Ipv4Address.Count) #Randomize the order to prevent any particular job from being much slower than another.
+
   $AllJobs = New-Object System.Collections.ArrayList
-  Foreach($ThisIPv4Address in $IPv4Address)
+  For($i = 0; $i -le ($IPv4Address.Count - 1); $i+=$JobChunkSize)
   {
     if($AllJobs.Count -ge $MaxJobs)
     {
@@ -669,7 +676,16 @@ Function Start-UcsSimultaneousJob
       }
     }
     
-    $ThisJob = Start-Job -ScriptBlock $ScriptBlock -ArgumentList $ThisIPv4Address -Name ("{0}-{1}" -f $ThisIPv4Address,[Guid]::NewGuid().ToString())
+    $MaxIpIndex = $i+$JobChunkSize-1
+    if($MaxIpIndex -gt ($IPv4Address.Count - 1))
+    {
+      $MaxIpIndex = $IPv4Address.Count - 1
+    }
+    
+    $IPRange = $RandomizedIpV4AddressList[$i..$MaxIpIndex]
+    $IPRange = @($IPRange) #Wrap the array to sidestep it getting unwrapped.
+    Write-Debug ('Starting job beginning with IP {0}, total count {1} addresses.' -f $IPRange[0],$IPRange.Count)
+    $ThisJob = Start-Job -ScriptBlock $ScriptBlock -ArgumentList $IPRange -Name ("{0}-{1}" -f $IPRange[0],[Guid]::NewGuid().ToString())
     $null = $AllJobs.Add($ThisJob.Id)
   }
   
