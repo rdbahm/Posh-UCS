@@ -677,27 +677,27 @@ Function Get-UcsRestCallv2
       
         if($CallDurationSeconds -ne $null) 
         {
-        $PropertiesList = ($ThisCall | Get-Member).Name
+          $PropertiesList = ($ThisCall | Get-Member).Name
 
-        if($ThisCall.StartTime.Length -gt 2)
-        {
-          $ThisStartTime = Get-Date $ThisCall.StartTime
-        }
-        else
-        {
-          $ThisStartTime = $null
-        }
+          if($ThisCall.StartTime.Length -gt 2)
+          {
+            $ThisStartTime = Get-Date $ThisCall.StartTime
+          }
+          else
+          {
+            $ThisStartTime = $null
+          }
 
-        if($ThisCall.Muted -ne $null)
-        {
-          $ThisCall.Muted = [Int]$ThisCall.Muted
-        }
-        if($ThisCall.Ringing -ne $null)
-        {
-          $ThisCall.Ringing = [Int]$ThisCall.Ringing
-        }
+          if($ThisCall.Muted -ne $null)
+          {
+            $ThisCall.Muted = [Int]$ThisCall.Muted
+          }
+          if($ThisCall.Ringing -ne $null)
+          {
+            $ThisCall.Ringing = [Int]$ThisCall.Ringing
+          }
         
-        $ThisCallObject = New-UcsCallObject `
+          $ThisCallObject = New-UcsCallObject `
           -Type $ThisCall.Type `
           -CallHandle $ThisCall.CallHandle `
           -Duration (New-TimeSpan -Seconds $CallDurationSeconds) `
@@ -715,7 +715,7 @@ Function Get-UcsRestCallv2
           -StartTime $ThisStartTime `
           -IPv4Address $ThisIPv4Address
          
-        $null = $OutputArray.Add($ThisCallObject)
+          $null = $OutputArray.Add($ThisCallObject)
         }
       }
     }
@@ -1590,5 +1590,256 @@ Function Get-UcsRestStatus
     }
   } END {
     Return $OutputArray
+  }
+}
+
+Function Start-UcsRestPacketCapture 
+{
+  <#
+      .SYNOPSIS
+      Begin uploading captured network packets to a specified URL.
+
+      .DESCRIPTION
+      Upload captured network packets to a provisioning server or other location. If unspecified, the phone uploads to its provisioning server. There is no way to end a background packet capture explicitly.
+
+      .PARAMETER IPv4Address
+      The phone's IP address in standard format: 192.168.1.20
+
+      .NOTES
+      May require additional configuration, including enabling diags.pcap.enabled and diags.pcap.background.enabled. See Polycom documentation for details.
+  #>
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [String]$URL = $null,
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
+
+  BEGIN
+  {
+  }
+  
+  PROCESS
+  {
+    foreach ($ThisIPv4Address in $IPv4Address) 
+    {
+      Try 
+      {
+        if($URL -eq $null)
+        {
+          $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/network/uploadBgCapture' -Retries $Retries -Method Post -ErrorAction Stop
+        }
+        else
+        {
+          $URLBody = ('{{"data":{{"url": "{0}"}}}}' -f $URL)
+          $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/network/uploadBgCapture' -Body $URLBody -Retries $Retries -Method Post -ErrorAction Stop
+        }
+      }
+      Catch 
+      {
+        Write-Debug -Message "Caught error $_."
+        Write-Error -Message "Couldn't start capturing packets from $ThisIPv4Address."
+        Continue
+      }
+      
+    }
+  }
+  
+  END
+  {
+  }
+}
+
+Function Get-UcsRestDeviceStats 
+{
+  <#
+      .SYNOPSIS
+      Returns device hardware statistics.
+
+      .DESCRIPTION
+      Provides hardware statistics directly from the phone's API. The Cmdlet currently doesn't provide any cleanup of values.
+
+      .PARAMETER IPv4Address
+      The network address in IPv4 notation, such as 192.123.45.67.
+  #>
+
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
+
+  BEGIN
+  {
+    
+  }
+  PROCESS {
+    foreach ($ThisIPv4Address in $IPv4Address) 
+    {
+      Try
+      {
+        $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/device/stats' -Retries $Retries -ErrorAction Stop
+        $ThisOutput.data | Select-Object *,@{Name="IPv4Address";Expression={$ThisIPv4Address}}
+      }
+      Catch
+      {
+        Write-Error "Couldn't connect to $ThisIPv4Address for device stats."
+      }
+    }
+  }
+  END
+  {
+  }
+}
+
+Function Register-UcsRestLyncUser
+{
+  <#
+      .SYNOPSIS
+      Sign in a Skype/Lync user to the phone.
+
+      .PARAMETER IPv4Address
+      The network address in IPv4 notation, such as 192.123.45.67.
+
+      .PARAMETER Credential
+      The username and password for the account.
+
+      .PARAMETER Address
+      Sign-in address, such as jsmith@company.com
+
+      .PARAMETER LockCode
+      Optional, specify a code to be used when unlocking the phone.
+
+      .NOTE
+      The default timeout for this cmdlet is 155 seconds.
+
+  #>
+
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'Medium')]
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [Parameter(Mandatory,HelpMessage='jsmith@company.com')][String]$Address,
+    [Parameter(Mandatory,HelpMessage='A credential corresponding to the sign-in address already provided.')][PsCredential]$Credential,
+    [String]$Domain = $null,
+    [Int]$LockCode = $null,
+    [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries,
+    [ValidateRange(1,1000)][Int]$Timeout = 155
+    )
+    
+  BEGIN
+  {
+    
+  }
+  PROCESS
+  {
+    foreach ($ThisIPv4Address in $IPv4Address) 
+    {
+
+      Try
+      {
+        if($LockCode -eq $null)
+        {
+          $SignInString = ('{{"data":{{"Address": "{0}","User": "{1}","Password": "{2}","Domain": "{3}"}}}}' -f $Address,$Credential.UserName,(Decrypt-UcsCredential -Credential $Credential),$Domain)
+        }
+        else
+        {
+          $SignInString = ('{{"data":{{"Address": "{0}","User": "{1}","Password": "{2}","Domain": "{3}","LockCode": "{4}"}}}}' -f $Address,$Credential.UserName,(Decrypt-UcsCredential -Credential $Credential),$Domain,$LockCode)
+        }
+        
+        if ($PSCmdlet.ShouldProcess($ThisIPv4Address)) {
+          $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/skype/signIn' -Body $SignInString -Method Post -Retries $Retries -Timeout $Timeout -ErrorAction Stop
+        }
+      }
+      Catch
+      {
+        Write-Debug -Message "Caught error $_."
+        Write-Error -Message "Couldn't sign-in for $ThisIPv4Address."
+        Continue
+      }
+      
+      
+    }
+  }
+  END
+  {
+  }
+}
+
+Function Unregister-UcsRestLyncUser
+{
+  <#
+      .SYNOPSIS
+      Sign out a Skype/Lync user.
+
+      .PARAMETER IPv4Address
+      The network address in IPv4 notation, such as 192.123.45.67.
+
+      .NOTE
+      The default timeout for this cmdlet is 20 seconds.
+
+  #>
+
+  [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+    [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries,
+    [ValidateRange(1,1000)][Int]$Timeout = 155
+    )
+    
+  BEGIN
+  {
+    
+  }
+  PROCESS
+  {
+    foreach ($ThisIPv4Address in $IPv4Address) 
+    {
+      if ($PSCmdlet.ShouldProcess($ThisIPv4Address)) {
+        Try
+        {
+          $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/skype/signOut' -Method Post -Retries $Retries -Timeout $Timeout -ErrorAction Stop
+        }
+        Catch
+        {
+          Write-Debug -Message "Caught error $_."
+          Write-Error -Message "Couldn't sign out $ThisIPv4Address."
+          Continue
+        }
+      }
+    }
+  }
+  END
+  {
+  }
+}
+
+Function Get-UcsRestLocationInfo
+{
+  <#
+      .SYNOPSIS
+      Returns device location information.
+
+      .DESCRIPTION
+      Provides location info directly from the phone's API. The Cmdlet currently doesn't provide any cleanup of values.
+
+      .PARAMETER IPv4Address
+      The network address in IPv4 notation, such as 192.123.45.67.
+  #>
+
+  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
+  [Int][ValidateRange(1,100)]$Retries = (Get-UcsConfig -Api REST).Retries)
+
+  BEGIN
+  {
+    
+  }
+  PROCESS {
+    foreach ($ThisIPv4Address in $IPv4Address) 
+    {
+      Try
+      {
+        $ThisOutput = Invoke-UcsRestMethod -IPv4Address $ThisIPv4Address -ApiEndpoint 'api/v1/mgmt/location/info' -Method Get -Retries $Retries -ErrorAction Stop
+        $ThisOutput.data | Select-Object *,@{Name="IPv4Address";Expression={$ThisIPv4Address}}
+      }
+      Catch
+      {
+        Write-Error "Couldn't connect to $ThisIPv4Address for location info."
+      }
+    }
+  }
+  END
+  {
   }
 }

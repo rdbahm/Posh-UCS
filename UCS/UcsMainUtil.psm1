@@ -707,3 +707,13 @@ Function Start-UcsSimultaneousJob
   }
   
 }
+
+Function Decrypt-UcsCredential
+{
+  <#
+    .SYNOPSIS
+    Decrypt a PsCredential for use in plaintext. This is inherently unsafe, but is the only way to send a plaintext string to the phone with a PsCredential. Returns only the password.
+  #>
+  Param([Parameter(Mandatory)][PsCredential]$Credential)
+  Return [System.Runtime.InteropServices.marshal]::PtrToStringAuto([System.Runtime.InteropServices.marshal]::SecureStringToBSTR($Credential.Password))
+}
