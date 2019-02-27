@@ -2,7 +2,7 @@ Function Get-UcsProvFTPFile
 {
   <#
       .SYNOPSIS
-      Downloads a file by name from the specified server, with the specified credential. Returns the file name of the downloaded file, which is saved to the temporary folder.
+      Downloads a file by name from the specified server, with the specified credential. Returns the file name of the downloaded file.
 
       .LINK
       http://www.thomasmaurer.ch/2010/11/powershell-ftp-upload-and-download/
@@ -12,11 +12,18 @@ Function Get-UcsProvFTPFile
   Param(
     [Parameter(Mandatory,HelpMessage = 'Full path to the file to download')][String]$Address,
     [Parameter(Mandatory,HelpMessage = 'Credential for the specified server')][pscredential]$Credential,
-    [Parameter(Mandatory,HelpMessage = 'Name of the file to download')][String]$Filename
+    [Parameter(Mandatory,HelpMessage = 'Name of the file to download')][String]$Filename,
+    [String]$LocalSaveDirectory = $env:TEMP
   )
 
   $URI = ('ftp://{0}/{1}' -f $Address.Trim(), $Filename.Trim())
-  $LocalSaveLocation = Join-Path -Path $env:TEMP -ChildPath $Filename
+  
+  if(!(Test-Path $LocalSaveDirectory))
+  {
+    Throw "Invalid path provided: $LocalSaveDirectory"
+  }
+  
+  $LocalSaveLocation = Join-Path -Path $LocalSaveDirectory -ChildPath $Filename
 
   $FTPRequest = New-Object -TypeName System.Net.WebClient
   $FTPRequest.Credentials = $Credential
