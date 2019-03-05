@@ -1,4 +1,4 @@
-Function Invoke-UcsSipRequest 
+Function Invoke-UcsSipRequest
 {
   Param(
     [Parameter(Mandatory,HelpMessage = '127.0.0.1')][String]$IPv4Address,
@@ -10,19 +10,19 @@ Function Invoke-UcsSipRequest
     [int][ValidateRange(1,65535)]$Port = (Get-UcsConfig -API SIP).Port,
     [switch]$SkipParse
   )
-  
+
   if( (Get-Module -Name nettcpip) -eq $null)
   {
     Try
     {
       Write-Debug "Attempting to load NetTCPIP..."
-      if($PSVersionTable.PSEdition -eq "Desktop")
+      if($PSVersionTable.PSEdition -eq "Core")
       {
-        Import-Module -Name NetTCPIP -ErrorAction Stop
+        Import-Module -Name NetTCPIP -SkipEditionCheck-ErrorAction Stop
       }
       else
       {
-        Import-Module -Name NetTCPIP -SkipEditionCheck -ErrorAction Stop
+        Import-Module -Name NetTCPIP  -ErrorAction Stop
       }
     }
     Catch
@@ -30,11 +30,11 @@ Function Invoke-UcsSipRequest
       Throw "Couldn't load NetTCPIP library. Error was: $_"
     }
   }
-  
+
   $ThisIPv4Address = $IPv4Address
   $RandomRangeHigh = 99999999
   $RandomRangeLow  = 10000000
-  
+
   Write-Debug "Performing initial setup for $ThisIpv4Address."
   $PhoneId = 'UCS'
   $SourceAddress = Find-NetRoute -RemoteIPAddress $ThisIPv4Address |
@@ -44,7 +44,7 @@ Function Invoke-UcsSipRequest
   $CallID = ('{0}-{1}' -f (Get-Random -Minimum $RandomRangeLow -Maximum $RandomRangeHigh), (Get-Random -Minimum $RandomRangeLow -Maximum $RandomRangeHigh))
   $CSeqString = ('{0} {1}' -f $CSeq, $Method)
   $SipTag = ('{0}-{1}' -f (Get-Random -Minimum $RandomRangeLow -Maximum $RandomRangeHigh), (Get-Random -Minimum $RandomRangeLow -Maximum $RandomRangeHigh))
-  
+
   $SipMessage = @"
 ${Method} sip:${PhoneId}:${Port} SIP/2.0
 Via: SIP/2.0/UDP ${SourceAddress}:${SourcePort}
@@ -56,7 +56,7 @@ Contact: <sip:${PhoneId}>
 Content-Length: 0
 "@
 
-  if($Event.Length -gt 0) 
+  if($Event.Length -gt 0)
   {
     $SipMessage += "`nEvent: $Event"
   }
@@ -67,23 +67,23 @@ Content-Length: 0
     $RemainingRetries--
     Try {
       $Parsed = $null
-      
+
       $AsciiEncoded = New-Object -TypeName System.Text.ASCIIEncoding
       $Bytes = $AsciiEncoded.GetBytes($SipMessage)
-		
-      $Socket = New-Object -TypeName Net.Sockets.Socket -ArgumentList ([Net.Sockets.AddressFamily]::InterNetwork, 
-        [Net.Sockets.SocketType]::Dgram, 
+
+      $Socket = New-Object -TypeName Net.Sockets.Socket -ArgumentList ([Net.Sockets.AddressFamily]::InterNetwork,
+        [Net.Sockets.SocketType]::Dgram,
       [Net.Sockets.ProtocolType]::Udp)
-		
+
       $ThisEndpoint = New-Object -TypeName System.Net.IPEndPoint -ArgumentList ([ipaddress]::Parse($SourceAddress), $SourcePort)
       $Socket.Bind($ThisEndpoint)
       $Socket.Connect($ThisIPv4Address,$Port)
 
       [Void]$Socket.Send($Bytes)
-								
+
       [Byte[]]$buffer = New-Object -TypeName Byte[] -ArgumentList ($Socket.ReceiveBufferSize)
       $BytesReceivedError = $false
-	  
+
       Write-Debug ('{0}: Initiating timeout of {1} seconds.' -f $IPv4Address,$Timeout.TotalSeconds)
       $IntegerTimeout = ($Timeout.TotalMilliseconds) * 1000
       if($Socket.Poll($IntegerTimeout,[Net.Sockets.SelectMode]::SelectRead))
@@ -92,9 +92,9 @@ Content-Length: 0
       } else {
         Write-Error ('{0}: Timeout of {1} seconds expired.' -f $IPv4Address,$Timeout.TotalSeconds) -ErrorAction Stop
       }
-  
+
       [string]$PhoneResponse = $AsciiEncoded.GetString($buffer, 0, $receivebytes)
-      
+
       if($SkipParse -eq $true) {
         $Parsed = $PhoneResponse
       } else {
@@ -111,42 +111,42 @@ Content-Length: 0
     } Finally {
       $Socket.Close()
     }
-    
+
     if($Parsed -ne $null) {
       Break #Get out of the loop.
     }
   }
-  
+
   Return $Parsed
 }
 
-Function Convert-UcsSipResponse 
+Function Convert-UcsSipResponse
 {
   Param([Parameter(Mandatory)][String]$SipMessage)
-  
+
   $PhoneResponse = $SipMessage.Split("`n")
   $ParameterList = New-Object -TypeName System.Collections.ArrayList
-  
+
   $SipOK = $false
   $ObjectBuilder = New-Object -TypeName PSObject
-  Foreach($Line in $PhoneResponse) 
+  Foreach($Line in $PhoneResponse)
   {
-    if($Line -like '*SIP/2.0 200 OK*') 
+    if($Line -like '*SIP/2.0 200 OK*')
     {
       $SipOK = $true
       Continue
     }
-    elseif($SipOK -eq $false) 
+    elseif($SipOK -eq $false)
     {
       Write-Error $Line
     }
-    
-    if($Line.Length -lt 3) 
+
+    if($Line.Length -lt 3)
     {
       Write-Debug -Message "Skipped Line `"$Line`""
       Continue
     }
-    
+
     $ColonIndex = $Line.IndexOf(':')
     $ParameterName = $Line.Substring(0,$ColonIndex)
     $ParameterValue = ($Line.Substring($ColonIndex + 1)).Trim(' ')
@@ -157,18 +157,18 @@ Function Convert-UcsSipResponse
     }
 
     $null = $ParameterList.Add($ParameterName)
-    
+
     $ObjectBuilder | Add-Member -MemberType NoteProperty -Name $ParameterName -Value $ParameterValue -Force
   }
-  
+
   $ParsedSipMessage = $ObjectBuilder
   #Now we have an object with all the parameters that SIP gave back to us. We can further chop known ones up.
 
-  Return $ParsedSipMessage  
+  Return $ParsedSipMessage
 }
 
 <# Examples of SIP Messages:
-    NOTIFY (for info): 
+    NOTIFY (for info):
     $message = @"
     NOTIFY sip:${phoneid}:5060 SIP/2.0
     Via: SIP/2.0/UDP ${serverip}
@@ -193,7 +193,7 @@ Function Convert-UcsSipResponse
 
 #>
 
-<# Example SIP Response: 
+<# Example SIP Response:
     SIP/2.0 200 OK
     Via: SIP/2.0/UDP 192.168.10.50:51234
     From: <sip:discover>;tag=1530231855-106746376154
