@@ -637,6 +637,15 @@ Function Start-UcsSimultaneousJob
 
 }
 
+Function ConvertFrom-SecureString
+{
+  <#
+    .SYNOPSIS
+    Decrypt a SecureString for use in plaintext. This is inherently unsafe, but is the only way to send a plaintext string to the phone with a PsCredential. Returns only the password.
+  #>
+  Param([Parameter(Mandatory)][SecureString]$SecureString)
+  Return [System.Runtime.InteropServices.marshal]::PtrToStringAuto([System.Runtime.InteropServices.marshal]::SecureStringToBSTR($SecureString))
+}
 Function ConvertFrom-PsCredential
 {
   <#
@@ -644,5 +653,5 @@ Function ConvertFrom-PsCredential
     Decrypt a PsCredential for use in plaintext. This is inherently unsafe, but is the only way to send a plaintext string to the phone with a PsCredential. Returns only the password.
   #>
   Param([Parameter(Mandatory)][PsCredential]$Credential)
-  Return [System.Runtime.InteropServices.marshal]::PtrToStringAuto([System.Runtime.InteropServices.marshal]::SecureStringToBSTR($Credential.Password))
+  Return (ConvertFrom-SecureString -SecureString $Credential.Password)
 }

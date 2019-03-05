@@ -11,7 +11,7 @@ Function Invoke-UcsSipRequest
     [switch]$SkipParse
   )
 
-  if( (Get-Module -Name nettcpip) -eq $null)
+  if($null -eq (Get-Module -Name nettcpip))
   {
     Try
     {
@@ -82,7 +82,6 @@ Content-Length: 0
       [Void]$Socket.Send($Bytes)
 
       [Byte[]]$buffer = New-Object -TypeName Byte[] -ArgumentList ($Socket.ReceiveBufferSize)
-      $BytesReceivedError = $false
 
       Write-Debug ('{0}: Initiating timeout of {1} seconds.' -f $IPv4Address,$Timeout.TotalSeconds)
       $IntegerTimeout = ($Timeout.TotalMilliseconds) * 1000
@@ -112,7 +111,7 @@ Content-Length: 0
       $Socket.Close()
     }
 
-    if($Parsed -ne $null) {
+    if($null -ne $Parsed) {
       Break #Get out of the loop.
     }
   }
