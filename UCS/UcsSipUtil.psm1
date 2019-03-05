@@ -1,6 +1,5 @@
 Function Invoke-UcsSipRequest 
 {
-  #requires -Version 3.0 -Modules NetTCPIP
   Param(
     [Parameter(Mandatory,HelpMessage = '127.0.0.1')][String]$IPv4Address,
     [Int][ValidateRange(1,9999)]$CSeq = 1,
@@ -11,6 +10,26 @@ Function Invoke-UcsSipRequest
     [int][ValidateRange(1,65535)]$Port = (Get-UcsConfig -API SIP).Port,
     [switch]$SkipParse
   )
+  
+  if( (Get-Module -Name nettcpip) -eq $null)
+  {
+    Try
+    {
+      Write-Debug "Attempting to load NetTCPIP..."
+      if($PSVersionTable.PSEdition -eq "Desktop")
+      {
+        Import-Module -Name NetTCPIP -ErrorAction Stop
+      }
+      else
+      {
+        Import-Module -Name NetTCPIP -SkipEditionCheck -ErrorAction Stop
+      }
+    }
+    Catch
+    {
+      Throw "Couldn't load NetTCPIP library. Error was: $_"
+    }
+  }
   
   $ThisIPv4Address = $IPv4Address
   $RandomRangeHigh = 99999999

@@ -721,7 +721,7 @@ Function Find-UcsPhoneByDHCP
       Uses DHCP to find all phones in the current environment. Requires DHCP and AD powershell modules.
 
       .DESCRIPTION
-      Uses the DHCP cmdlets to enumerate all DHCP scopes, then checks each scope for leases assigned to Polycom-prefixed MAC addresses. It requires the DHCP and AD Powershell modules to operate.
+      Uses the DHCP cmdlets to enumerate all DHCP scopes, then checks each scope for leases assigned to Polycom-prefixed MAC addresses. It requires the DHCP Powershell module to operate.
   #>
   [CmdletBinding()]
   Param(
@@ -729,30 +729,57 @@ Function Find-UcsPhoneByDHCP
   )
 
   $AvailableModules = Get-Module -ListAvailable
-  if($AvailableModules.Name -notcontains 'ActiveDirectory' -or $AvailableModules.Name -notcontains 'DhcpServer')
+  
+  if($PSVersionTable.PSEdition -eq "Core")
   {
-    Write-Error -Message "The cmdlet 'Find-UcsPhoneByDHCP' cannot be run because the 'ActiveDirectory' and 'DhcpServer' modules are required and were not found." -Category ResourceUnavailable -Exception "ScriptRequiresException" -ErrorAction Stop
+    Write-Debug "Detected a Core edition of Powershell. Attempting to load DhcpServer module."
+    
+    Try
+    {
+      Import-Module DhcpServer -SkipEditionCheck -ErrorAction Stop
+    }
+    Catch
+    {
+      Write-Error -Message "The cmdlet 'Find-UcsPhoneByDHCP' cannot be run because the 'DhcpServer' module couldn't be loaded into a Core edition of PowerShell." -Category ResourceUnavailable -Exception "ScriptRequiresException" -ErrorAction Stop
+    }
+  }
+  elseif($AvailableModules.Name -notcontains 'DhcpServer')
+  {
+    Write-Error -Message "The cmdlet 'Find-UcsPhoneByDHCP' cannot be run because the 'DhcpServer' module is required and were not found." -Category ResourceUnavailable -Exception "ScriptRequiresException" -ErrorAction Stop
   }
   
-  $Domain = (Get-ADDomain).DistinguishedName
-  $DHCPServers = Get-ADObject -SearchBase ('cn=configuration,{0}' -f $Domain) -Filter "objectclass -eq 'dhcpclass' -AND Name -ne 'dhcproot'"
+  $DHCPServers = Get-DhcpServerInDC
+  $Ping = New-Object System.Net.NetworkInformation.Ping
 
   Foreach ($DHCPServer in $DHCPServers) 
   {
-    if(Test-Connection -ComputerName $DHCPServer.Name -Count 1 -Quiet) 
+    $DHCPServerName = [String]$DHCPServer.DnsName
+    
+    Write-Debug "Testing connection to $DHCPServerName..."
+    
+    Try
+    {
+      $PingResult = ($Ping.Send($DHCPServerName)).Status
+    }
+    Catch
+    {
+      Write-Debug "No ping response from $DHCPServerName."
+    }
+    
+    if($PingResult -eq "Success") 
     {
       Try 
       {
         $Scopes = $null
         $Leases = $null
-        $Scopes = Get-DhcpServerv4Scope -ComputerName ($DHCPServer.Name) -ErrorAction SilentlyContinue
+        $Scopes = Get-DhcpServerv4Scope -ComputerName ($DHCPServerName) -ErrorAction SilentlyContinue
         $Leases = $Scopes | ForEach-Object -Process {
-          Get-DhcpServerv4Lease -ComputerName ($DHCPServer.Name) -ScopeId $_.ScopeId -ErrorAction SilentlyContinue
+          Get-DhcpServerv4Lease -ComputerName ($DHCPServerName) -ScopeId $_.ScopeId -ErrorAction SilentlyContinue
         }
       }
       Catch 
       {
-        Write-Warning -Message ("Couldn't use {0} as a DHCP server. {1}" -f $DHCPServer.Name, $_)
+        Write-Warning -Message ("Couldn't use {0} as a DHCP server. {1}" -f $DHCPServerName, $_)
       }
       
       $Leases = $Leases | Select-Object -Property @{
