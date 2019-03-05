@@ -46,7 +46,7 @@ Function New-UcsConfig
     @{Name='EnableEncryption';Expression={$EnableEncryption}},
     @{Name='Priority';Expression={$Priority}},
     @{Name='Enabled';Expression={$Enabled}}
-  
+
   Return $OutputObject
 }
 
@@ -87,12 +87,12 @@ Function Set-UcsConfig
   {
       $WorkingConfig = Get-UcsConfig -API $API
 
-      if($Retries -ne $null)
+      if($null -ne $Retries)
       {
         $WorkingConfig.Retries = $Retries
       }
 
-      if($Timeout -ne $null)
+      if($null -ne $Timeout)
       {
         if($Timeout.TotalSeconds -lt 0)
         {
@@ -104,14 +104,14 @@ Function Set-UcsConfig
         }
       }
 
-      if($Port -ne $null)
+      if($null -ne $Port)
       {
         $WorkingConfig.Port = $Port
       }
 
-      if($EnableEncryption -ne $null)
+      if($null -ne $EnableEncryption)
       {
-        if($WorkingConfig.EnableEncryption -eq $null)
+        if($null -eq $WorkingConfig.EnableEncryption)
         {
           Write-Error ('Encryption is not supported by the {0} API.' -f $API)
         }
@@ -121,7 +121,7 @@ Function Set-UcsConfig
         }
       }
 
-      if($Priority -ne $null)
+      if($null -ne $Priority)
       {
         $MatchingPriority = $Script:MasterConfig | Where-Object -Property Priority -eq $Priority | Measure-Object
         if($MatchingPriority.Count -gt 0)
@@ -134,7 +134,7 @@ Function Set-UcsConfig
         }
       }
 
-      if($Enabled -ne $null)
+      if($null -ne $Enabled)
       {
         $WorkingConfig.Enabled = $Enabled
       }
@@ -177,6 +177,8 @@ Function New-UcsConfigCredential
 
 Function New-UcsConfigCredentialPlaintext
 {
+  [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingPlainTextForPassword", 'Password',
+    Justification='This cmdlet takes a plaintext password and converts it to SecureString.')]
   Param (
     [Parameter(Mandatory)][String]$Username,
     [Parameter(Mandatory)][String]$Password
@@ -197,7 +199,7 @@ Function Get-UcsConfigCredential
   )
 
   $AllCredentials = $Script:MasterCredentials
-  
+
   if(!$IncludeDisabled)
   {
     $AllCredentials = $AllCredentials | Where-Object -Property Enabled -EQ -Value $true
@@ -218,17 +220,20 @@ Function Get-UcsConfigCredential
 
 Function Add-UcsConfigCredential
 {
+  [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingPlainTextForPassword", 'UcsConfigCredential',
+  Justification='The type of object this accepts contains a PsCredential object.')]
   Param (
     [Parameter(Mandatory)][Object]$UcsConfigCredential
   )
   Process
   {
-      if($UcsConfigCredential.Credential.GetType().Name -ne 'PSCredential' -or $UcsConfigCredential.Priority -eq $null)
+      if($UcsConfigCredential.Credential.GetType().Name -ne 'PSCredential' -or $null -eq $UcsConfigCredential.Priority)
       {
         Write-Error "Invalid UcsConfigCredential supplied."
       }
 
-      $HighestIndex = $Script:MasterCredentials | Sort-Object -Property Index -Descending | Select -First 1 | Select -ExpandProperty Index
+      $HighestIndex = $Script:MasterCredentials | Sort-Object -Property Index -Descending `
+        | Select-Object -First 1 | Select-Object -ExpandProperty Index
       $ThisIndex = $HighestIndex + 1
 
       $IndexRemoved = $UcsConfigCredential | Select-Object -Property * -ExcludeProperty Index
@@ -245,7 +250,7 @@ Function Add-UcsConfigCredential
 Function Remove-UcsConfigCredential
 {
   Param (
-    [Parameter(Mandatory,ValueFromPipelineByPropertyName)][Int[]]$Index   
+    [Parameter(Mandatory,ValueFromPipelineByPropertyName)][Int[]]$Index
   )
 
   Process
@@ -275,7 +280,7 @@ Function Set-UcsConfigCredential
    Param (
     [Parameter(Mandatory,ValueFromPipelineByPropertyName)][Int[]]$Index,
     [AllowEmptyString()][ValidateSet('REST','Poll','Push','Web')][String]$API = '',
-    $Credential = $null,
+    [PsCredential]$Credential = $null,
     [String]$DisplayName = '',
     [Nullable[Int]]$Priority = $null,
     [String]$Identity = '',
@@ -288,7 +293,7 @@ Function Set-UcsConfigCredential
     {
       $WorkingCredential = $Script:MasterCredentials | Where-Object -Property Index -EQ -Value $ThisIndex
 
-      if($WorkingCredential -eq $null)
+      if($null -eq $WorkingCredential)
       {
         Write-Error "Invalid index $ThisIndex."
         Continue
@@ -299,7 +304,7 @@ Function Set-UcsConfigCredential
         $WorkingCredential.API = $API
       }
 
-      if($Credential -ne $null)
+      if($null -ne $Credential)
       {
         if($Credential.GetType().Name -eq 'PSCredential')
         {
@@ -312,7 +317,7 @@ Function Set-UcsConfigCredential
         $WorkingCredential.DisplayName = $DisplayName
       }
 
-      if($Priority -ne $null)
+      if($null -ne $Priority)
       {
         $WorkingCredential.Priority = $Priority
       }
@@ -322,7 +327,7 @@ Function Set-UcsConfigCredential
         $WorkingCredential.Identity = $Identity
       }
 
-      if($Enabled -ne $null)
+      if($null -ne $Enabled)
       {
         $WorkingCredential.Enabled = $Enabled
       }
