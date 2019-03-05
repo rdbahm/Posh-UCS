@@ -6,7 +6,7 @@ Function Start-UcsCall
     [Int][ValidateRange(1,24)]$LineId = 1,
     [String][ValidateSet('SIP')]$CallType = 'SIP',
     [Switch]$PassThru)
-  
+
   Begin
   {
     $OutputObject = New-Object -TypeName System.Collections.ArrayList
@@ -17,7 +17,7 @@ Function Start-UcsCall
     Foreach($ThisIPv4Address in $IPv4Address)
     {
       $GetSuccess = $false
-      
+
       Foreach($Protocol in $ThisProtocolPriority)
       {
         Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
@@ -41,12 +41,12 @@ Function Start-UcsCall
             }
           }
         }
-        Catch 
+        Catch
         {
           Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
-        
-        if($GetSuccess -eq $true) 
+
+        if($GetSuccess -eq $true)
         {
           $ThisOutput = $ThisOutput | Select-Object -ExcludeProperty API -Property *, @{
             Name       = 'API'
@@ -60,8 +60,8 @@ Function Start-UcsCall
           Break #Get out of the protocol loop once we succeed.
         }
       }
-      
-      if($GetSuccess -eq $false) 
+
+      if($GetSuccess -eq $false)
       {
         Write-Error -Message ('Could not get call info for {0}.' -f $ThisIPv4Address) -Category ConnectionError
       }
@@ -81,7 +81,7 @@ Function Stop-UcsCall
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'Medium')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [Parameter(ValueFromPipelineByPropertyName)][String][ValidatePattern('^0x[a-f0-9]{7,8}$')]$CallHandle)
-  
+
   Begin
   {
     $OutputObject = New-Object -TypeName System.Collections.ArrayList
@@ -105,11 +105,11 @@ Function Stop-UcsCall
               {
                 if($CallHandle)
                 {
-                  $ThisOutput = Stop-UcsRestCall -IPv4Address $ThisIPv4Address -CallHandle $CallHandle -ErrorAction Stop -Confirm:$false
+                  $null = Stop-UcsRestCall -IPv4Address $ThisIPv4Address -CallHandle $CallHandle -ErrorAction Stop -Confirm:$false
                 }
                 else
                 {
-                  $ThisOutput = Stop-UcsRestCall -IPv4Address $ThisIPv4Address -ErrorAction Stop -Confirm:$false
+                  $null = Stop-UcsRestCall -IPv4Address $ThisIPv4Address -ErrorAction Stop -Confirm:$false
                 }
                 $GetSuccess = $true
               }
@@ -117,11 +117,11 @@ Function Stop-UcsCall
               {
                 if($CallHandle)
                 {
-                  $ThisOutput = Send-UcsPushCallAction -IPv4Address $ThisIPv4Address -CallAction EndCall -CallHandle $CallHandle -ErrorAction Stop -Confirm:$false
+                  $null = Send-UcsPushCallAction -IPv4Address $ThisIPv4Address -CallAction EndCall -CallHandle $CallHandle -ErrorAction Stop -Confirm:$false
                 }
                 else
                 {
-                  $ThisOutput = Send-UcsPushCallAction -IPv4Address $ThisIPv4Address -CallAction EndCall -ErrorAction Stop -Confirm:$false
+                  $null = Send-UcsPushCallAction -IPv4Address $ThisIPv4Address -CallAction EndCall -ErrorAction Stop -Confirm:$false
                 }
                 $GetSuccess = $true
               }
@@ -131,18 +131,18 @@ Function Stop-UcsCall
               }
             }
           }
-          Catch 
+          Catch
           {
             Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
           }
-        
+
           if($GetSuccess)
           {
             Break #Get out of the protocol loop once we succeed.
           }
         }
-      
-        if($GetSuccess -eq $false) 
+
+        if($GetSuccess -eq $false)
         {
           Write-Error -Message ('Could not get call info for {0}.' -f $ThisIPv4Address) -Category ConnectionError
         }
@@ -155,7 +155,7 @@ Function Stop-UcsCall
   }
 }
 
-Function Get-UcsPhoneInfo 
+Function Get-UcsPhoneInfo
 {
   <#
       .SYNOPSIS
@@ -173,7 +173,7 @@ Function Get-UcsPhoneInfo
     $OutputArray = New-Object -TypeName System.Collections.ArrayList
     $ThisProtocolPriority = Get-UcsConfigPriority
   } PROCESS {
-    Foreach($ThisIPv4Address in $IPv4Address) 
+    Foreach($ThisIPv4Address in $IPv4Address)
     {
       Foreach($Protocol in $ThisProtocolPriority)
       {
@@ -205,7 +205,7 @@ Function Get-UcsPhoneInfo
             {
               $PhoneInfo = Get-UcsWebDeviceInfo -IPv4Address $ThisIPv4Address -ErrorAction Stop
               $SignInInfo = Get-UcsWebLyncSignIn -IPv4Address $ThisIPv4Address -ErrorAction Stop
-          
+
               $Model = $PhoneInfo.Model
               $FirmwareRelease = $PhoneInfo.FirmwareRelease
               $MacAddress = $PhoneInfo.MacAddress
@@ -216,7 +216,7 @@ Function Get-UcsPhoneInfo
             'SIP'
             {
               $PhoneInfo = Get-UcsSipPhoneInfo -IPv4Address $ThisIPv4Address -ErrorAction Stop
-          
+
               $Model = $PhoneInfo.Model
               $FirmwareRelease = $PhoneInfo.FirmwareRelease
               $MacAddress = $PhoneInfo.MacAddress
@@ -227,16 +227,16 @@ Function Get-UcsPhoneInfo
             'Poll'
             {
               $PhoneInfo = Get-UcsPollDeviceInfo -IPv4Address $ThisIPv4Address -ErrorAction Stop
-              
+
               $Model = $PhoneInfo.Model
               $FirmwareRelease = $PhoneInfo.FirmwareRelease
               $MacAddress = $PhoneInfo.MacAddress
               $SipAddress = $PhoneInfo.SipAddress
-              if($SipAddress.length -gt 0) 
+              if($SipAddress.length -gt 0)
               {
                 $Registered = $true
               }
-              else 
+              else
               {
                 $Registered = $false
               }
@@ -249,19 +249,19 @@ Function Get-UcsPhoneInfo
             }
           }
         }
-        Catch 
+        Catch
         {
           Write-Debug -Message ("Encountered an error on {0} via {1}. '{2}'" -f $ThisIPv4Address, $Protocol, $_)
           $Success = $false
         }
-        
-        if($Success -eq $true) 
+
+        if($Success -eq $true)
         {
           Break
         }
       }
 
-      if($Success -eq $false) 
+      if($Success -eq $false)
       {
         #All protocols have failed.
         Write-Error -Message ('Could not connect to {0}.' -f $ThisIPv4Address) -Category ConnectionError
@@ -317,44 +317,44 @@ Function Get-UcsPhoneInfo
   }
 }
 
-Function Restart-UcsPhone 
+Function Restart-UcsPhone
 {
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [String][ValidateSet('Reboot','Restart')]$Type = 'Reboot',
   [Switch]$PassThru)
-  
+
   #Specifying type of reboot is only possible using the web UI. All other methods cause a full reboot.
   #Also, it's only possible to reboot with SIP if a specific setting is configured.
-  
+
   BEGIN
   {
     $StatusResult = New-Object -TypeName System.Collections.ArrayList
-    
+
     $ThisProtocolPriority = Get-UcsConfigPriority
-    
-    if($Type -eq 'Restart') 
+
+    if($Type -eq 'Restart')
     {
       Write-Verbose -Message 'Protocol priority temporarily overridden, as a restart is only possible with Web.'
       $ThisProtocolPriority = $ThisProtocolPriority | Where-Object { $_ -ne "SIP" }  #A restart is not possible using SIP.
     }
-    
+
   }
   PROCESS
   {
     Foreach($ThisIPv4Address in $IPv4Address)
     {
-      if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+      if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address)))
       {
         $WhatIf = $false
       }
-      else 
+      else
       {
         $WhatIf = $true
       }
-    
+
       $RebootSuccess = $false
-      
+
       Foreach($Protocol in $ThisProtocolPriority)
       {
         Write-Debug -Message ('Trying {0} {2} for {1}.' -f $Protocol, $ThisIPv4Address, $Type.ToLower())
@@ -384,18 +384,18 @@ Function Restart-UcsPhone
             }
           }
         }
-        Catch 
+        Catch
         {
           Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
-        
-        if($RebootSuccess -eq $true) 
+
+        if($RebootSuccess -eq $true)
         {
           Break #Get out of the loop once we succeed.
         }
       }
-      
-      if($RebootSuccess -eq $false) 
+
+      if($RebootSuccess -eq $false)
       {
         Write-Error -Message ('Could not {0} {1}.' -f $Type, $ThisIPv4Address) -Category ConnectionError
       }
@@ -403,24 +403,24 @@ Function Restart-UcsPhone
   }
   END
   {
-    if($PassThru -eq $true) 
+    if($PassThru -eq $true)
     {
       Return $StatusResult
     }
   }
 }
 
-Function Get-UcsParameter 
+Function Get-UcsParameter
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(Mandatory,HelpMessage = 'A UCS parameter, such as "Up.Timeout."',ValueFromPipelineByPropertyName,ParameterSetName = 'Parameter')][String[]]$Parameter,
     [Parameter(ParameterSetName = 'All')][Switch]$All,
   [Switch]$PassThru)
-  
+
   BEGIN
   {
     $ParameterResult = New-Object -TypeName System.Collections.ArrayList
-    
+
     if($PSCmdlet.ParameterSetName -eq 'All')
     {
       $ThisProtocolPriority = ('Web')
@@ -435,7 +435,7 @@ Function Get-UcsParameter
     Foreach($ThisIPv4Address in $IPv4Address)
     {
       $GetSuccess = $false
-      
+
       Foreach($Protocol in $ThisProtocolPriority)
       {
         Write-Debug -Message ('Trying {0} {2} for {1}.' -f $Protocol, $ThisIPv4Address, $PSCmdlet.ParameterSetName)
@@ -454,7 +454,7 @@ Function Get-UcsParameter
               {
                 $ThisParameter = Get-UcsWebConfiguration -IPv4Address $ThisIPv4Address -ErrorAction Stop
               }
-              else 
+              else
               {
                 $ThisParameter = Get-UcsWebParameter -IPv4Address $ThisIPv4Address -Parameter $Parameter -ErrorAction Stop
               }
@@ -466,12 +466,12 @@ Function Get-UcsParameter
             }
           }
         }
-        Catch 
+        Catch
         {
           Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
-        
-        if($GetSuccess -eq $true) 
+
+        if($GetSuccess -eq $true)
         {
           $ThisParameter = $ThisParameter | Select-Object -Property *, @{
             Name       = 'API'
@@ -485,8 +485,8 @@ Function Get-UcsParameter
           Break #Get out of the protocol loop once we succeed.
         }
       }
-      
-      if($GetSuccess -eq $false) 
+
+      if($GetSuccess -eq $false)
       {
         Write-Error -Message ('Could not get parameter for {0}.' -f $ThisIPv4Address) -Category ConnectionError
       }
@@ -498,12 +498,12 @@ Function Get-UcsParameter
   }
 }
 
-Function Get-UcsProvisioningInfo 
+Function Get-UcsProvisioningInfo
 {
   Param(
     [Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address
   )
-  
+
   Begin
   {
     $OutputObject = New-Object -TypeName System.Collections.ArrayList
@@ -514,7 +514,7 @@ Function Get-UcsProvisioningInfo
     Foreach($ThisIPv4Address in $IPv4Address)
     {
       $GetSuccess = $false
-      
+
       Foreach($Protocol in $ThisProtocolPriority)
       {
         Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
@@ -538,12 +538,12 @@ Function Get-UcsProvisioningInfo
             }
           }
         }
-        Catch 
+        Catch
         {
           Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
-        
-        if($GetSuccess -eq $true) 
+
+        if($GetSuccess -eq $true)
         {
           $ThisProvisioning = $ThisProvisioning | Select-Object -Property ProvServerAddress, ProvServerUser, ProvServerType, @{
             Name       = 'API'
@@ -557,8 +557,8 @@ Function Get-UcsProvisioningInfo
           Break #Get out of the protocol loop once we succeed.
         }
       }
-      
-      if($GetSuccess -eq $false) 
+
+      if($GetSuccess -eq $false)
       {
         Write-Error -Message ('Could not get provisioning info for {0}.' -f $ThisIPv4Address) -Category ConnectionError
       }
@@ -570,12 +570,12 @@ Function Get-UcsProvisioningInfo
   }
 }
 
-Function Get-UcsNetworkInfo 
+Function Get-UcsNetworkInfo
 {
   Param(
     [Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address
   )
-  
+
   Begin
   {
     $OutputObject = New-Object -TypeName System.Collections.ArrayList
@@ -586,7 +586,7 @@ Function Get-UcsNetworkInfo
     Foreach($ThisIPv4Address in $IPv4Address)
     {
       $GetSuccess = $false
-      
+
       Foreach($Protocol in $ThisProtocolPriority)
       {
         Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
@@ -610,12 +610,12 @@ Function Get-UcsNetworkInfo
             }
           }
         }
-        Catch 
+        Catch
         {
           Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
-        
-        if($GetSuccess -eq $true) 
+
+        if($GetSuccess -eq $true)
         {
           $ThisOutput = $ThisOutput | Select-Object -Property *, @{
             Name       = 'API'
@@ -629,8 +629,8 @@ Function Get-UcsNetworkInfo
           Break #Get out of the protocol loop once we succeed.
         }
       }
-      
-      if($GetSuccess -eq $false) 
+
+      if($GetSuccess -eq $false)
       {
         Write-Error -Message ('Could not get network info for {0}.' -f $ThisIPv4Address) -Category ConnectionError
       }
@@ -646,7 +646,7 @@ Function Get-UcsCall
   Param(
     [Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address
   )
-  
+
   Begin
   {
     $OutputObject = New-Object -TypeName System.Collections.ArrayList
@@ -657,7 +657,7 @@ Function Get-UcsCall
     Foreach($ThisIPv4Address in $IPv4Address)
     {
       $GetSuccess = $false
-      
+
       Foreach($Protocol in $ThisProtocolPriority)
       {
         Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
@@ -681,12 +681,12 @@ Function Get-UcsCall
             }
           }
         }
-        Catch 
+        Catch
         {
           Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
-        
-        if($GetSuccess -eq $true) 
+
+        if($GetSuccess -eq $true)
         {
           $ThisOutput = $ThisOutput | Select-Object -Property *, @{
             Name       = 'API'
@@ -700,8 +700,8 @@ Function Get-UcsCall
           Break #Get out of the protocol loop once we succeed.
         }
       }
-      
-      if($GetSuccess -eq $false) 
+
+      if($GetSuccess -eq $false)
       {
         Write-Error -Message ('Could not get call info for {0}.' -f $ThisIPv4Address) -Category ConnectionError
       }
@@ -714,7 +714,7 @@ Function Get-UcsCall
 }
 
 
-Function Find-UcsPhoneByDHCP 
+Function Find-UcsPhoneByDHCP
 {
   <#
       .SYNOPSIS
@@ -729,11 +729,11 @@ Function Find-UcsPhoneByDHCP
   )
 
   $AvailableModules = Get-Module -ListAvailable
-  
+
   if($PSVersionTable.PSEdition -eq "Core")
   {
     Write-Debug "Detected a Core edition of Powershell. Attempting to load DhcpServer module."
-    
+
     Try
     {
       Import-Module DhcpServer -SkipEditionCheck -ErrorAction Stop
@@ -747,16 +747,16 @@ Function Find-UcsPhoneByDHCP
   {
     Write-Error -Message "The cmdlet 'Find-UcsPhoneByDHCP' cannot be run because the 'DhcpServer' module is required and were not found." -Category ResourceUnavailable -Exception "ScriptRequiresException" -ErrorAction Stop
   }
-  
+
   $DHCPServers = Get-DhcpServerInDC
   $Ping = New-Object System.Net.NetworkInformation.Ping
 
-  Foreach ($DHCPServer in $DHCPServers) 
+  Foreach ($DHCPServer in $DHCPServers)
   {
     $DHCPServerName = [String]$DHCPServer.DnsName
-    
+
     Write-Debug "Testing connection to $DHCPServerName..."
-    
+
     Try
     {
       $PingResult = ($Ping.Send($DHCPServerName)).Status
@@ -765,10 +765,10 @@ Function Find-UcsPhoneByDHCP
     {
       Write-Debug "No ping response from $DHCPServerName."
     }
-    
-    if($PingResult -eq "Success") 
+
+    if($PingResult -eq "Success")
     {
-      Try 
+      Try
       {
         $Scopes = $null
         $Leases = $null
@@ -777,11 +777,11 @@ Function Find-UcsPhoneByDHCP
           Get-DhcpServerv4Lease -ComputerName ($DHCPServerName) -ScopeId $_.ScopeId -ErrorAction SilentlyContinue
         }
       }
-      Catch 
+      Catch
       {
         Write-Warning -Message ("Couldn't use {0} as a DHCP server. {1}" -f $DHCPServerName, $_)
       }
-      
+
       $Leases = $Leases | Select-Object -Property @{
         Name       = 'IPv4Address'
         Expression = {
@@ -806,7 +806,7 @@ Function Find-UcsPhoneByDHCP
 
   <#
       $PolycomPhones = New-Object -TypeName System.Collections.ArrayList
-      Foreach ($Client in $DiscoveredDhcpPhones) 
+      Foreach ($Client in $DiscoveredDhcpPhones)
       {
       $null = $PolycomPhones.Add($Client)
       #TODO: Maybe add some logic to check when multiple devices claim the same MAC and see which IP, if any, is responding.
@@ -815,16 +815,16 @@ Function Find-UcsPhoneByDHCP
       $PolycomPhones = $PolycomPhones |
       Sort-Object -Property IPv4Address -Unique
   #>
-  
+
   $PolycomPhones = $DiscoveredDhcpPhones | Sort-Object -Property IPv4Address -Unique
 
   Return $PolycomPhones
 }
 
-Function Get-UcsCallLog 
+Function Get-UcsCallLog
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
-  
+
   Begin
   {
     $AllCalls = New-Object -TypeName System.Collections.ArrayList
@@ -834,24 +834,24 @@ Function Get-UcsCallLog
   {
     Foreach($ThisIPv4Address in $IPv4Address)
     {
-      Try 
+      Try
       {
         $PhoneInfo = Get-UcsPhoneInfo -IPv4Address $ThisIPv4Address -ErrorAction Stop
       }
-      Catch 
+      Catch
       {
         Write-Error -Message ("Couldn't get call information for {0}. Unable to connect to phone." -f $ThisIPv4Address)
         Continue
       }
-      
+
       if($PhoneInfo.MacAddress -notmatch '^[a-f0-9]{12}$')
       {
         Write-Error -Message ("Couldn't get call information for {0}. Unable to get MAC address." -f $ThisIPv4Address)
         Continue
       }
-      
+
       $GetSuccess = $false
-      
+
       Foreach($Protocol in $ThisProtocolPriority)
       {
         Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
@@ -870,12 +870,12 @@ Function Get-UcsCallLog
             }
           }
         }
-        Catch 
+        Catch
         {
           Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
-        
-        if($GetSuccess -eq $true) 
+
+        if($GetSuccess -eq $true)
         {
           $ThisCallLog = $ThisCallLog | Select-Object -Property *, @{
             Name       = 'API'
@@ -894,8 +894,8 @@ Function Get-UcsCallLog
           Break #Get out of the protocol loop once we succeed.
         }
       }
-      
-      if($GetSuccess -eq $false) 
+
+      if($GetSuccess -eq $false)
       {
         Write-Error -Message ('Could not get provisioning info for {0}.' -f $ThisIPv4Address) -Category ConnectionError
         Continue
@@ -904,15 +904,15 @@ Function Get-UcsCallLog
   }
   End
   {
-  
+
     Return $AllCalls
   }
 }
-Function Get-UcsLog 
+Function Get-UcsLog
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [Parameter(Mandatory)][ValidateSet('app','boot')][String]$LogType)
-  
+
   Begin
   {
     $AllLogs = New-Object -TypeName System.Collections.ArrayList
@@ -923,7 +923,7 @@ Function Get-UcsLog
     Foreach($ThisIPv4Address in $IPv4Address)
     {
       $GetSuccess = $false
-      
+
       Foreach($Protocol in $ThisProtocolPriority)
       {
         Write-Debug -Message ('{2}: Trying {0} for {1}.' -f $Protocol, $ThisIPv4Address,$PSCmdlet.MyInvocation.MyCommand.Name)
@@ -954,12 +954,12 @@ Function Get-UcsLog
             }
           }
         }
-        Catch 
+        Catch
         {
           Write-Debug -Message ("Encountered an error on {0}. '{1}'" -f $ThisIPv4Address, $_)
         }
-        
-        if($GetSuccess -eq $true) 
+
+        if($GetSuccess -eq $true)
         {
           $Logs = $Logs | Select-Object -Property *, @{
             Name       = 'API'
@@ -973,8 +973,8 @@ Function Get-UcsLog
           Break #Get out of the protocol loop once we succeed.
         }
       }
-      
-      if($GetSuccess -eq $false) 
+
+      if($GetSuccess -eq $false)
       {
         Write-Error -Message ('Could not get log info for {0}.' -f $ThisIPv4Address) -Category ConnectionError
         Continue
@@ -983,7 +983,7 @@ Function Get-UcsLog
   }
   End
   {
-  
+
     Return $AllLogs
   }
 }
@@ -991,7 +991,7 @@ Function Get-UcsLog
 Function Test-UcsAPI
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
-  
+
   Begin
   {
     $ResultArray = New-Object -TypeName Collections.ArrayList
@@ -1010,7 +1010,7 @@ Function Test-UcsAPI
       {
         $RESTStatus = $false
       }
-      
+
       #Web
       $Web = Get-UcsWebDeviceInfo -IPv4Address $ThisIPv4Address -ErrorAction SilentlyContinue
       if($Web.MACAddress -match '[a-f0-9]{12}')
@@ -1021,7 +1021,7 @@ Function Test-UcsAPI
       {
         $WebStatus = $false
       }
-      
+
       #Poll
       $Poll = Get-UcsPollDeviceInfo -IPv4Address $ThisIPv4Address -ErrorAction SilentlyContinue
       if($Poll.MACAddress -match '[a-f0-9]{12}')
@@ -1032,7 +1032,7 @@ Function Test-UcsAPI
       {
         $PollStatus = $false
       }
-      
+
       #Provisioning
       $Provisioning = Get-UcsCallLog -IPv4Address $ThisIPv4Address -ErrorAction SilentlyContinue
       if($Provisioning.count -gt 0)
@@ -1043,7 +1043,7 @@ Function Test-UcsAPI
       {
         $ProvisioningStatus = $false
       }
-      
+
       #Push
       Try
       {
@@ -1055,7 +1055,7 @@ Function Test-UcsAPI
         $PushStatus = $false
       }
       #$PushStatus = $null #This detection doesn't work.
-      
+
       #SIP
       $SIP = Get-UcsSipPhoneInfo -IPv4Address $ThisIPv4Address -ErrorAction SilentlyContinue
       if($SIP.FirmwareRelease.Length -ge 1)
@@ -1066,15 +1066,16 @@ Function Test-UcsAPI
       {
         $SIPStatus = $false
       }
-      
+
       $ThisStatusResult = New-Object -TypeName PSObject
       $ThisStatusResult | Add-Member -MemberType NoteProperty -Name REST -Value $RESTStatus
       $ThisStatusResult | Add-Member -MemberType NoteProperty -Name Poll -Value $PollStatus
+      $ThisStatusResult | Add-Member -MemberType NoteProperty -Name Web -Value $WebStatus
       $ThisStatusResult | Add-Member -MemberType NoteProperty -Name Provisioning -Value $ProvisioningStatus
       $ThisStatusResult | Add-Member -MemberType NoteProperty -Name Push -Value $PushStatus
       $ThisStatusResult | Add-Member -MemberType NoteProperty -Name SIP -Value $SIPStatus
       $ThisStatusResult | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $ThisIPv4Address
-      
+
       $null = $ResultArray.Add($ThisStatusResult)
     }
   }

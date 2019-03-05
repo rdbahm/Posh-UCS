@@ -1,4 +1,4 @@
-Function Get-UcsCleanJSON 
+Function Get-UcsCleanJSON
 {
   <#
       .SYNOPSIS
@@ -10,7 +10,7 @@ Function Get-UcsCleanJSON
   )
 
   $ThisString = $String
-    
+
   $ThisString = $ThisString.Replace('\','\\') #Escape slashes first since they're used for escape characters.
   $ThisString = $ThisString.Replace("`"","\`"") #Escape any double quotes.
 
@@ -18,7 +18,7 @@ Function Get-UcsCleanJSON
 }
 
 
-Function Test-UcsIsAdministrator 
+Function Test-UcsIsAdministrator
 {
   <#
       .SYNOPSIS
@@ -26,11 +26,11 @@ Function Test-UcsIsAdministrator
   #>
   $user = [Security.Principal.WindowsIdentity]::GetCurrent()
 
-  Return (New-Object -TypeName Security.Principal.WindowsPrincipal -ArgumentList $user).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)  
+  Return (New-Object -TypeName Security.Principal.WindowsPrincipal -ArgumentList $user).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 }
 
 
-Function Test-UcsPolycomRootCertificate 
+Function Test-UcsPolycomRootCertificate
 {
   <#
       .SYNOPSIS
@@ -40,17 +40,17 @@ Function Test-UcsPolycomRootCertificate
   $UserCertificates = Get-ChildItem -Path Cert:\CurrentUser\Root
   $AllCertificates = $MachineCertificates + $UserCertificates | Where-Object -Property Subject -Like -Value 'CN=Polycom*'
 
-  if($AllCertificates.count -gt 0) 
+  if($AllCertificates.count -gt 0)
   {
     Return $true
   }
-  else 
+  else
   {
     Return $false
   }
 }
 
-Function Add-UcsHost 
+Function Add-UcsHost
 {
   <#
       .SYNOPSIS
@@ -65,7 +65,7 @@ Function Add-UcsHost
   $IPv4Address + "`t`t" + $Hostname | Out-File -Encoding ASCII -Append -FilePath $Filename
 }
 
-Function Remove-UcsHost 
+Function Remove-UcsHost
 {
   <#
       .SYNOPSIS
@@ -78,17 +78,17 @@ Function Remove-UcsHost
   $c = Get-Content -Path $Filename
   $newLines = @()
 
-  foreach ($line in $c) 
+  foreach ($line in $c)
   {
     $bits = [regex]::Split($line, '\t+')
-    if ($bits.count -eq 2) 
+    if ($bits.count -eq 2)
     {
-      if ($bits[1] -ne $Hostname) 
+      if ($bits[1] -ne $Hostname)
       {
         $newLines += $line
       }
     }
-    else 
+    else
     {
       $newLines += $line
     }
@@ -96,14 +96,14 @@ Function Remove-UcsHost
 
   # Write file
   Clear-Content -Path $Filename
-  foreach ($line in $newLines) 
+  foreach ($line in $newLines)
   {
     $line | Out-File -Encoding ASCII -Append -FilePath $Filename
   }
 }
 
 
-Function Convert-UcsUptimeString 
+Function Convert-UcsUptimeString
 {
   <#
       .SYNOPSIS
@@ -129,7 +129,7 @@ Function Convert-UcsUptimeString
     $null = $Uptime -match '^\d+'
     $UptimeDays = $Matches[0]
   }
-  
+
   $UptimeThisIndex = $Uptime.Length - 1 #End of string
   $UptimeSeconds = $Uptime.Substring(($UptimeThisIndex - 1),2)
   $UptimeThisIndex = $UptimeThisIndex - 3
@@ -143,7 +143,7 @@ Function Convert-UcsUptimeString
 }
 
 
-Function Get-UcsStatusCodeString 
+Function Get-UcsStatusCodeString
 {
   <#
       .SYNOPSIS
@@ -157,11 +157,11 @@ Function Get-UcsStatusCodeString
 
   BEGIN
   {
-    
+
   }
   PROCESS
   {
-    Foreach ($ThisStatusCode in $StatusCode) 
+    Foreach ($ThisStatusCode in $StatusCode)
     {
       $Result = New-Object PsCustomObject
       $Result | Add-Member -MemberType NoteProperty -Name StatusCode -Value $ThisStatusCode
@@ -169,73 +169,73 @@ Function Get-UcsStatusCodeString
       $Result | Add-Member -MemberType NoteProperty -Name StatusString -Value 'Unknown status code.'
       $Result | Add-Member -MemberType NoteProperty -Name Exception -Value $null
 
-      if($ThisStatusCode -eq $null) 
+      if($null -eq $ThisStatusCode)
       {
         $Result.StatusString = 'No response returned from API.'
         $Result.Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $Result.StatusString
       }
-      elseif($ThisStatusCode -eq 2000) 
+      elseif($ThisStatusCode -eq 2000)
       {
         $Result.ResponseOK = $true
         $Result.StatusString = 'API executed successfully.'
       }
-      elseif($ThisStatusCode -eq 4000) 
+      elseif($ThisStatusCode -eq 4000)
       {
         $Result.StatusString = 'Invalid input parameters.'
         $Result.Exception = New-Object System.ArgumentException -ArgumentList $Result.StatusString
       }
-      elseif($ThisStatusCode -eq 4001) 
+      elseif($ThisStatusCode -eq 4001)
       {
         $Result.StatusString = 'Device busy.'
         $Result.Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $Result.StatusString
       }
-      elseif($ThisStatusCode -eq 4002) 
+      elseif($ThisStatusCode -eq 4002)
       {
         $Result.StatusString = 'Line not registered.'
         $Result.Exception = New-Object System.InvalidOperationException -ArgumentList $Result.StatusString
       }
-      elseif($ThisStatusCode -eq 4003) 
+      elseif($ThisStatusCode -eq 4003)
       {
         $Result.StatusString = 'Operation not allowed.'
         $Result.Exception = New-Object System.InvalidOperationException -ArgumentList $Result.StatusString
       }
-      elseif($ThisStatusCode -eq 4004) 
+      elseif($ThisStatusCode -eq 4004)
       {
         $Result.StatusString = 'Operation not supported.'
         $Result.Exception = New-Object System.InvalidOperationException -ArgumentList $Result.StatusString
       }
-      elseif($ThisStatusCode -eq 4005) 
+      elseif($ThisStatusCode -eq 4005)
       {
         $Result.StatusString = 'Line does not exist.'
         $Result.Exception = New-Object System.InvalidOperationException -ArgumentList $Result.StatusString
       }
-      elseif($ThisStatusCode -eq 4006) 
+      elseif($ThisStatusCode -eq 4006)
       {
         $Result.StatusString = 'URLs not configured.'
         $Result.Exception = New-Object System.InvalidOperationException -ArgumentList $Result.StatusString
       }
-      elseif($ThisStatusCode -eq 4007) 
+      elseif($ThisStatusCode -eq 4007)
       {
         $Result.ResponseOK = $true
         $Result.StatusString = 'Call does not exist.'
         $Result.Exception = New-Object System.NullReferenceException -ArgumentList $Result.StatusString
       }
-      elseif($ThisStatusCode -eq 4008) 
+      elseif($ThisStatusCode -eq 4008)
       {
         $Result.StatusString = 'Configuration export failed.'
         $Result.Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $Result.StatusString
       }
-      elseif($ThisStatusCode -eq 4009) 
+      elseif($ThisStatusCode -eq 4009)
       {
         $Result.StatusString = 'Input size limit exceeded.'
         $Result.Exception = New-Object System.InvalidOperationException -ArgumentList $Result.StatusString
       }
-      elseif($ThisStatusCode -eq 4010) 
+      elseif($ThisStatusCode -eq 4010)
       {
         $Result.StatusString = 'Default password not allowed.'
         $Result.Exception = New-Object System.InvalidOperationException -ArgumentList $Result.StatusString
       }
-      elseif($ThisStatusCode -eq 5000) 
+      elseif($ThisStatusCode -eq 5000)
       {
         $Result.StatusString = 'Failed to process request.'
         $Result.Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $Result.StatusString
@@ -246,11 +246,11 @@ Function Get-UcsStatusCodeString
         $Result.Exception = New-Object System.Runtime.InteropServices.ExternalException -ArgumentList $Result.StatusString
       }
 
-      if($ApiEndpoint) 
+      if($ApiEndpoint)
       {
         $Result | Add-Member -MemberType NoteProperty -Name ApiEndpoint -Value $ApiEndpoint
       }
-      if($IPv4Address) 
+      if($IPv4Address)
       {
         $Result | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address
       }
@@ -263,25 +263,25 @@ Function Get-UcsStatusCodeString
   }
 }
 
-Function Test-UcsSkypeModuleIsAvailable 
+Function Test-UcsSkypeModuleIsAvailable
 {
   $Modules = ('Lync', 'SkypeForBusiness')
   $ReturnValue = $false
 
-  Foreach($Module in $Modules) 
+  Foreach($Module in $Modules)
   {
     if(Get-Module -ListAvailable | Where-Object -FilterScript {
-        $_.Name -eq $Module 
-    }) 
+        $_.Name -eq $Module
+    })
     {
       Write-Debug -Message ('{0} is available on this system.' -f $Module)
       $ReturnValue = $true
 
-      if(Get-Module -Name $Module) 
+      if(Get-Module -Name $Module)
       {
         Write-Debug -Message ('{0} module is loaded and ready to use.' -f $Module)
       }
-      else 
+      else
       {
         Write-Debug -Message ('{0} module is available but unloaded. Now importing.' -f $Module)
         Import-Module -Name $Module
@@ -300,28 +300,28 @@ Function New-UcsLog
   [Parameter(ValueFromPipelineByPropertyName)][ValidatePattern('^[a-f0-9]{12}$')][String]$MacAddress = "")
   BEGIN
   {
-    
+
   }
   PROCESS
   {
       $SplitString = $LogString.Split("`n") | Where-Object -FilterScript {$_.Length -gt 2 }
-      Foreach ($Line in $SplitString) 
+      Foreach ($Line in $SplitString)
       {
-        Try 
+        Try
         {
           $SplitLine = $Line.Split('|')
           $Message = $SplitLine[4..(($Splitline.Count)-1)] -Join "|" #After the 4th pipe, sometimes the log has additional pipes just to break parsing.
-          
+
           $RawTime = $SplitLine[0]
-          if($RawTime -match '\d+\.\d{3}') 
+          if($RawTime -match '\d+\.\d{3}')
           {
             #This is a time since boot.
             $Datetime = $null
             $TimeSinceBoot = New-TimeSpan -Seconds $RawTime
           }
-          else 
+          else
           {
-            #This is actual time. 
+            #This is actual time.
             #MMDDHHMMSS
             $TimeSinceBoot = $null
             Try
@@ -333,11 +333,11 @@ Function New-UcsLog
               Write-Debug "Invalid datetime detected: $RawTime"
               $Datetime = $null
             }
-            if($Datetime -gt (Get-Date)) 
+            if($Datetime -gt (Get-Date))
             {
               $Datetime = $Datetime.AddYears(-1) #because the string doesn't specify a year, we need to correct it if it's in the future.
             }
-            
+
             if($LogType -eq 'boot') {
               #Boot times are universal time, not local time.
               $Datetime = $Datetime + (($Datetime)-($Datetime).ToUniversalTime())
@@ -356,14 +356,14 @@ Function New-UcsLog
 
           if($IPv4Address.length -ge 7) {
             $ThisOutput | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address
-          } 
+          }
           if($MacAddress.length -eq 12) {
             $ThisOutput | Add-Member -MemberType NoteProperty -Name MacAddress -Value $MacAddress
           }
-          
+
           $ThisOutput
 
-        } Catch 
+        } Catch
         {
           Write-Debug -Message "Skipped $Line due to error $_"
         }
@@ -371,7 +371,7 @@ Function New-UcsLog
   }
   END
   {
-    
+
   }
 
 }
@@ -379,9 +379,9 @@ Function New-UcsLog
 Function Convert-UcsVersionNumber
 {
   Param([Parameter(Mandatory,ValueFromPipeline)][ValidatePattern('(\d+[A-Z]?\.){3}\d{4,}[A-Z]*(\s.+)?')][String]$FirmwareRelease)
-  
+
   $Success = $FirmwareRelease -match "(?<major>\d+)\.(?<minor>\d+)\.(?<build>\d+[A-Z]?)\.(?<revision>\d+[A-Z]*)(?<notes>\s.+)?"
-  
+
   if($Success)
   {
     $OutputResult = 1 | Select-Object @{Name="FirmwareRelease";Expression={$FirmwareRelease}},@{Name="Major";Expression={$Matches['major']}},@{Name="Minor";Expression={$Matches['minor']}},@{Name="Build";Expression={$Matches['build']}},@{Name="Revision";Expression={$Matches['revision']}},@{Name="Note";Expression={($Matches['notes']).Trim()}}
@@ -468,7 +468,7 @@ Function New-UcsCallObject
     $ThisValue = $ThisOutputCall.$Property
     $IsNull = $false
 
-    if($ThisValue -eq $null)
+    if($null -eq $ThisValue)
     {
       $IsNull = $true
     }
@@ -512,12 +512,12 @@ Function New-UcsCallObject
   }
 
   #Compute a start time based on duration and current time.
-  if($ThisOutputCall.StartTime -eq $null -and $ThisOutputCall.Duration -ne $null -and $IsLog -ne $true)
+  if($null -eq $ThisOutputCall.StartTime -and $null -ne $ThisOutputCall.Duration -and $IsLog -ne $true)
   {
     $ThisOutputCall.StartTime = (Get-Date) - $ThisOutputCall.Duration
     $NullProperties = $NullProperties | Where-Object { $_ -ne "StartTime" }
   }
-  elseif($ThisOutputCall.Duration -eq $null -and $ThisOutputCall.StartTime -ne $null -and $IsLog -ne $true)
+  elseif($null -eq $ThisOutputCall.Duration -and $null -ne $ThisOutputCall.StartTime -and $IsLog -ne $true)
   {
     #Calculate the duration. Drop milliseconds.
     $ThisDuration = (Get-Date) - (Get-Date $ThisOutputCall.StartTime)
@@ -525,13 +525,13 @@ Function New-UcsCallObject
     $NullProperties = $NullProperties | Where-Object { $_ -ne "Duration" }
   }
 
-  if($ThisOutputCall.CallHandle -ne $null -and $ThisOutputCall.CallHandle -notmatch '^0x?[a-f0-9]{7,8}$' )
+  if($null -ne $ThisOutputCall.CallHandle -and $ThisOutputCall.CallHandle -notmatch '^0x?[a-f0-9]{7,8}$' )
   {
     #If there's a callhandle that needs modification.
     $ThisOutputCall.CallHandle = ('0x{0}' -f $ThisOutputCall.CallHandle)
   }
 
-  if($ThisOutputCall.UIAppearanceIndex -ne $null)
+  if($null -ne $ThisOutputCall.UIAppearanceIndex)
   {
     #If a UI Appearance Index is provided, compute if this is the active call.
     if($ThisOutputCall.UIAppearanceIndex -match '^\d+\*$')
@@ -578,7 +578,7 @@ Function Start-UcsSimultaneousJob
 {
   <# Work in progress. Input a scriptblock with a placeholder for IP address. Use $Args as the placeholder for IP address. #>
   [CmdletBinding()]
-  Param( 
+  Param(
     [Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(Mandatory,HelpMessage = 'Use $Args in place of the IP address input.')][ScriptBlock]$ScriptBlock,
     [ValidateRange(1,100)][Int]$MaxJobs = 20,
@@ -594,9 +594,9 @@ Function Start-UcsSimultaneousJob
     {
       Write-Debug "Hit max job count. Waiting..."
       $WaitedJobs = Wait-Job -Id $AllJobs -Any
-      $WaitedJobs = Get-Job -Id $AllJobs | ? State -ne "Running"
+      $WaitedJobs = Get-Job -Id $AllJobs | Where-Object State -ne "Running"
       Write-Debug ("Got {0} done jobs." -f $WaitedJobs.Count)
-      
+
       Foreach ($DoneJob in $WaitedJobs)
       {
         Write-Debug ("Got job {0}" -f $DoneJob.Name)
@@ -604,40 +604,40 @@ Function Start-UcsSimultaneousJob
         $null = $AllJobs.Remove($DoneJob.Id)
       }
     }
-    
+
     $MaxIpIndex = $i+$JobChunkSize-1
     if($MaxIpIndex -gt ($IPv4Address.Count - 1))
     {
       $MaxIpIndex = $IPv4Address.Count - 1
     }
-    
+
     $IPRange = $RandomizedIpV4AddressList[$i..$MaxIpIndex]
     $IPRange = @($IPRange) #Wrap the array to sidestep it getting unwrapped.
     Write-Debug ('Starting job beginning with IP {0}, total count {1} addresses.' -f $IPRange[0],$IPRange.Count)
     $ThisJob = Start-Job -ScriptBlock $ScriptBlock -ArgumentList $IPRange -Name ("{0}-{1}" -f $IPRange[0],[Guid]::NewGuid().ToString())
     $null = $AllJobs.Add($ThisJob.Id)
   }
-  
+
   Write-Debug ("After completion of loops, {0} jobs are still pending at {1}" -f $AllJobs.Count,(Get-Date).ToShortTimeString())
   $FinalJobs = Wait-Job -Id $AllJobs -Timeout $TimeoutSeconds
   Write-Debug ("After waiting, {0} jobs are finished at {1}." -f $FinalJobs.Count,(Get-Date).ToShortTimeString())
-  
+
   Foreach ($DoneJob in $FinalJobs)
   {
     $DoneJob | Receive-Job #Output the result.
     $null = $AllJobs.Remove($DoneJob.Id) #remove this ID from the remaining jobs.
   }
-  
+
   Foreach($UnfinishedJob in $AllJobs)
   {
     Write-Warning ("Job {0} failed to complete within timeout period." -f $UnfinishedJob.Name)
     $null = $UnfinishedJob | Stop-Job
     $null = $UnfinishedJob | Remove-Job
   }
-  
+
 }
 
-Function Decrypt-UcsCredential
+Function ConvertFrom-PsCredential
 {
   <#
     .SYNOPSIS
