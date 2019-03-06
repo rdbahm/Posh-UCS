@@ -179,11 +179,15 @@ Function New-UcsConfigCredentialPlaintext
 {
   [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingPlainTextForPassword", 'Password',
     Justification='This cmdlet takes a plaintext password and converts it to SecureString.')]
+  [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingUserNameAndPassWordParams", '',
+    Justification='This cmdlet takes a plaintext password and converts it to SecureString.')]
   Param (
     [Parameter(Mandatory)][String]$Username,
     [Parameter(Mandatory)][String]$Password
   )
 
+  [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", '',
+    Scope='Function')] #TODO: This doesn't successfully suppress the error. Why?
   $SecureStringPassword = ConvertTo-SecureString -String $Password -AsPlainText -Force
   $Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ($Username,$SecureStringPassword)
 

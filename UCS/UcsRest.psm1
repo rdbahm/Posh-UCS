@@ -963,7 +963,7 @@ Function Get-UcsRestSipStatus
   }
 }
 
-Function Get-UcsRestNetworkStats
+Function Get-UcsRestNetworkStatistic
 {
   <#
       .SYNOPSIS
@@ -1694,7 +1694,7 @@ Function Start-UcsRestPacketCapture
   }
 }
 
-Function Get-UcsRestDeviceStats
+Function Get-UcsRestDeviceStatistic
 {
   <#
       .SYNOPSIS

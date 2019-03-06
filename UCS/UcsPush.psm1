@@ -24,7 +24,7 @@ Function Start-UcsPushCall
     [Parameter(Mandatory,HelpMessage = 'Add help message for user')][String]$Destination,
     [Int][ValidateRange(1,24)]$LineId = 1,
     [Switch]$PassThru)
-  
+
   Begin
   {
     $OutputArray = New-Object Collections.Arraylist
@@ -32,7 +32,7 @@ Function Start-UcsPushCall
   Process
   {
     $ThisIPv4Address = $IPv4Address
-  
+
     #Calls to numbers need to be prefixed with \\, all other calls need to be \\ prefix free.
     if($Destination -match '^\+?\d+$')
     {
@@ -43,12 +43,12 @@ Function Start-UcsPushCall
       $ThisDestination = $Destination
     }
 
-    $MessageHTML = ('tel:{0};line{1}' -f $Destination, $LineId)
+    $MessageHTML = ('tel:{0};line{1}' -f $ThisDestination, $LineId)
 
     Try {
       $null = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
 
-      if($PassThru -eq $true) 
+      if($PassThru -eq $true)
       {
         Start-Sleep -Seconds 1
         $ThisCall = Get-UcsCall -IPv4Address $IPv4Address -ErrorAction SilentlyContinue
@@ -68,7 +68,7 @@ Function Start-UcsPushCall
 }
 
 
-Function Send-UcsPushMessage 
+Function Send-UcsPushMessage
 {
   <#
       .SYNOPSIS
@@ -115,13 +115,13 @@ Function Send-UcsPushMessage
   {
     Foreach($ThisIPv4Address in $IPv4Address)
     {
-      if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+      if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address)))
       {
         Try
         {
           $Output = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Method Post -Body $MessageHTML -ContentType 'text/xml' -Priority $Priority -ErrorAction Stop
           Write-Debug $Output
-        } 
+        }
         Catch
         {
           Write-Error "Failed to send a Push message to $ThisIPv4Address."
@@ -131,7 +131,7 @@ Function Send-UcsPushMessage
   }
 }
 
-Function Send-UcsPushCallAction 
+Function Send-UcsPushCallAction
 {
   <#
       .SYNOPSIS
@@ -167,7 +167,7 @@ Function Send-UcsPushCallAction
   $MessageHTML = ('CallAction:{0};nCallReference={1}' -f $CallAction, $ThisCallRef)
 
   Try {
-    if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+    if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address)))
     {
       $null = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
     }
@@ -179,7 +179,7 @@ Function Send-UcsPushCallAction
 
 }
 
-Function Send-UcsPushKeyPress 
+Function Send-UcsPushKeyPress
 {
   <#
       .SYNOPSIS
@@ -220,7 +220,7 @@ Function Send-UcsPushKeyPress
         'MicMute','Menu','Messages','Applications','Directories','Setup','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
         'Backspace','DoNotDisturb','Select','Conference','Transfer','Redial','Hold','Status','CallList','Home','Back','Exit',
         'Cancel','Refresh')][String[]]$Key)
-    
+
   BEGIN
   {
     $ResultArray = New-Object -TypeName System.Collections.ArrayList
@@ -228,7 +228,7 @@ Function Send-UcsPushKeyPress
 
     #Need to start by building out the series of commands to run.
     [String]$KeysToPress = ''
-    Foreach($ThisKey in $Key) 
+    Foreach($ThisKey in $Key)
     {
       if($ThisKey -in $SoftKeys)
       {
@@ -247,11 +247,11 @@ Function Send-UcsPushKeyPress
   }
   PROCESS
   {
-    Foreach($ThisIPv4Address in $IPv4Address) 
+    Foreach($ThisIPv4Address in $IPv4Address)
     {
       Try
       {
-        if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+        if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address)))
         {
           $ThisResult = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
         }
@@ -265,7 +265,7 @@ Function Send-UcsPushKeyPress
   }
 }
 
-Function Start-UcsPushAudioFile 
+Function Start-UcsPushAudioFile
 {
   <#
       .SYNOPSIS
@@ -297,13 +297,13 @@ Function Start-UcsPushAudioFile
   {
     Foreach($ThisIPv4Address in $IPv4Address)
     {
-      if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+      if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address)))
       {
         Try
         {
           $Output = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
           Write-Debug $Output
-        } 
+        }
         Catch
         {
           Write-Error "Failed to send an audio file to $ThisIPv4Address."
@@ -341,13 +341,13 @@ Function Update-UcsPushConfiguration
   {
     Foreach($ThisIPv4Address in $IPv4Address)
     {
-      if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+      if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address)))
       {
         Try
         {
           $Output = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -Method Post -Body $MessageHTML -ContentType 'application/x-com-polycom-spipx' -Priority $Priority -ErrorAction Stop
           Write-Debug $Output
-        } 
+        }
         Catch
         {
           Write-Error "Failed to request update for $ThisIPv4Address."
@@ -357,7 +357,7 @@ Function Update-UcsPushConfiguration
   }
 }
 
-Function Get-UcsPushScreenCapture 
+Function Get-UcsPushScreenCapture
 {
   <#
       .SYNOPSIS
@@ -371,7 +371,7 @@ Function Get-UcsPushScreenCapture
     [Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [ValidateSet('Main','EM1','EM2','EM3','EM4','EM5','EM6','EM7','EM8','EM9')][String]$ScreenToCapture = 'Main'
   )
-    
+
   BEGIN {
     Add-Type -AssemblyName System.Drawing
     $ImageArray = New-Object -TypeName System.Collections.ArrayList
@@ -379,38 +379,38 @@ Function Get-UcsPushScreenCapture
 
     #Select which screen to get using the API endpoint.
     $ThisApiEndpoint = 'captureScreen'
-    if($ScreenToCapture -eq 'All') 
+    if($ScreenToCapture -eq 'All')
     {
       #This option was removed because the page is HTML, not just an image.
       $ThisApiEndpoint = $ThisApiEndpoint #No Change
     }
-    elseif($ScreenToCapture -eq 'Main') 
+    elseif($ScreenToCapture -eq 'Main')
     {
       $ThisApiEndpoint += '/mainScreen'
     }
-    else 
+    else
     {
-      $ThisEMScreen = $ScreenToCapture.Substring(2,1)            
+      $ThisEMScreen = $ScreenToCapture.Substring(2,1)
       $ThisApiEndpoint += ('/em/{0}' -f $ThisEMScreen)
     }
 
   } PROCESS {
-    Foreach ($ThisIPv4Address in $IPv4Address) 
+    Foreach ($ThisIPv4Address in $IPv4Address)
     {
       $CurrentScreenCaptureSetting = Get-UcsParameter -IPv4Address $ThisIPv4Address -Parameter $ScreencaptureParameterName
-      if(($CurrentScreenCaptureSetting | Where-Object -Property Parameter -EQ -Value $ScreencaptureParameterName).Value -ne '1') 
+      if(($CurrentScreenCaptureSetting | Where-Object -Property Parameter -EQ -Value $ScreencaptureParameterName).Value -ne '1')
       {
         Set-UcsRestParameter -IPv4Address $ThisIPv4Address -Parameter $ScreencaptureParameterName -Value $true
       }
 
-      Try 
+      Try
       {
         #This needs to be rewritten to take advantage of the credential arrays.
-        $ScreenCapture = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint $ThisApiEndpoint -Credential (Get-UcsConfigCredential -API REST -CredentialOnly)[0] 
+        $ScreenCapture = Invoke-UcsPushWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint $ThisApiEndpoint -Credential (Get-UcsConfigCredential -API REST -CredentialOnly)[0]
         [Drawing.Image]$Image = $ScreenCapture.Content
         $null = $ImageArray.Add($Image)
       }
-      Catch 
+      Catch
       {
         Write-Warning -Message "Couldn't get a screen capture. Check if screen capture is enabled in phone settings: Settings->Basic->Preferences->Screen Capture"
         Write-Debug -Message ('Error was: {0}' -f $_)
