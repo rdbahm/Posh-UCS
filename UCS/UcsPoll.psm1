@@ -35,7 +35,7 @@ Function Get-UcsPollDeviceInfo
         Write-Error "Couldn't get device information from $ThisIPv4Address."
         Continue
       }
-      
+
       Try
       {
         $Matches = $null
@@ -51,16 +51,16 @@ Function Get-UcsPollDeviceInfo
       {
         $Matches = $null
         $PhoneDNs = $ThisResult.PhoneDN.Split(',')
-        
+
         $SipAddress = $null
         Foreach($DN in $PhoneDNs)
         {
           $null = $DN -match '[^@&=+$,:;\?/]+@[^@&=+$:,;\?/]+'
           $ThisSipAddress = $Matches[0]
           $ThisSipAddress = ('sip:{0}' -f $ThisSipAddress)
-          
+
           #If we have only one, we return it as a bare string. Otherwise, we make an ArrayList.
-          if($SipAddress -eq $null)
+          if($null -eq $SipAddress)
           {
             $SipAddress = $ThisSipAddress
           }
@@ -76,9 +76,9 @@ Function Get-UcsPollDeviceInfo
             $SipAddress = $NewSipAddress
           }
         }
-        
+
         $SipAddress = $SipAddress | Sort-Object -Unique #Remove duplicates.
-        
+
       }
       Catch
       {
@@ -91,7 +91,7 @@ Function Get-UcsPollDeviceInfo
       $FinalResult | Add-Member -MemberType NoteProperty -Name FirmwareRelease -Value $FirmwareRelease
       $FinalResult | Add-Member -MemberType NoteProperty -Name SipAddress -Value $SipAddress
       $FinalResult | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $ThisIPv4Address
-      
+
       $null = $AllResults.Add($FinalResult)
     }
   }
@@ -124,7 +124,7 @@ Function Get-UcsPollNetworkInfo
         Write-Error "Couldn't get device information from $ThisIPv4Address."
         Continue
       }
-      
+
       if($ThisResult.DHCPEnabled -eq 'yes')
       {
         $DHCPEnabled = $true
@@ -137,7 +137,7 @@ Function Get-UcsPollNetworkInfo
       {
         $DHCPEnabled = $null
       }
-      
+
       $FinalResult = New-Object PsCustomObject
       $FinalResult | Add-Member -MemberType NoteProperty -Name SubnetMask -Value $ThisResult.SubnetMask
       $FinalResult | Add-Member -MemberType NoteProperty -Name VLANID -Value $ThisResult.VLANID
@@ -149,7 +149,7 @@ Function Get-UcsPollNetworkInfo
       $FinalResult | Add-Member -MemberType NoteProperty -Name DHCPEnabled -Value $DHCPEnabled
       $FinalResult | Add-Member -MemberType NoteProperty -Name MacAddress -Value $ThisResult.MacAddress
       $FinalResult | Add-Member -MemberType NoteProperty -Name IPv4Address -Value $ThisIPv4Address
-      
+
       $null = $AllResults.Add($FinalResult)
     }
   }
@@ -182,9 +182,9 @@ Function Get-UcsPollCall
         Write-Error "Couldn't get call information from $ThisIPv4Address."
         Continue
       }
-      
+
       #There can be multiple lines, and each call can have multiple lines. We're going to create a call object for each.
-      
+
       Foreach($Line in $ThisResult)
       {
         Foreach($ThisCall in $Line.CallInfo)
@@ -224,7 +224,7 @@ Function Get-UcsPollCall
             -ExcludeNullProperties
           $null = $AllResults.Add($ThisCallObject)
         }
-      }      
+      }
     }
   }
   End

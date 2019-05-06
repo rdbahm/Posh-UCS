@@ -150,35 +150,6 @@ Function Import-UcsProvCallLogXml
 {
   <#
       .SYNOPSIS
-      Describe purpose of "Import-UcsProvCallLogXml" in 1-2 sentences.
-
-      .DESCRIPTION
-      Add a more complete description of what the function does.
-
-      .PARAMETER Filename
-      Describe parameter -Filename.
-
-      .EXAMPLE
-      Import-UcsProvCallLogXml -Filename Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Import-UcsProvCallLogXml
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
-  #>
-
-
-  <#
-      SYNOPSIS
       Takes a filename, reads the file, and parses its call information.
   #>
   Param(
@@ -330,23 +301,6 @@ Function Format-UcsProvCallData
 
       .PARAMETER Type
       "Address" or "Name"
-
-      .EXAMPLE
-      Format-UcsCallData -CallData Value -Type Value
-      Describe what this call does
-
-      .NOTES
-      Place additional notes here.
-
-      .LINK
-      URLs to related sites
-      The first link is opened by Get-Help -Online Format-UcsCallData
-
-      .INPUTS
-      List of input types that are accepted by this function.
-
-      .OUTPUTS
-      List of output types produced by this function.
   #>
 
   Param($CallData, [Parameter(Mandatory,HelpMessage = 'Add help message for user')][ValidateSet('Address','Name')][String]$Type)

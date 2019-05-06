@@ -1,4 +1,4 @@
-Function Get-UcsWebConfiguration 
+Function Get-UcsWebConfiguration
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [String[]]$IgnoreSources = ('ParsedHtml', 'RawContent', 'RawContentStream', 'StatusDescription', 'Headers', 'BaseResponse', 'Content', '#comment'),
@@ -12,10 +12,10 @@ Function Get-UcsWebConfiguration
     },
     [Int]$Retries = $Script:DefaultRetries
   )
-  
+
   BEGIN {
     $ParameterList = New-Object -TypeName System.Collections.ArrayList
-    
+
   }  PROCESS {
     #Structure:
     <# Foreach IpAddress
@@ -23,9 +23,9 @@ Function Get-UcsWebConfiguration
         Foreach Source in the response (should only be one per)
         Foreach Parameter in each source
     #>
-    Foreach ($ThisIPv4Address in $IPv4Address) 
+    Foreach ($ThisIPv4Address in $IPv4Address)
     {
-      Try 
+      Try
       {
         $Results = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'Utilities/configuration/phoneBackup' -ErrorAction Stop
         $Results = [Xml]$Results
@@ -35,39 +35,39 @@ Function Get-UcsWebConfiguration
           Where-Object -Property MemberType -EQ -Value Property |
         Where-Object -Property Name -NotIn -Value $IgnoreSources)
       }
-      Catch 
+      Catch
       {
         Write-Debug -Message "Skipping $ThisIPv4Address. $_"
         Continue
       }
 
-      Foreach($Source in $Sources) 
+      Foreach($Source in $Sources)
       {
         $SourceName = $Source.Name
-        
+
         #Choose a displayname for the source if it's in the hashtable..
         $SourceDisplayName = $SourceNameOverride[$SourceName]
-        if($SourceDisplayName.Length -lt 1) 
+        if($SourceDisplayName.Length -lt 1)
         {
           $SourceDisplayName = $SourceName
         }
         $SourceParameters = $Results.$SourceName
-      
-        Try 
+
+        Try
         {
           $ParameterNames = ($SourceParameters |
             Get-Member -ErrorAction Stop |
           Where-Object -Property MemberType -EQ -Value Property).Name
           $ParameterNames = $ParameterNames | Where-Object -FilterScript {
-            $_ -notin $IgnoreParameters 
+            $_ -notin $IgnoreParameters
           }
         }
-        Catch 
+        Catch
         {
           Write-Debug -Message "We had an issue with $SourceName. Skipping..."
-          Continue  
+          Continue
         }
-        Foreach ($ParameterName in $ParameterNames) 
+        Foreach ($ParameterName in $ParameterNames)
         {
           $ParameterValue = $SourceParameters.$ParameterName
 
@@ -92,7 +92,7 @@ Function Get-UcsWebConfiguration
               $ThisIPv4Address
             }
           }
-            
+
           $null = $ParameterList.Add($ThisParameter)
         }
       }
@@ -103,17 +103,17 @@ Function Get-UcsWebConfiguration
   }
 }
 
-Function Get-UcsWebParameter 
+Function Get-UcsWebParameter
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [Parameter(Mandatory,HelpMessage = 'A UCS parameter, such as "Up.Timeout."',ValueFromPipelineByPropertyName)][String[]]$Parameter)
   BEGIN {
     $ParameterOutput = New-Object -TypeName System.Collections.ArrayList
   } PROCESS {
-    Foreach($ThisIPv4Address in $IPv4Address) 
+    Foreach($ThisIPv4Address in $IPv4Address)
     {
       $ThisParameterSet = Get-UcsWebConfiguration -IPv4Address $ThisIPv4Address
-      
+
       $null = $ParameterOutput.Add(($ThisParameterSet | Where-Object -Property Parameter -In -Value $Parameter))
     }
   } END {
@@ -121,28 +121,28 @@ Function Get-UcsWebParameter
   }
 }
 
-Function Set-UcsWebParameter 
+Function Set-UcsWebParameter
 {
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(Mandatory,HelpMessage = 'A valid UCS parameter, such as Up.Timeout',ValueFromPipelineByPropertyName)][String]$Parameter,
     [Parameter(Mandatory,HelpMessage = 'A valid value for the specified parameter.')][String]$Value,
   [Switch]$PassThru)
-    
+
   BEGIN {
     $ParameterOutput = New-Object -TypeName System.Collections.ArrayList
     Write-Warning -Message "Not working yet, haven't figured out how to submit the file."
     #TODO: Build a way to send a file.
     #Value accepts boolean values and converts them to something UCS can understand.
-    if($Value -eq $true) 
+    if($Value -eq $true)
     {
       $Value = '1'
     }
-    elseif($Value -eq $false) 
+    elseif($Value -eq $false)
     {
       $Value = '0'
     }
-    
+
     $XMLFileOutput = @"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <PHONE_CONFIG>
@@ -152,21 +152,21 @@ $Parameter="$Value"
 </PHONE_CONFIG>
 "@
   } PROCESS {
-    Foreach($ThisIPv4Address in $IPv4Address) 
+    Foreach($ThisIPv4Address in $IPv4Address)
     {
       $ThisResponse = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Utilities/configuration/importFile' -Method Put -ContentType 'application/octet-stream'
-      
+
       $null = $ParameterOutput.Add($ThisResponse)
     }
   } END {
-    if($PassThru -eq $true) 
+    if($PassThru -eq $true)
     {
       Return $ParameterOutput
     }
   }
 }
 
-Function Get-UcsWebLyncStatus 
+Function Get-UcsWebLyncStatus
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
 
@@ -175,7 +175,7 @@ Function Get-UcsWebLyncStatus
   } PROCESS {
     Foreach ($ThisIPv4Address in $IPv4Address)
     {
-      Try 
+      Try
       {
         #Actual: http://172.21.84.89/Utilities/LyncStatusXml
         $Results = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'Utilities/LyncStatusXml' -ErrorAction Stop
@@ -190,18 +190,18 @@ Function Get-UcsWebLyncStatus
 
         $null = $OutputArray.Add($Results)
       }
-      Catch 
+      Catch
       {
         Write-Error -Message $_
         Continue #Skip this item.
       }
     }
-    
+
   } END {
     Return $OutputArray
   }
 }
-Function Get-UcsWebConfigurationOld 
+Function Get-UcsWebConfigurationOld
 {
   #The difference between this and the other is that this retrieves one at a time - using the backup capability, we get all of the data, all at once.
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
@@ -210,10 +210,10 @@ Function Get-UcsWebConfigurationOld
     [String[]]$IgnoreParameters = ('Length'),
     [Int]$Retries = $Script:DefaultRetries
   )
-  
+
   BEGIN {
     $ParameterList = New-Object -TypeName System.Collections.ArrayList
-    
+
   }  PROCESS {
     #Structure:
     <# Foreach IpAddress
@@ -221,13 +221,13 @@ Function Get-UcsWebConfigurationOld
         Foreach Source in the response (should only be one per)
         Foreach Parameter in each source
     #>
-    Foreach ($ThisIPv4Address in $IPv4Address) 
+    Foreach ($ThisIPv4Address in $IPv4Address)
     {
       $IsOnline = $false
       $RemainingRetries = $Retries
-      Foreach($SourceId in $ConfigId) 
+      Foreach($SourceId in $ConfigId)
       {
-        Try 
+        Try
         {
           $Results = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Utilities/configuration/exportFile?source=$SourceId" -ErrorAction Stop
           $Results = [Xml]$Results
@@ -238,11 +238,11 @@ Function Get-UcsWebConfigurationOld
           Where-Object -Property Name -NotIn -Value $IgnoreSources)
           $IsOnline = $true #If we get here, we must have had a valid attempt, so we can set the flag that will prevent the retry mechanism from skipping this device.
         }
-        Catch 
+        Catch
         {
           Write-Debug -Message "Skipping config Id $SourceId for $ThisIPv4Address."
           $RemainingRetries--
-          if($RemainingRetries -le 0 -and $IsOnline -eq $false) 
+          if($RemainingRetries -le 0 -and $IsOnline -eq $false)
           {
             Write-Debug -Message 'No retries remaining'
             Break #Leave the SourceId loop.
@@ -250,26 +250,26 @@ Function Get-UcsWebConfigurationOld
           Continue
         }
 
-        Foreach($Source in $Sources) 
+        Foreach($Source in $Sources)
         {
           $SourceName = $Source.Name
           $SourceParameters = $Results.$SourceName
-      
-          Try 
+
+          Try
           {
             $ParameterNames = ($SourceParameters |
               Get-Member -ErrorAction Stop |
             Where-Object -Property MemberType -EQ -Value Property).Name
             $ParameterNames = $ParameterNames | Where-Object -FilterScript {
-              $_ -notin $IgnoreParameters 
+              $_ -notin $IgnoreParameters
             }
           }
-          Catch 
+          Catch
           {
             Write-Debug -Message "We had an issue with $SourceName. Skipping..."
-            Continue  
+            Continue
           }
-          Foreach ($ParameterName in $ParameterNames) 
+          Foreach ($ParameterName in $ParameterNames)
           {
             $ParameterValue = $SourceParameters.$ParameterName
 
@@ -299,7 +299,7 @@ Function Get-UcsWebConfigurationOld
                 $ThisIPv4Address
               }
             }
-            
+
             $null = $ParameterList.Add($ThisParameter)
           }
         }
@@ -311,7 +311,7 @@ Function Get-UcsWebConfigurationOld
   }
 }
 
-Function Get-UcsWebFirmware 
+Function Get-UcsWebFirmware
 {
   <#
       .PARAMETER Latest
@@ -322,51 +322,51 @@ Function Get-UcsWebFirmware
     [Switch]$Latest,
     [Timespan]$Timeout = (New-TimeSpan -Seconds 30)
   )
-  
+
   BEGIN {
-  
+
     $AvailableVersions = New-Object -TypeName System.Collections.ArrayList
 
-    if($PSCmdlet.ParameterSetName -eq 'CustomServer') 
+    if($PSCmdlet.ParameterSetName -eq 'CustomServer')
     {
       $ServerType = 'customserver'
     }
-    else 
+    else
     {
       $ServerType = 'plcmserver'
     }
   } PROCESS {
-    Foreach ($ThisIPv4Address in $IPv4Address) 
-    { 
+    Foreach ($ThisIPv4Address in $IPv4Address)
+    {
       #Actual request from a phone: http://10.92.10.48/Utilities/softwareUpgrade/getAvailableVersions?type=plcmserver&_=1498851105686
       $UnixTime = Get-UcsUnixTime
 
-      Try 
+      Try
       {
         #Get the provisioning server info.
         $ServerInfo = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'Utilities/softwareUpgrade/getProvisioningServer' -ErrorAction Stop
         $ServerInfo = $ServerInfo.Split(';')
         $HardwareId = $ServerInfo |
         Where-Object -FilterScript {
-          $_ -like 'HARDWARE_ID=*' 
+          $_ -like 'HARDWARE_ID=*'
         } |
         Select-Object -First 1
         $HardwareId = $HardwareId.Substring($HardwareId.IndexOf('=') + 1)
         $HardwareRev = $ServerInfo |
         Where-Object -FilterScript {
-          $_ -like 'HARDWARE_REV=*' 
+          $_ -like 'HARDWARE_REV=*'
         } |
         Select-Object -First 1
         $HardwareRev = $HardwareRev.Substring($HardwareRev.IndexOf('=') + 1)
       }
-      Catch 
+      Catch
       {
         $HardwareId = $null
         $HardwareRev = $null
       }
-      Try 
+      Try
       {
-        if($PSCmdlet.ParameterSetName -eq 'CustomServer') 
+        if($PSCmdlet.ParameterSetName -eq 'CustomServer')
         {
           #If it's a custom server, we have to send the URL to the phone before asking for the update.
           $Body = @{
@@ -374,29 +374,29 @@ Function Get-UcsWebFirmware
           }
           $null = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Utilities/softwareUpgrade/updateCustomServer' -Method Post -Body $Body -ErrorAction -ContentType Stop
         }
-        
+
         $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Utilities/softwareUpgrade/getAvailableVersions?type=$ServerType&_=$UnixTime" -ErrorAction Stop -Timeout $Timeout
-        
-     
+
+
         #The response sometimes has garbage before the first tag, so we need to drop it.
         $Result = $Result
         $FirstBracket = $Result.IndexOf('<')
         $Result = $Result.Substring($FirstBracket,$Result.Length - $FirstBracket)
         $Result = ([Xml]$Result).PHONE_IMAGES.REVISION.PHONE_IMAGE
-      } Catch 
+      } Catch
       {
         Write-Debug -Message "Skipped $ThisIPv4Address due to error $_."
       }
-      
+
       if($Latest -eq $true)
       {
         Write-Debug ('{0} results were returned but the -Latest parameter was included, so dropping all but last one.' -f $Result.Count)
         $Result = $Result | Select-Object -Last 1
       }
-      
-      Foreach($Version in $Result) 
+
+      Foreach($Version in $Result)
       {
-        Try 
+        Try
         {
           $ThisOutput = $Version | Select-Object -Property @{
             Name       = 'FirmwareRelease'
@@ -426,7 +426,7 @@ Function Get-UcsWebFirmware
           }
 
           $null = $AvailableVersions.Add($ThisOutput)
-        } Catch 
+        } Catch
         {
           Write-Debug -Message 'Skipped a version due to a parsing error.'
         }
@@ -437,7 +437,7 @@ Function Get-UcsWebFirmware
   }
 }
 
-Function Update-UcsWebFirmware 
+Function Update-UcsWebFirmware
 {
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
@@ -446,25 +446,25 @@ Function Update-UcsWebFirmware
   BEGIN {
     $StatusResult = New-Object -TypeName System.Collections.ArrayList
   } PROCESS {
-    Foreach ($ThisIPv4Address in $IPv4Address) 
-    { 
-      Try 
+    Foreach ($ThisIPv4Address in $IPv4Address)
+    {
+      Try
       {
         #Actual URL: http://10.92.10.48/form-submit/Utilities/softwareUpgrade/upgrade
         <#$Body = @{
             URLPath    = "$UpdateUri"
             serverType = 'plcmserver'
         }#>
-        $EncodedURL = [System.Web.HttpUtility]::UrlEncode($UpdateUri) 
+        $EncodedURL = [System.Web.HttpUtility]::UrlEncode($UpdateUri)
         $Body = ('URLPath={0}&serverType={1}' -f $EncodedURL,'plcmserver')
-        
-        if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+
+        if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address)))
         {
           $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Utilities/softwareUpgrade/upgrade' -Body $Body -Method Post -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
         }
-        
+
         $null = $StatusResult.Add($Result)
-      } Catch 
+      } Catch
       {
         Write-Error -Message "Skipped $ThisIPv4Address due to error $_" -Category DeviceError
       }
@@ -474,29 +474,29 @@ Function Update-UcsWebFirmware
   }
 }
 
-Function Restart-UcsWebPhone 
+Function Restart-UcsWebPhone
 {
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [String][ValidateSet('Reboot','Restart')]$Type = 'Reboot')
-  
+
   BEGIN {
     $StatusResult = New-Object -TypeName System.Collections.ArrayList
   } PROCESS {
-    Foreach ($ThisIPv4Address in $IPv4Address) 
-    { 
-      Try 
+    Foreach ($ThisIPv4Address in $IPv4Address)
+    {
+      Try
       {
         #Actual URL: http://10.92.10.48/form-submit/Reboot http://10.92.10.48/form-submit/Restart
-        
+
         $Result = $null
-        if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address))) 
+        if($PSCmdlet.ShouldProcess(('{0}' -f $ThisIPv4Address)))
         {
           $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "form-submit/$Type" -Method Post -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
         }
 
         $null = $StatusResult.Add($Result)
-      } Catch 
+      } Catch
       {
         Write-Debug -Message "Skipped $ThisIPv4Address due to error $_."
         Write-Error -Message "Couldn't restart $ThisIPv4Address."
@@ -507,29 +507,29 @@ Function Restart-UcsWebPhone
   }
 }
 
-Function Reset-UcsWebConfiguration 
+Function Reset-UcsWebConfiguration
 {
   #sets special long timeout for this operation, as it takes a while to reply.
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [Timespan]$Timeout = (New-TimeSpan -Seconds 20))
-  
+
   BEGIN {
     $StatusResult = New-Object -TypeName System.Collections.ArrayList
   } PROCESS {
-    Foreach ($ThisIPv4Address in $IPv4Address) 
-    { 
-      Try 
+    Foreach ($ThisIPv4Address in $IPv4Address)
+    {
+      Try
       {
         #Actual URL: http://10.92.10.160/form-submit/Utilities/restorePhoneToFactory
 
-        if($PSCmdlet.ShouldProcess($ThisIPv4Address,'Reset to factory settings')) 
+        if($PSCmdlet.ShouldProcess($ThisIPv4Address,'Reset to factory settings'))
         {
           $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Utilities/restorePhoneToFactory' -Method Post -ContentType 'application/x-www-form-urlencoded' -Timeout $Timeout -ErrorAction Stop
         }
 
         $null = $StatusResult.Add($Result)
-      } Catch 
+      } Catch
       {
         Write-Debug -Message "Skipped $ThisIPv4Address due to error $_."
       }
@@ -548,13 +548,13 @@ Function Get-UcsWebLyncSignInStatus
     [Switch]$InvertWaitFor,
     [Int][ValidateRange(1,3600)]$TimeoutSeconds = 120
   )
-  
+
   BEGIN
   {
     $ResultOutput = New-Object System.Collections.ArrayList
     $StartTime = Get-Date #Used for calculation of "WaitFor"
     $EndTime = $StartTime.AddSeconds($TimeoutSeconds)
-    
+
     if($PSCmdlet.ParameterSetName -eq 'Normal')
     {
       Switch($WaitFor)
@@ -573,13 +573,13 @@ Function Get-UcsWebLyncSignInStatus
       $WaitForString = $WaitForRaw
     }
   }
-  
+
   PROCESS
   {
     Foreach($ThisIPv4Address in $IPv4Address)
     {
       $ContinueWaiting = $true
-      
+
       While($ContinueWaiting -eq $true)
       {
         Try
@@ -593,7 +593,7 @@ Function Get-UcsWebLyncSignInStatus
           Write-Error "Could not get sign in status for $ThisIPv4Address."
           $ContinueWaiting = $false #Regardless of our type, this is a dead-end, so stop checking.
         }
-        
+
         #Check if we've met what we're waiting for.
         if($WaitForString -eq 'None')
         {
@@ -617,36 +617,35 @@ Function Get-UcsWebLyncSignInStatus
           Start-Sleep -Seconds 1 #Delay to prevent hammering the phone too much.
         }
       }
-      
+
       $ThisOutput = $ThisIPv4Address | Select-Object @{Name="IPv4Address";Expression={$ThisIPv4Address}},@{Name="SignInStatus";Expression={$SigninStatus}}
       $null = $ResultOutput.Add($ThisOutput)
     }
   }
-  
+
   END
   {
     Return $ResultOutput
   }
 }
-Function Register-UcsWebLyncUser 
+Function Register-UcsWebLyncUser
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
     [Parameter(Mandatory,ParameterSetName = 'PIN')][String][ValidatePattern('^\d+$')]$Extension,
     [Parameter(Mandatory,ParameterSetName = 'PIN')][String][ValidatePattern('^\d+$')]$PIN,
     [Parameter(Mandatory,ParameterSetName = 'Credential')][String][ValidatePattern('^\d+$')]$Address,
     [Parameter(Mandatory,ParameterSetName = 'Credential')][String][ValidatePattern('^\d+$')]$Domain,
-    [Parameter(ParameterSetName = 'Credential')][String][ValidatePattern('^\d+$')]$Username = '',
-    [Parameter(Mandatory,ParameterSetName = 'Credential')][String][ValidatePattern('^\d+$')]$Password,
+    [Parameter(ParameterSetName = 'Credential')][pscredential]$Credential,
     [Switch]$Force,
     [Switch]$Wait
   )
-  
+
   BEGIN {
     $StatusResult = New-Object -TypeName System.Collections.ArrayList
-    
+
     #$EncodedPassword = [System.Web.HttpUtility]::UrlEncode($Password)
     $AuthTypeId = 3 #3 represents PIN authentication.
-    if($PSCmdlet.ParameterSetName -eq 'PIN') 
+    if($PSCmdlet.ParameterSetName -eq 'PIN')
     {
       $AuthTypeId = 3
       $Body = @{
@@ -655,26 +654,26 @@ Function Register-UcsWebLyncUser
         pin       = "$PIN"
       }
     }
-    elseif($PSCmdlet.ParameterSetName -eq 'Credential') 
+    elseif($PSCmdlet.ParameterSetName -eq 'Credential')
     {
       $AuthTypeId = 2
       $Body = @{
         authType = "$AuthTypeId"
         address  = "$Address"
         domain   = "$Domain"
-        username = "$Username"
-        password = "$Password"
+        username = $Credential.UserName
+        password = ConvertFrom-SecureString -SecureString $Credential.Password
       }
     }
   } PROCESS {
-    Foreach ($ThisIPv4Address in $IPv4Address) 
-    { 
-      Try 
+    Foreach ($ThisIPv4Address in $IPv4Address)
+    {
+      Try
       {
         #Actual URL: http://10.92.10.48/form-submit/Settings/lyncSignIn
         $CurrentSignInStatus = Get-UcsWebLyncSignInStatus -IPv4Address $ThisIPv4Address -ErrorAction SilentlyContinue
         $DoSignIn = $true
-        
+
         if($CurrentSignInStatus.SignInStatus -eq "SIGNED_IN")
         {
           if($Force)
@@ -721,12 +720,12 @@ Function Register-UcsWebLyncUser
           $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Settings/lyncSignIn' -Method Post -ContentType 'application/x-www-form-urlencoded' -Body $Body -ErrorAction Stop
           $null = $StatusResult.Add($ThisIPv4Address) #We only get to this line if the first line doesn't fail.
         }
-      } Catch 
+      } Catch
       {
         Write-Error -Message "Skipped $ThisIPv4Address due to error $_."
       }
 
-      if($Result -ne '' -and $Result -ne $null)
+      if($Result -ne '' -and $null -ne $Result)
       {
         #The phone usually responds with nothing if a sign-in succeeds.
         Write-Error ('Sign-in request failed for {0} with error ''{1}.''' -f $ThisIPv4Address,$Result)
@@ -741,7 +740,7 @@ Function Register-UcsWebLyncUser
       Foreach ($ThisIPv4Address in $StatusResult)
       {
         $SigninStatus = Get-UcsWebLyncSignInStatus -IPv4Address $ThisIPv4Address -WaitFor SigningIn -InvertWaitFor
-      
+
         if($SigninStatus.SignInStatus -ne 'SIGNED_IN')
         {
           Write-Error ('Sign-in request failed for {0}. Bad credentials?' -f $ThisIPv4Address) -Category AuthenticationError
@@ -751,32 +750,32 @@ Function Register-UcsWebLyncUser
   }
 }
 
-Function Unregister-UcsWebLyncUser 
+Function Unregister-UcsWebLyncUser
 {
   [CmdletBinding(SupportsShouldProcess,ConfirmImpact = 'High')]
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [Switch]$Wait)
-  
+
   BEGIN {
     $SuccessPhones = New-Object -TypeName System.Collections.ArrayList
   } PROCESS {
-    Foreach ($ThisIPv4Address in $IPv4Address) 
-    { 
-      Try 
+    Foreach ($ThisIPv4Address in $IPv4Address)
+    {
+      Try
       {
         #Actual URL: http://172.21.7.19/form-submit/Settings/lyncSignOut
-        
-        if($PSCmdlet.ShouldProcess($ThisIPv4Address,'Sign out user')) 
+
+        if($PSCmdlet.ShouldProcess($ThisIPv4Address,'Sign out user'))
         {
           $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/Settings/lyncSignOut' -Method Post -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
         }
       }
-      Catch 
+      Catch
       {
         Write-Error -Message "Skipped $ThisIPv4Address due to error $_."
       }
-         
-      
+
+
       if($Result -ne "SIGNING_OUT")
       {
         Write-Error ('Sign-out request failed for {0} with error ''{1}.''' -f $ThisIPv4Address,$Result)
@@ -794,15 +793,15 @@ Function Unregister-UcsWebLyncUser
   }
 }
 
-Function Stop-UcsWebLyncSignIn 
+Function Stop-UcsWebLyncSignIn
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
   BEGIN {
-    $StatusResult = New-Object -TypeName System.Collections.ArrayList
+    $null = New-Object -TypeName System.Collections.ArrayList
   } PROCESS {
-    Foreach ($ThisIPv4Address in $IPv4Address) 
-    { 
-      Try 
+    Foreach ($ThisIPv4Address in $IPv4Address)
+    {
+      Try
       {
         #Actual URL: http://10.92.10.48/form-submit/Settings/lyncCancelSignIn
 
@@ -816,12 +815,12 @@ Function Stop-UcsWebLyncSignIn
         {
           Write-Error "No sign-in to cancel for $ThisIPv4Address."
         }
-      } Catch 
+      } Catch
       {
         Write-Debug -Message "Skipped $ThisIPv4Address due to error $_."
       }
-      
-      if($Result -ne '' -and $Result -ne $null)
+
+      if($Result -ne '' -and $null -ne $Result)
       {
         Write-Error ('Sign-in cancel request failed for {0} with error ''{1}''' -f $ThisIPv4Address,$Result)
       }
@@ -830,44 +829,44 @@ Function Stop-UcsWebLyncSignIn
   }
 }
 
-Function Get-UcsWebAuditLog 
+Function Get-UcsWebAuditLog
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
   BEGIN {
     $AllResult = New-Object -TypeName System.Collections.ArrayList
   } PROCESS {
-    Foreach ($ThisIPv4Address in $IPv4Address) 
-    { 
-      Try 
+    Foreach ($ThisIPv4Address in $IPv4Address)
+    {
+      Try
       {
         #Actual URL: http://10.92.10.160/Diagnostics/log?value=app&dummyParam=1498860013020
         $UnixTime = Get-UcsUnixTime
         $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Diagnostics/log?value=audit&dummyParam=$UnixTime" -ErrorAction Stop
         $SplitString = $Result.Split("`r`n") | Where-Object -FilterScript {
-          $_.Length -gt 2 
+          $_.Length -gt 2
         }
-      } Catch 
+      } Catch
       {
         Write-Debug -Message "Skipped $ThisIPv4Address due to error $_."
       }
-      
-      Foreach ($Line in $SplitString) 
+
+      Foreach ($Line in $SplitString)
       {
-        Try 
+        Try
         {
           $SplitAuditLine = $Line.Split('|')
           $TimedateString = $SplitAuditLine[0].Trim(' ')
           $MacAddress = $SplitAuditLine[1]
           $Message = $SplitAuditLine[2]
-          
+
           $DateString = $TimedateString.Substring(0,6)
           $YearString = $TimedateString.Substring(($TimedateString.Length - 4))
           $null = $TimedateString -match '\d{2}:\d{2}:\d{2}'
           $TimeString = $Matches[0]
-          
+
           $TimedateString = ('{0} {1} {2}' -f $DateString, $YearString, $TimeString)
           $Date = Get-Date $TimedateString
-          
+
           $ThisResult = 1 | Select-Object -Property @{
             Name       = 'Date'
             Expression = {
@@ -889,9 +888,9 @@ Function Get-UcsWebAuditLog
               $Message
             }
           }
-          
+
           $null = $AllResult.Add($ThisResult)
-        } Catch 
+        } Catch
         {
           Write-Debug -Message "Skipped $Line due to error $_"
         }
@@ -902,28 +901,28 @@ Function Get-UcsWebAuditLog
   }
 }
 
-Function Get-UcsWebLog 
+Function Get-UcsWebLog
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [String][ValidateSet('app','boot')]$LogType = 'app')
   BEGIN {
     $AllResult = New-Object -TypeName System.Collections.ArrayList
   } PROCESS {
-    Foreach ($ThisIPv4Address in $IPv4Address) 
-    { 
-      Try 
+    Foreach ($ThisIPv4Address in $IPv4Address)
+    {
+      Try
       {
         #Actual URL: http://10.92.10.160/Diagnostics/log?value=app&dummyParam=1498860013020
         $UnixTime = Get-UcsUnixTime
         $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Diagnostics/log?value=$LogType&dummyParam=$UnixTime" -ErrorAction Stop
         $SplitString = $Result.Split("`r`n") | Where-Object -FilterScript {
-          $_.Length -gt 2 
+          $_.Length -gt 2
         }
-      } Catch 
+      } Catch
       {
         Write-Debug -Message "Skipped $ThisIPv4Address due to error $_."
       }
-      
+
       $TheseResults = New-UcsLog -LogString $SplitString -LogType $LogType -IPv4Address $ThisIPv4Address
       Foreach($ThisResult in $TheseResults)
       {
@@ -943,59 +942,59 @@ Function Clear-UcsWebLog
   BEGIN {
     $AllResult = New-Object -TypeName System.Collections.ArrayList
   } PROCESS {
-    Foreach ($ThisIPv4Address in $IPv4Address) 
-    { 
-      Try 
+    Foreach ($ThisIPv4Address in $IPv4Address)
+    {
+      Try
       {
         #Actual URL: http://10.92.10.160/Diagnostics/log?value=boot&clear=1&dummyParam=1499810229667
         $UnixTime = Get-UcsUnixTime
         $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Diagnostics/log?value=$LogType&clear=1&dummyParam=$UnixTime" -ErrorAction Stop
 
         $null = $AllResult.Add($Result)
-      } Catch 
+      } Catch
       {
         Write-Debug -Message "Skipped $ThisIPv4Address due to error $_."
       }
     }
   } END {
-    if($PassThru -eq $true) 
+    if($PassThru -eq $true)
     {
       Return $AllResult
     }
   }
 }
 
-Function Get-UcsWebLyncSignIn 
+Function Get-UcsWebLyncSignIn
 {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
   BEGIN {
     $AllOutput = New-Object -TypeName System.Collections.ArrayList
   } PROCESS {
-    Foreach($ThisIPv4Address in $IPv4Address) 
+    Foreach($ThisIPv4Address in $IPv4Address)
     {
       #Signin status is from http://10.92.10.160/Settings/lyncSignInStatus?_=1499803468177
       #Cached credentials from http://10.92.10.160/Settings/lyncCachedCredentials?_=1499803468135
-      
+
       $UnixTime = Get-UcsUnixTime
-      Try 
+      Try
       {
         $SigninStatus = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Settings/lyncSignInStatus?_=$UnixTime" -ErrorAction Stop
       }
-      Catch 
+      Catch
       {
         Write-Error -Message "Couldn't connect to $ThisIPv4Address."
         Continue
       }
-      
-      if($SigninStatus -eq 'SIGNED_IN') 
+
+      if($SigninStatus -eq 'SIGNED_IN')
       {
         $SignedIn = $true
       }
-      else 
+      else
       {
         $SignedIn = $false
       }
-      
+
       $ThisOutput = $SignedIn | Select-Object -Property @{
         Name       = 'Registered'
         Expression = {
@@ -1007,35 +1006,35 @@ Function Get-UcsWebLyncSignIn
           $ThisIPv4Address
         }
       }
-      
-      if($SignedIn -eq $true) 
+
+      if($SignedIn -eq $true)
       {
-        Try 
+        Try
         {
           $Credentials = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint "Settings/lyncCachedCredentials?_=$UnixTime" -ErrorAction Stop
         }
-        Catch 
+        Catch
         {
           Write-Error -Message "Couldn't retrieve sign-in information for $ThisIPv4Address."
           Continue
         }
         $Credentials = ConvertFrom-Json -InputObject $Credentials
-        
-        if($Credentials.isUsingCfg -eq 'false') 
+
+        if($Credentials.isUsingCfg -eq 'false')
         {
           $IsUsingCfg = $false
         }
-        else 
+        else
         {
           $IsUsingCfg = $true
         }
-       
+
         $SipAddress = $null
         if($Credentials.address.length -gt 2)
         {
           $SipAddress = ('sip:{0}' -f $Credentials.address)
         }
-       
+
         $ThisOutput = $ThisOutput | Select-Object -Property *, @{
           Name       = 'SipAddress'
           Expression = {
@@ -1062,19 +1061,19 @@ Function Get-UcsWebLyncSignIn
             $IsUsingCfg
           }
         }
-        
-        if($Credentials.Extension.Length -gt 0) 
+
+        if($Credentials.Extension.Length -gt 0)
         {
           #We're using PIN auth and therefore aren't using Domain or User.
           $ThisOutput = $ThisOutput | Select-Object -Property * -ExcludeProperty Domain, Username
         }
-        else 
+        else
         {
           #We're using user auth and therefore aren't using Domain or User.
           $ThisOutput = $ThisOutput | Select-Object -Property * -ExcludeProperty Extension
         }
-        
-        
+
+
       }
       $null = $AllOutput.Add($ThisOutput) #Add to the collection.
     }
@@ -1083,51 +1082,53 @@ Function Get-UcsWebLyncSignIn
   }
 }
 
-Function Get-UcsWebDeviceInfo 
+Function Get-UcsWebDeviceInfo
 {
-  Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
-  
+  Param(
+    [Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address
+    )
+
   BEGIN {
     $AllPhoneInfo = New-Object -TypeName System.Collections.ArrayList
   } PROCESS {
-    Foreach($ThisIPv4Address in $IPv4Address) 
+    Foreach($ThisIPv4Address in $IPv4Address)
     {
-      Try 
+      Try
       {
         #http://10.92.10.160/home.htm
         $ThisResult = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'home.htm' -ErrorAction Stop
       }
-      Catch 
+      Catch
       {
         Write-Error -Message "Couldn't connect to $ThisIPv4Address."
         Continue
       }
-      
-      
+
+
       $Content = $ThisResult
-      
+
       $Matches = $null
       $null = $Content -match "(\d+[A-Z]?\.){3}\d{4,}[A-Z]*" #We're looking for the specific format of the software version string, which seems to always be 1.1.1.1234 or similar.
       $FirmwareRelease = $Matches[0]
-      
+
       $Matches = $null
       $null = $Content -match '(?<=\n\s*)(\w+\s)+\d+'
       $Model = $Matches[0].Trim("`r`n ")
-      
+
       $Matches = $null
       $null = $Content -match '(?<=\s*)\d{4}-\d{5}-\d{3}'
       $HardwareId = $Matches[0].Trim("`r`n ")
-      
+
       $Matches = $null
       $null = $Content -match "(?<=$HardwareId\sRev:)\w"
       $HardwareRev = $Matches[0].Trim("`r`n ")
-      
+
       $Matches = $null
       $null = $Content -match '[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}'
       $MacAddress = (($Matches[0].Trim("`r`n ")).Replace(':','')).ToLower()
-      
+
       $LastReboot = (Get-UcsWebLastReboot -IPv4Address $ThisIPv4Address -ErrorAction SilentlyContinue).LastReboot
-      
+
       $ThisResult = 1 | Select-Object -Property @{
         Name       = 'MacAddress'
         Expression = {
@@ -1173,7 +1174,7 @@ Function Get-UcsWebDeviceInfo
 
 Function Get-UcsWebProvisioningInfo {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address)
-  
+
   BEGIN
   {
     $OutputObject = New-Object System.Collections.ArrayList
@@ -1185,7 +1186,6 @@ Function Get-UcsWebProvisioningInfo {
       $ProvisioningServer = $null
       Try
       {
-        $Config = $null
         $Matches = $null
         $ProvUserType = Get-UcsWebParameter -IPv4Address $ThisIPv4Address -Parameter ('device.prov.user','device.prov.serverType')
         $ProvUser = $ProvUserType | Where-Object Parameter -eq "device.prov.user"
@@ -1198,7 +1198,7 @@ Function Get-UcsWebProvisioningInfo {
           $Logs = $Logs | Where-Object Message -like "Prov|Server*is unresponsive" | Select-Object -Last 1
           $null = $Logs.Message -match "(?<=Prov|Server ').+(?='.+)"
         }
-        
+
         $ProvisioningServer = $Matches[0].Trim(' ')
         #Remove a leading FTP:// or similar.
         $ProvisioningServer = $ProvisioningServer.Replace('/','\') #Make all slashes the same.
@@ -1207,7 +1207,7 @@ Function Get-UcsWebProvisioningInfo {
         {
           $ProvisioningServer = $ProvisioningServer.Substring($ProvisioningServerIndex)
         }
-        
+
         $ThisOutput = $ProvisioningServer | Select-Object @{Name="ProvServerAddress";Expression={$ProvisioningServer}},@{Name="ProvServerUser";Expression={$ProvUser.Value}},@{Name="ProvServerType";Expression={$ProvType.Value}},@{Name="IPv4Address";Expression={$ThisIPv4Address}}
         $null = $OutputObject.Add($ThisOutput)
       }
@@ -1238,8 +1238,8 @@ Function Get-UcsWebLastReboot {
       {
         foreach($LogType in ('app','boot')) {
           $LastReboot = $null
-          
-        
+
+
           if($Model -like "*Trio*" -and $LogType -eq 'boot') {
             Write-Debug "Skipping boot logs for $ThisIPv4Address because it was detected as $Model."
             Continue
@@ -1259,7 +1259,7 @@ Function Get-UcsWebLastReboot {
           $FirstLog = $Logs | Where-Object DateTime -ne $null | Where-Object Level -eq "*" | Where-Object Message -like "Initial log entry.*" | Select-Object -Last 1
           $LastReboot = $FirstLog.DateTime
 
-          if($LastReboot -ne $null) {
+          if($null -ne $LastReboot) {
             Break #Leave this loop, we've found the lastreboot.
           }
         }
@@ -1267,10 +1267,10 @@ Function Get-UcsWebLastReboot {
       Catch
       {
         $LastReboot = $null
-        Write-Error "Couldn't get a LastReboot for $ThisIPv4Address. Error was $_."        
+        Write-Error "Couldn't get a LastReboot for $ThisIPv4Address. Error was $_."
       }
-      
-      if($LastReboot -ne $null) {
+
+      if($null -ne $LastReboot) {
         $ThisOutput = $LastReboot | Select-Object @{Name="LastReboot";Expression={$LastReboot}},@{Name="IPv4Address";Expression={$ThisIPv4Address}}
         $null = $Reboots.Add($ThisOutput)
       }
@@ -1285,7 +1285,7 @@ Function Get-UcsWebLastReboot {
 Function Reset-UcsWebParameter {
   Param([Parameter(Mandatory,HelpMessage = '127.0.0.1',ValueFromPipelineByPropertyName,ValueFromPipeline)][ValidatePattern('^([0-2]?[0-9]{1,2}\.){3}([0-2]?[0-9]{1,2})$')][String[]]$IPv4Address,
   [Parameter(Mandatory,HelpMessage = 'A UCS parameter, such as "Up.Timeout."',ValueFromPipelineByPropertyName)][String[]]$Parameter)
-  
+
   Begin
   {
   }
@@ -1300,9 +1300,9 @@ Function Reset-UcsWebParameter {
         {
           $FormBody += @{$ThisParameter=$null}
         }
-        
+
         #http://10.92.10.48/form-submit/resetToDefault
-        $Result = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/resetToDefault' -Method Post -Body $FormBody -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
+        $null = Invoke-UcsWebRequest -IPv4Address $ThisIPv4Address -ApiEndpoint 'form-submit/resetToDefault' -Method Post -Body $FormBody -ContentType 'application/x-www-form-urlencoded' -ErrorAction Stop
       }
       Catch
       {
