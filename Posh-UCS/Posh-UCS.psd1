@@ -4,7 +4,7 @@
 RootModule = 'UcsMain.psm1'
 
 # Version number of this module.
-ModuleVersion = '2.5.9.1'
+ModuleVersion = '2.5.9.2'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -104,7 +104,7 @@ PrivateData = @{
     PSData = @{
 
         # Tags applied to this module. These help with module discovery in online galleries.
-        Tags = @('VVX','UCS','Polycom')
+        Tags = @('VVX','UCS','Polycom','PSEdition_Desktop','Windows')
 
         # A URL to the license for this module.
         # LicenseUri = ''
